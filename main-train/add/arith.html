@@ -1,0 +1,87 @@
+
+<html>
+
+
+<head>
+
+<link rel="stylesheet" href="arith.css">
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  function createParagraph() {
+    let section0 = document.createElement('section');
+    section0.classList = ["expr"]
+
+    let section = document.createElement('section');
+    section0.appendChild(section);
+    section.classList = ["wrap"]
+
+    let answerStatus = document.createElement('p')
+    answerStatus.textContent = "";
+    answerStatus.classList = ["answer-status-none"]
+    section.appendChild(answerStatus);
+
+
+    let text = document.createElement('section')
+    let aV = Math.floor((Math.random() * 900 + 100))
+    let bV = Math.floor((Math.random() * 900 + 100))
+    text.textContent = "" + aV +
+                          " + "   + bV +
+                          " = ";
+    text.classList = ["task-text"]
+    section.appendChild(text);
+
+
+    let textInput = document.createElement('input');
+    textInput.classList = ["input"]
+    textInput.setAttribute("type", "text")
+    textInput.setAttribute("size", 4)
+    section.appendChild(textInput);
+    textInput.expectedValue = aV + bV
+
+
+    let answerButton = document.createElement('button');
+    answerButton.classList = ["ok"]
+    answerButton.textContent = "Ответ"
+    answerButton.classList = ["answer-button"]
+    section.appendChild(answerButton);
+    answerButton.addEventListener('click', (event) => {
+      const gotValue = Number.parseInt(event.target.parentElement.children[2].value);
+      const expectedValue = Number.parseInt(event.target.parentElement.children[2].expectedValue);
+
+      if (gotValue !== expectedValue) {
+        event.target.parentElement.children[0].classList = ["answer-status-fail"]
+      } else {
+        event.target.parentElement.children[0].classList = ["answer-status-ok"]
+      }
+    })
+
+    const buttonElem = document.body.children[document.body.children.length - 1];
+
+    document.body.insertBefore(section0, buttonElem)
+    document.body.appendChild(buttonElem);
+
+  }
+
+  const buttons = document.querySelectorAll('.button-next');
+
+  for(let i = 0; i < buttons.length ; i++) {
+    buttons[i].addEventListener('click', createParagraph);
+  }
+
+});
+</script>
+
+</head>
+
+<body>
+
+<title>Arithmetics checker</title>
+
+<button class="button-next">+1</button>
+
+<!--<div class="wrapper"> -->
+<!-- </div> -->
+</body>
+
+</html>

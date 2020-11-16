@@ -1,0 +1,124 @@
+
+.button-next {
+  float: left;
+/*  height: 50px;*/
+
+  margin-left: 30px;
+  margin-top: 12px;
+  padding-left: 30px;
+  padding-right: 30px;
+  background-color: #097;
+  border: none;
+  border-radius: 10%;
+  color: #ffc;
+  font-weight: bold;
+  font-size: 2em;
+}
+
+.expr {
+  float: left;
+/*  height: 50px;*/
+
+  margin-left: 30px;
+  margin-top: 10px;
+  padding-left: 30px;
+  padding-right: 30px;
+  background-color: #52c8d4;
+  border: none;
+  border-radius: 10px;
+  color: #222;
+  font-weight: bold;
+  font-size: 2em;
+  padding-top: 1px;
+  padding-bottom: 1px;
+}
+
+
+/*
+  vertical-align: middle;
+  line-height: 100%;
+  border: 1px solid #ccc;
+  text-align: center;
+
+  padding-left: 10px;
+
+  margin-left: 10px;
+  margin-top: 10px;
+
+  font-size: 1.2em;
+
+  display: grid;
+  grid-template-columns: 20px 100px 100px auto;
+*/
+
+.wrap {
+  display: grid;
+  grid-template-columns: 50px 1fr 1fr 1fr auto;
+  align-items: center;
+  margin: 2px;
+
+/*
+  TODO:
+  deploy
+*/
+
+}
+
+.task-text {
+  margin-right: 10px;
+  border: none;
+  outline: none;
+}
+
+.input {
+  font-size: 1em;
+  width: 4em;
+  margin-right: 20px;
+  border: none;
+  outline: none;
+  color: #aaa;
+}
+
+.wrapper {
+  background-color: gray;
+  margin: 0;
+}
+
+.answer-status-none {
+  background-color: #52c8d4;
+  height: 20px;
+  width: 20px;
+  margin: 0;
+  border-radius: 50%;
+}
+
+.answer-status-ok {
+  background-color: green;
+  height: 20px;
+  width: 20px;
+  margin: 0;
+  border-radius: 50%;
+}
+
+.answer-status-fail {
+  background-color: red;
+  height: 20px;
+  width: 20px;
+  margin: 0;
+  border-radius: 50%;
+}
+
+.answer-button {
+  height: 100%;
+  border: none;
+  outline: none;
+  font-size: 1em;
+  background-color: #52c8d4;
+}
+
+.answer-button:hover {
+  background-color: yellow;
+  border: none;
+  outline: none;
+  border-radius: 10px;
+}
