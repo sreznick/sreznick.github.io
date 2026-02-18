@@ -1,0 +1,962 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1024" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <title>impress.js | presentation tool based on the power of CSS3 transforms and transitions in modern browsers | by Bartek Szopka @bartaz</title>
+    
+    <meta name="description" content="impress.js is a presentation tool based on the power of CSS3 transforms and transitions in modern browsers and inspired by the idea behind prezi.com." />
+    <meta name="author" content="Bartek Szopka" />
+
+    <link href="//fonts.googleapis.com/css?family=Open+Sans:regular,semibold,italic,italicsemibold|PT+Sans:400,700,400italic,700italic|PT+Serif:400,700,400italic,700italic" rel="stylesheet" />
+
+    <link href="css/impress-demo.css" rel="stylesheet" />
+    <link href="css/impress-common.css" rel="stylesheet" />
+    
+    <link rel="shortcut icon" href="favicon.png" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/default.min.css">
+
+</head>
+
+<body class="impress-not-supported">
+
+<div class="fallback-message">
+    <p>Your browser <b>doesn't support the features required</b> by impress.js, so you are presented with a simplified version of this presentation.</p>
+    <p>For the best experience please use the latest <b>Chrome</b>, <b>Safari</b> or <b>Firefox</b> browser.</p>
+</div>
+
+<div id="impress"
+    data-transition-duration="1000"
+    
+    data-width="1024"
+    data-height="768"
+    data-max-scale="3"
+    data-min-scale="0"
+    data-perspective="1000"
+    >
+
+    <div  class="step slide" data-x="-1000" data-y="-1500">
+        <h1>Python: лекция 2</h1>
+        <ul>
+        <li>Логические значения</li>
+        <li>Условное исполнение</li>
+        <li>Типы данных: продолжение</li>
+        </ul>
+    </div>
+
+
+    <div  class="step slide" data-x="0" data-y="-1500">
+        <h1>Типы данных</h1>
+        <ul>
+        <li>Уже познакомились
+        <ul>
+           <li>Строки</li>
+           <li>Целые</li>
+        </ul>
+        </li>
+        <li>В ближайших планах
+        <ul>
+           <li>Логические</li>
+           <li>Вещественные</li>
+        </ul>
+        </li>
+        </ul>
+    </div>
+    <div  class="step slide" data-x="1000" data-y="-1500">
+        <h1>Логические значения</h1>
+        <ul>
+        <li>Мотивация их существования - скорее как вспомогательный инструмент</li>
+        <li>Но очень важный и практически незаменимый</li>
+        <li>Простейшая численная арифметика не обходится без условий</li>
+        <li>Примеры
+        <ul>
+           <li>Абсолютное значение</li>
+           <li>Максимум в наборе чисел</li>
+           <li>Квадратные уравнения в вещественных числах</li>
+        </ul>
+        </li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="2000"  data-y="-1500">
+        <h1>Python: абсолютное значение</h1>
+        <pre><code class="python">
+def abs(v):
+    if v &lt; 0:
+        return -v
+    else:
+        return v
+
+def max(a, b):
+    if a &lt; b:
+        return b
+    else:
+        return a
+
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="3000"  data-y="-1500">
+        <h1>Python: квадратное уравнение</h1>
+        <pre><code class="python">
+
+def solve_square_equation(a, b, c):
+    d = b * b - 4 * c
+    if d < 0:
+        return ()
+    elif d == 0:
+        return -b / a / 2,
+    else:
+        d = d ** 0.5
+        return (-b + d) / a / 2, (-b - d) / a / 2
+
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="4000" data-y="-1500">
+        <h1>Как все работает</h1>
+        <ul>
+        <li>Синтаксически Python-код состоит из предложений (statement)</li>
+        <li>Предложения бывают простыми и сложными (simple/compound)</li>
+        <li>Пример простого предложения: <pre>d = b * b - 4 * c</pre></li>
+        <li><pre>def ...</pre> - составное предложение</li>
+        <li><pre>if ...</pre> - составное предложение</li>
+        </ul>
+    </div>
+
+
+    <div class="step slide" data-x="5000" data-y="-1500">
+        <h1>Как все работает</h1>
+        <ul>
+        <li>В первом приближении исполнение файла - исполнение последовательности предложений</li>
+        <li>Простых и сложных</li>
+        <li>Предложения в исполняемой последовательнсти должны быть на одном смещении</li>
+        <li>Изначально это смещение 0</li>
+        <li>Простые предложения должны умещаться на одной логической строке</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="6000" data-y="-1500">
+        <h1>Логическая и физическая строки</h1>
+        <ul>
+        <li>В простом случае физическая и логическая строка не отличаются</li>
+
+        <li>Пример:
+        <pre><code class="python">
+
+a = 1
+b = 1 + a
+print(a + b)
+
+        </code></pre>
+        </li>
+        <li>В примере 3 непустых логических строки</li>
+        <li>Каждая совпадает с физической</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="7000" data-y="-1500">
+        <h1>Логическая строка: зачем и как ?</h1>
+        <ul>
+        <li>Не всегда вычисляемые выражения лаконичны </li>
+        <li>Части некоторых длинных выражений хочется распологать под более ранними частями</li>
+        <li>Логическую строку можно продлить на следующую физическую</li>
+        <li>Можно это сделать явно - через '\' в самом конце строки</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="8000" data-y="-1500">
+        <h1>Пример</h1>
+        <pre><code class="python">
+
+a = 1
+b = 1 + a
+c = 2 - b
+d = a * b * c + \
+    (a + 1) * (b - 1) * c + \
+    a * (b + 1) * (c - 1 ) + \
+    (a + 1) * b * (c - 1) 
+print(d)
+
+        </code></pre>
+    </div>
+
+
+
+
+    <div class="step slide" data-x="9000" data-y="-1500">
+        <h1>Логическая строка: зачем и как ?</h1>
+        <ul>
+        <li>Есть вариант неявного продолжения логической строки</li>
+        <li>При наличии незакрытой синтаксически корректной скобки: круглой квадратной или фигурной</li>
+        <li>Иногда ее открывают искуственно</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="10000" data-y="-1500"> 
+        <h1>Логическая строка: зачем и как ?</h1>
+        <pre><code class="python">
+    
+a = 1
+b = 1 + a
+c = 2 - b
+d = (
+    a * b * c + 
+    (a + 1) * (b - 1) * c + \
+    a * (b + 1) * (c - 1 ) + \
+    (a + 1) * b * (c - 1)
+   )
+print(d)
+
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="11000" data-y="-1500">
+        <h1>Логическая строка и правила о смещениях</h1>
+        <ul>
+        <li>В правилах о смещениях важна только первая физическая строка в каждой логической строке</li>
+        <li>Иногда этим пользуются</li>
+        <li>И саботируют отступы</li>
+        <li>Но нужно знать меру - чтобы не страдала общая читаемость кода</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="12000" data-y="-1500">
+        <h1>Составные предложения</h1>
+        <ul>
+        <li>Составные предложения (почти) всегда состоят из нескольких логических строк</li>
+        <li>Первая логическая строка составного предложения всегда начинается с ключевого слова </li>
+        <li>Им определяется тип составного предложения</li>
+        <li>Пока встречалось два типа/ключевых слова: def и if</li>
+        <li>С остальными познакомимся по мере прохождения курса</li>
+        <li>После первой логической строки в составном предложении всегда идет блок предложений</li>
+        <li>Его смещение обязано увеличиться</li>
+        <li>И он не может быть пустым</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="13000" data-y="-1500">
+        <h1>Пример</h1>
+        <pre><code class="python">
+
+if a > 0:
+    print('a is positive')
+
+if b < 0:
+  print('b is negative')
+
+def sum(a, b):
+        return a + b   
+
+        </code></pre>
+    </div>
+
+
+
+    <div class="step slide" data-x="14000" data-y="-1500">
+        <h1>Пример</h1>
+        <pre><code class="python">
+          
+def f(v): 
+    if v > 0:
+        pass #  TODO
+
+def f(v):
+    ... #  TODO
+
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="15000" data-y="-1500">
+        <h1>Исполнение блока</h1>
+        <ul>
+        <li>Исполнение блока зависит от типа составного предложения</li>
+        <li>Если это определение функции - блок кода точно не исполняется в момент определения функции</li>
+        <li>Он запоминается и исполняется в момент вызова функции</li>
+        <li>Если это условное предложение - блок исполняется или не исполняется в зависимости от истинности условия</li>
+        <li>Условие определяется выражением между if и двоеточием в начальной логической строке</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="16000" data-y="-1500">
+        <h1>Логическое выражение</h1>
+        <ul>
+          <li>Логические значения - отдельный тип данных</li>
+          <li>Часто они вычисляются как условие для if</code>
+          <li>Но могут и храниться в переменных</li>
+          <li>Или передаваться параметрами в функции</li>
+          <li>Или возвращаться как результат исполнени функции</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="17000" data-y="-1500">
+        <h1>Операции с логическим результатом</h1>
+        <ul>
+          <li>Проверка равенства двух значений: ==</li>
+          <li>И противоположная ей: !=</li>
+          <li>Эти операции работают практически всегда</li>
+          <li>В том числе и для операндов разных типов</li>
+          <li>И иногда значения разных типов бывают равны</li>
+        </ul>
+         <pre><code class="python">
+
+print(1 == 1.0) # True
+print(2.1 == 1.0) # False
+print('abc' == 'ab' + 'c') # True
+
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="18000" data-y="-1500">
+        <h1>Операции с логическим результатом</h1>
+        <ul>
+          <li>Строгое сравнение на больше: &gt;</li>
+          <li>Строгое сравнение на меньше: &lt;</li>
+          <li>Нестрогое сравнение на больше: &gt;=</li>
+          <li>Нестрогое сравнение на меньше: &lt;=</li>
+          <li>Как правило определены только для операндов одного типа</li>
+          <li>Можно сравнить на больше/меньше целое с вещественным</li>
+          <li>Но нельзя сравнить на больше/меньше целое со строкой</li>
+          <li>Или строку с вещественным числом</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="19000" data-y="-1500">
+        <h1>Операции с логическим результатом</h1>
+        <ul>
+          <li>А строку со строкой  - можно</li>
+          <li>Строки сравниваются на основе кодов символов</li>
+          <li>Ищется первая позиция, на которой символы не совпадают</li>
+          <li>И сравниваются коды несовпадающих символов</li>
+          <li>У кого меньше - та строка и меньше</li>
+          <li>Для латиницы более ранний алфавитный символ имеет меньший код</li>
+          <li>(Это верно отдельно для заглавных и отдельно для строчных)</li>
+          <li>Для национальных алфавитов не всегда верно</li>
+          <li>Если в ходе поиска символы одной из строк закончились - она считается меньшей</li>
+        </ul>
+    </div>
+
+
+
+    <div class="step slide" data-x="20000" data-y="-1500">
+        <h1>Примеры</h1>
+        <pre><code class="python">
+
+print(1 > 0) # True
+print(1 < 0) # False
+print(1 > 0.0) # True
+print(1.0 < 0) # False
+#print(1 > '0') # бросится исключение
+print('a' < 'b') # True
+print('b' > 'c') # False
+print('ba' > 'b') # True
+print('bc' > 'b') # True
+
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="21000" data-y="-1500">
+        <h1>Логические операции</h1>
+        <ul>
+          <li>Логическое И</li>
+          <li>Логическое ИЛИ</li>
+          <li>Представлены в Python как or и and</li>
+          <li>Логическое отрицание</li>
+          <li>Есть еще две логические операции</li>
+          <li>Исключающее ИЛИ - ровно один операнд истинен </li>
+          <li>Эквивалентность - оба истинны или оба ложны </li>
+          <li>Впрямую не представлены: как что-то типа xor/eq</li>
+          <li>Можно использовать == и !=</li>
+          <li>Но есть нюанс</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="22000" data-y="-1500">
+        <h1>Приоритеты</h1>
+        <ul>
+          <li>Приоритет == и != выше, чем приоритем and</li>
+          <li>Приоритет and выше, чем приоритет or</li>
+        </ul>
+        <pre><code class="python">
+    
+print(a > b and c > d) # сначала сравнения, потом and
+print(a > 0 and b > 100 or  c > 0 and d < 10) 
+# True, если верно хотя бы одно из:
+# a > 0 and b > 100 
+# c > 0 and d < 10
+          
+        </code></pre> 
+    </div>
+    <div class="step slide" data-x="23000" data-y="-1500">
+        <h1>Неочевидный пример</h1>
+        <pre><code class="python">
+
+def f(a, b):
+    return a < b
+
+print(f(0, 1)) # True
+print(f(1, 0)) # False
+print(f(0, 2)) # True
+print(f(2, 0)) # False
+print(f(0, 1) and f(1, 0)) # False
+print(f(0, 2) and f(2, 0)) # False
+
+# Пока все логично и ожидаемо
+
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="24000" data-y="-1500">
+        <h1>Неочевидный пример</h1>
+        <pre><code class="python">
+
+# могли бы ожидать True - как результат False == False
+print(f(0, 2) and f(2, 0) == f(0, 1) and f(1, 0)) 
+
+# Но приоритет сравнения - выше
+# Поэтому сначала посчитается f(2, 0) == f(0, 1)
+# И получится True and False and False
+        
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="25000" data-y="-1500">
+        <h1>Укороченное двойное сравнение</h1>
+        <ul>
+          <li>Часто проверяются принадлежность числа диапазону</li>
+          <li>Например: <pre>a > 10 and a < 20</pre></li>
+          <li>Такую запись можно сократить: <pre>10 < a < 20</pre></li>
+          <li>Это удобно, но местами может вводить в заблуждение</li>
+          <li>Например: <pre>(1 > 0) == (0 > 1) == (0 > 1)</pre></li>
+          <li>Как будто первое == будет сравнивать True и False и даст False</li>
+          <li>А False как будто равен False - должно получиться True</li> 
+          <li>Но на самом деле это <pre>((1 > 0) == (0 > 1)) and ((0 > 1) == (0 > 1))</pre></li>    
+        </ul>
+    </div>
+    <div class="step slide" data-x="26000" data-y="-1500">
+        <h1>Сокращенное вычисление and и or</h1>
+        <ul>
+          <li>Если первый операнд and дает False - второй не влияет на результат</li>
+          <li>Если первый операнд or дает True - второй не влияет на результат</li>
+          <li>В таких случая Python гарантирует, что второй операнд вычисляться не будет</li>
+          <li>Этим можно и нужно пользоваться для лаконичности</li>
+        </ul>
+    </div>
+
+
+
+    <div class="step slide" data-x="27000" data-y="-1500">
+        <h1>Сокращенное вычисление and и or</h1>
+        <pre><code class="python">
+
+if v != 0 and 1 / v < 0.1:
+    print('1/v is too small')
+
+# вот так не надо
+if v != 0:
+    if 1 / v < 0.1:
+        print('1/v is too small')
+
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="28000" data-y="-1500">
+        <h1>Особенности сравнения вещественных чисел</h1>
+        <pre><code class="python">
+
+def cmp(a, b):
+    print(a < b, a == b, a > b)
+
+cmp(0.3, 0.3) # False True False
+cmp(0.1 * 3, 0.3) # False False True
+print(0.1 * 3) # 0.30000000000000004
+
+        </code></pre>    
+    </div>
+    <div class="step slide" data-x="29000" data-y="-1500">
+        <h1>Особенности сравнения вещественных чисел</h1>
+        <ul>
+          <li>Вещественные числа представлены как двоичная дробь</li>
+          <li>Двоичная дробь похожа на десятичную, только в другой системе счисления</li>
+          <li>Десятичные дроби бывают периодическими (например, 1/3  - это 0.33333...)</li>
+          <li>Двоичные дроби тоже бывают периодическими</li>
+          <li>Непериодическая десятичная дробь может быть периодической в двоичной системе</li>
+          <li>А внутреннее представление числа всегда конечно</li>
+          <li>Поэтому перидические дроби представлены неточно</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="30000" data-y="-1500">
+        <h1>Как сравнивать нецелые числа</h1>
+        <ul>
+          <li>Зависит от задачи</li>
+          <li>Есть типы данных Fraction и Decimal</li>
+          <li>Можно работаться с ними</li>
+          <li>Fraction - представляет дробь как целочисленные числитель и знаменатель</li>
+        </ul>
+        <pre><code class="python">
+
+from fractions import Fraction
+Fraction(1, 3) + Fraction(1 / 2)
+Fraction(5, 6)
+Fraction(1, 10) * 3 == Fraction(3, 10)
+
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="31000" data-y="-1500">
+        <h1>Как сравнивать нецелые числа</h1>
+        <ul>
+          <li>Decimal хранит десятичные дроби ограниченной точности</li>
+          <li>Ограниченной - в смысле числа знаков после запятой</li>
+          <li>Нужно не очень много знаков после запятой</li>
+          <li>Но в рамках этих знаков все должно быть точно</li>
+          <li>Типичное применение - считать деньги в рублях с копейками как сотыми</li>
+          <li>Или чего-то подобного</li>
+          <li>Внутри хранится целое число и отдельно - позиция точки</li>
+          <li>Но это работает медленнее обычных вещественных чисел</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="32000" data-y="-1500">
+        <h1>Пример</h1>
+        <pre><code class="python">
+    
+from decimal import Decimal
+
+a = Decimal("0.1")
+result = a * 3
+print(result)
+
+        </code></pre>
+    </div>
+
+
+
+    <div class="step slide" data-x="33000" data-y="-1500">
+        <h1>Логическое отрицание</h1>
+        <ul>
+          <li>Логическое отрицание -  унарная операция</li>
+          <li>Обозначается not</li>
+          <li>Комбинация not с некоторыми другими операциями имеет свой сокращенный синтаксис</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="34000" data-y="-1500">
+        <h1>Пример</h1>
+        <pre><code class="python">
+
+if not (a < b):
+    ...
+
+if not 'e' in s:
+    ...
+
+if 'e' not in s:
+    ...
+
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="35000" data-y="-1500">
+        <h1>else</h1>
+        <ul>
+          <li>Часто одному условию соответсвует два вариант действий: на случай истинности и на случай ложности</li>
+          <li>Для этого используется ключевое слово else</li>
+          <li>Оно должно стоять на том же смещении, что и if</li>
+          <li>Смещение определяет, к какому if оно относится</li>
+          <li>Синтаксически else не является само по себе составным предложением</li>
+          <li>Это часть условного составного предложения</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="36000" data-y="-1500">
+        <h1>Примеры</h1>
+        <pre><code class="python">
+def max(a, b):
+    if a < b:
+        return b
+    else:
+        return a
+def days_in_month(n):
+    if n == 2:
+        return 28
+    else:
+        if n == 4 or n == 6 or n == 9 or n == 11:
+            return 30
+        else:
+            return 31
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="37000" data-y="-1500">
+        <h1>elif/match</h1>
+        <ul>
+          <li>Бывает, что нужны более, чем 2 ветки</li>
+          <li>Например, для определения числа дней в месяце нужно как минимум 3 ветки</li>
+          <li>А с учетом високосности года - 4</li>
+          <li>Можно это организовать вложенными if-ами</li>
+          <li>Получим неестественную вложенность</li>
+          <li>Не отражающую природу сравнения</li>
+          <li>По сути-то разбираем одну ситуацию</li>
+          <li>Есть два варианта решения проблемы</li>
+        </ul>
+    </div>
+
+
+
+    <div class="step slide" data-x="38000" data-y="-1500">
+        <h1>elif/match</h1>
+        <ul>
+          <li>elif - проверка еще одного условия</li>
+          <li>Используется на месте else</li>
+          <li>Сопровождается условием</li>
+          <li>elif-ов может быть несколько</li>
+          <li>После серии elif-ов можно использовать else</li>
+          <li>if, elif-ы и else идут на одном смещении</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="39000" data-y="-1500">
+        <h1>Примеры</h1>
+        <pre><code class="python">
+
+def days_in_month(n, year):
+    if n == 4 or n == 6 or n == 9 or n == 11:
+        return 30
+    elif n == 2 and is_leap(year):
+        return 29
+    elif n == 2:
+        return 28
+    else:
+        return 31
+            
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="40000" data-y="-1500">
+        <h1>elif/match</h1>
+        <ul>
+          <li>match - вычисление выражения и проверка разных вариантов значений</li>
+          <li>После match идут со смещением case-ветки со значениями</li>
+          <li>Перебираются все варианты</li>
+          <li>Первый успешно сопоставившийся вариант исполняется</li>
+          <li>После успешного сопоставления новые сопоставления не ищутся</li>
+          <li>_ сопоставляется с чем угодно</li>
+          <li>case _  - аналог else</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="41000" data-y="-1500">
+        <h1>Пример</h1>
+        <pre><code class="python">
+def days_in_month(n, year):
+    match n:
+        case 1:
+            return 31
+        case 2:
+            if is_leap(year):
+                return 29
+            else:
+                return 28
+        case 4:
+            return 30
+        # ...
+        </code></pre>
+    </div>
+
+
+    <div class="step slide" data-x="42000" data-y="-1500">
+        <h1>Пример</h1>
+        <pre><code class="python">
+
+        # ...
+        case 9:
+            return 30
+        case 11:
+            return 30
+        case _:
+            return 31
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="43000" data-y="-1500">
+        <h1>Пример</h1>
+        <pre><code class="python">
+def days_in_month(n, year):
+    match n, is_leap(year):
+        case 1, _:
+            return 31
+        case 2, True:
+            return 29
+        case 2, False:
+            return 28
+        case 4:
+            return 30
+        case 6:
+            return 30
+        # ...
+
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="44000" data-y="-1500">
+        <h1>Пример</h1>
+        <pre><code class="python">
+
+        # ...
+
+        case 9:
+            return 30
+        case 11:
+            return 30
+        case _:
+            return 31
+
+        </code></pre>
+    </div>
+
+
+
+
+
+    <div class="step slide" data-x="45000" data-y="-1500">
+        <h1>Пример</h1>
+        <pre><code class="python">
+
+def days_in_month(n, year):
+    match n:
+        case 2 if is_leap(year):
+            return 29
+        case 2:
+            return 28
+        case v if v in 4, 6, 9, 11:
+        case _:
+            return 31
+
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="46000" data-y="-1500">
+        <h1>Пример</h1>
+        <pre><code class="python">
+    
+def days_in_month(n, year):
+    match n:
+        case 2 if is_leap(year):
+            return 29
+        case 2:
+            return 28
+        case v if v in 4, 6, 9, 11:
+            return 30
+        case v if v in 1, 3, 5, 7, 8, 10, 12:
+            return 31
+
+        </code></pre>
+    </div>
+
+
+    <div class="step slide" data-x="47000" data-y="-1500">
+        <h1>Логический контекст</h1>
+        <ul>
+          <li>Позиция после if или elif - это логический контекст</li>
+          <li>В логическом контексте работают правила преобразования значения любого типа в логический</li>
+          <li>Для встроенных типов эти правила заданы</li>
+          <li>И ими принято пользоваться</li>
+          <li>Для целых чисел ненулевое значение превращается в True</li>
+          <li>Нулевое - в False</li>
+          <li>Аналогично - для вещественных</li>
+        </ul>
+    </div>  
+
+
+    <div class="step slide" data-x="48000" data-y="-1500">
+        <h1>Пример</h1>
+        <pre><code class="python">
+# так можно
+if n_elements != 0:
+    ...
+# но лучше так
+if n_elements:
+    ...
+    
+# так можно
+if n_elements == 0:
+    ...
+# но лучше так
+if not n_elements:
+    ...
+        </code></pre>
+    </div> 
+
+    <div class="step slide" data-x="49000" data-y="-1500">
+        <h1>Логический контекст</h1>
+        <ul>
+          <li>Пустая строка превращается в False</li>
+          <li>Не пустая - в True</li>
+          <li>В Python много типов-коллекций: списки, кортежи, множества, словари</li>
+          <li>Для них повторяется тот же принцип</li>
+          <li>Пустая коллекция - False</li>
+          <li>Непустая - в True</li>
+        </ul>
+    </div>  
+    <div class="step slide" data-x="50000" data-y="-1500">
+        <h1>Пример</h1>
+        <pre><code class="python">
+# так можно
+if line == "":
+    ...
+# и так можно
+if len(line) == 0:
+    ...
+# и так можно
+if not len(line):
+    ... 
+    
+# но лучше так
+if not line:
+    ...
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="51000" data-y="-1500">
+        <h1>Логическое как целое</h1>
+        <ul>
+          <li>Логический тип в Python - подтип целого</li>
+          <li>Везде, где ожидается целое значение, можно использовать логическое</li>
+          <li>True - это 1, False - это 0</li>
+        </ul>
+        <pre><code class="python">
+
+s1 = input()
+s2 = input()
+s3 = input()
+print((s1 == s2) + (s1 == s2) + (s2 == s3))
+# печатает количество равных пар
+
+        </code></pre>
+    </div>  
+
+    <!--
+        
+        * `data-x`, `data-y`, `data-z` - they define the position of **the center** of step element on
+            the canvas in pixels; their default value is 0;
+        * `data-rotate-x`, `data-rotate-y`, 'data-rotate-z`, `data-rotate` - they define the rotation of
+            the element around given axis in degrees; their default value is 0; `data-rotate` and `data-rotate-z`
+            are exactly the same;
+        * `data-scale` - defines the scale of step element; default value is 1
+        
+        These values are used by impress.js in CSS transformation functions, so for more information consult
+        CSS transfrom docs: https://developer.mozilla.org/en/CSS/transform
+        
+    -->
+    <div id="overview" class="step" data-x="3000" data-y="1500" data-z="0" data-scale="10">
+    </div>
+
+</div>
+
+<!--
+    This is a UI plugin. You can read more about plugins in src/plugins/README.md.
+    For now, I'll just tell you that this adds some graphical controls to navigate the
+    presentation. In the CSS file you can style them as you want. We've put them bottom right.
+-->
+<div id="impress-toolbar"></div>
+
+<!--
+    
+    Hint is not related to impress.js in any way.
+    
+    But it can show you how to use impress.js features in creative way.
+    
+    When the presentation step is shown (selected) its element gets the class of "active" and the body element
+    gets the class based on active step id `impress-on-ID` (where ID is the step's id)... It may not be
+    so clear because of all these "ids" in previous sentence, so for example when the first step (the one with
+    the id of `bored`) is active, body element gets a class of `impress-on-bored`.
+    
+    This class is used by this hint below. Check CSS file to see how it's shown with delayed CSS animation when
+    the first step of presentation is visible for a couple of seconds.
+    
+    ...
+    
+    And when it comes to this piece of JavaScript below ... kids, don't do this at home ;)
+    It's just a quick and dirty workaround to get different hint text for touch devices.
+    In a real world it should be at least placed in separate JS file ... and the touch content should be
+    probably just hidden somewhere in HTML - not hard-coded in the script.
+    
+    Just sayin' ;)
+    
+-->
+<div class="hint">
+    <p>Use a spacebar or arrow keys to navigate. <br/>
+       Press 'P' to launch speaker console.</p>
+</div>
+<script>
+if ("ontouchstart" in document.documentElement) { 
+    document.querySelector(".hint").innerHTML = "<p>Swipe left or right to navigate</p>";
+}
+</script>
+
+<!--
+    
+    Last, but not least.
+    
+    To make all described above really work, you need to include impress.js in the page.
+    I strongly encourage to minify it first.
+    
+    In here I just include full source of the script to make it more readable.
+    
+    You also need to call a `impress().init()` function to initialize impress.js presentation.
+    And you should do it in the end of your document. Not only because it's a good practice, but also
+    because it should be done when the whole document is ready.
+    Of course you can wrap it in any kind of "DOM ready" event, but I was too lazy to do so ;)
+    
+-->
+<script src="js/impress.js"></script>
+<script>impress().init();</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<!-- Include any specific language files AFTER the main library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/python.min.js"></script>
+
+<script>hljs.highlightAll();</script>
+<!--
+    
+    The `impress()` function also gives you access to the API that controls the presentation.
+    
+    Just store the result of the call:
+    
+        var api = impress();
+    
+    and you will get three functions you can call:
+    
+        `api.init()` - initializes the presentation,
+        `api.next()` - moves to next step of the presentation,
+        `api.prev()` - moves to previous step of the presentation,
+        `api.goto( stepIndex | stepElementId | stepElement, [duration] )` - moves the presentation to the step given by its index number
+                id or the DOM element; second parameter can be used to define duration of the transition in ms,
+                but it's optional - if not provided default transition duration for the presentation will be used.
+    
+    You can also simply call `impress()` again to get the API, so `impress().next()` is also allowed.
+    Don't worry, it won't initialize the presentation again.
+    
+    For some example uses of this API check the last part of the source of impress.js where the API
+    is used in event handlers.
+    
+-->
+
+</body>
+</html>
+
+<!--
+    
+    Now you know more or less everything you need to build your first impress.js presentation, but before
+    you start...
+    
+    Oh, you've already cloned the code from GitHub?
+    
+    You have it open in text editor?
+    
+    Stop right there!
+    
+    That's not how you create awesome presentations. This is only a code. Implementation of the idea that
+    first needs to grow in your mind.
+    
+    So if you want to build great presentation take a pencil and piece of paper. And turn off the computer.
+    
+    Sketch, draw and write. Brainstorm your ideas on a paper. Try to build a mind-map of what you'd like
+    to present. It will get you closer and closer to the layout you'll build later with impress.js.
+    
+    Get back to the code only when you have your presentation ready on a paper. It doesn't make sense to do
+    it earlier, because you'll only waste your time fighting with positioning of useless points.
+    
+    If you think I'm crazy, please put your hands on a book called "Presentation Zen". It's all about 
+    creating awesome and engaging presentations.
+    
+    Think about it. 'Cause impress.js may not help you, if you have nothing interesting to say.
+    
+-->
+
+<!--
+    
+    Are you still reading this?
+    
+    For real? I'm impressed! 
+    
+    But now, take my advice and take some time off. Make yourself a cup of coffee, tea,
+    or anything you like to drink.
+    
+    Cheers!
+    
+-->
+

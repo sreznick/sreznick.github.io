@@ -1,0 +1,620 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1024" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <title>impress.js | presentation tool based on the power of CSS3 transforms and transitions in modern browsers | by Bartek Szopka @bartaz</title>
+    
+    <meta name="description" content="impress.js is a presentation tool based on the power of CSS3 transforms and transitions in modern browsers and inspired by the idea behind prezi.com." />
+    <meta name="author" content="Bartek Szopka" />
+
+    <link href="//fonts.googleapis.com/css?family=Open+Sans:regular,semibold,italic,italicsemibold|PT+Sans:400,700,400italic,700italic|PT+Serif:400,700,400italic,700italic" rel="stylesheet" />
+
+    <link href="css/impress-demo.css" rel="stylesheet" />
+    <link href="css/impress-common.css" rel="stylesheet" />
+    
+    <link rel="shortcut icon" href="favicon.png" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/default.min.css">
+
+</head>
+
+<body class="impress-not-supported">
+
+<div class="fallback-message">
+    <p>Your browser <b>doesn't support the features required</b> by impress.js, so you are presented with a simplified version of this presentation.</p>
+    <p>For the best experience please use the latest <b>Chrome</b>, <b>Safari</b> or <b>Firefox</b> browser.</p>
+</div>
+
+<div id="impress"
+    data-transition-duration="1000"
+    
+    data-width="1024"
+    data-height="768"
+    data-max-scale="3"
+    data-min-scale="0"
+    data-perspective="1000"
+    >
+
+    <div  class="step slide" data-x="-1000" data-y="-1500">
+        <h1>Python: лекция 3</h1>
+        <ul>
+        <li>Цикл while</li>
+        <li>Итерируемые типы данных</li>
+        <li>Цикл for</li>
+        </ul>
+    </div>
+
+
+    <div  class="step slide" data-x="0" data-y="-1500">
+        <h1>Повторяющиеся вычисления</h1>
+        <ul>
+         <li>Ранее мы рассматривали только линейные вычисления</li>
+         <li>Код исполнялся от начала до конца</li>
+         <li>Даже вызовы функций не меняли этого факта</li>
+         <li>Внутри функций все тоже было линейным</li>
+         <li>Но этого явно мало для полезных и осмыленных действий</li>
+         <li>Нужно уметь "возвращаться назад"</li>
+        </ul>
+    </div>
+    <div  class="step slide" data-x="1000" data-y="-1500">
+        <h1>Циклы</h1>
+        <ul>
+         <li>Python предлагает несколько вариантов циклических вычислений</li>
+         <li>Простейший по форме - цикл while</li>
+         <li>Синтаксически почти неотличим от if</li>
+         <li>Только другое ключевое слово</li>
+         <li>Семантически - отличие по сути в одном</li>
+         <li>После выполнения блока снова идем на проверку условия</li>
+         <li>И если оно истинно  - снова исполняем блок</li>
+         <li>И так - пока условие не станет ложным</li>
+        </ul>
+    </div>
+
+
+    <div class="step slide" data-x="2000"  data-y="-1500">
+        <h1>Пример</h1>
+        <pre><code class="python">
+
+while False:
+    print('never')
+
+while True:
+    print('forever')
+
+
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="3000"  data-y="-1500">
+        <h1>Пример</h1>
+        <pre><code class="python">
+
+s = '' 
+
+while s != 'exit':
+    s = input()
+    if s != 'exit':
+        v = int(s)
+        print(v * v)
+
+
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="4000" data-y="-1500">
+        <h1>Проблема</h1>
+        <ul>
+        <li>Проблема в последнем примере - повторение одного условия</li>
+        <li>Мы в середине итерации поняли, что надо завершать цикл</li>
+        <li>Но до проверки условия нам нужно дойти до конца итерации</li>
+        <li>И приходится применять одно условие дважды</li>
+        <li>Любое повторение логики ухудшает качество кода</li>
+        </ul>
+    </div>
+
+
+    <div class="step slide" data-x="5000" data-y="-1500">
+        <h1>Вариант 1</h1>
+        <ul>
+        <li>Совместить чтение строки с проверкой условия</li>
+        <li>Но нам же нужно сохранить результат input()</li>
+        <li>И одновременно использовать его в выражении</li>
+        <li>Знакомая нам форма присваивания не поможет</li>
+        <li>Потому что в ней присваивание не является выражением</li>
+        <li>Классическое присваивание - это statement, с выражением справа от знака =</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="6000" data-y="-1500">
+        <h1>Вариант 1</h1>
+        <ul>
+        <li>Еще есть присваивание как выражение</li>
+        <li>Обозначается как :=</li>
+        <li>Значение правой части становится значением присваивания</li>
+        </ul>
+        <pre><code class="python">
+b = (a := 1) + 1
+print(a, b)
+
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="7000"  data-y="-1500">
+        <h1>Пример</h1>
+        <pre><code class="python">
+        
+s = ''  
+        
+while (s := input()) != 'exit':
+    v = int(s)
+    print(v * v)
+        
+    
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="8000" data-y="-1500">
+        <h1>Вариант 2</h1>
+        <ul>
+        <li>Вариант 1 как минимум не всегда подходит объективно</li>
+        <li>И он по духу не совсем питоновский</li>
+        <li>Объективно не подходит - когда причина раннего завершения цикла отличается от того, 
+            что является обычным условием продолжения работы</li>
+        <li>Пример: интеракивное исполнение неких команд от пользователя</li>
+        <li>exit - это команда на завершение и ее можно проверять в while</li>
+        <li>Но при исполнении другой команды мы можем обнаружить, что обрабатываемые данные некорректны</li>
+        <li>И завершить работу</li>
+        </ul>
+    </div>
+
+
+
+
+
+    <div class="step slide" data-x="9000" data-y="-1500">
+        <h1>Вариант 2</h1>
+        <ul>
+        <li>break - предложение, обозначающее выход из циклв</li>
+        <li>Им не стоит злоупотреблять</li>
+        <li>Если можно обойтись без него - лучше обойтись</li>
+        <li>И нормальное использование break - в рамках условного предложения /li>
+        <li>Когда по логике нам нужно завершить цикл посреди итерации</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="10000"  data-y="-1500">
+        <h1>Пример</h1>
+        <pre><code class="python">
+
+while True:
+    s = input()
+    if s == 'exit':
+        break
+    v = int(s) 
+    print(v * v)
+        
+
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="11000" data-y="-1500">
+        <h1>Объяснение</h1>
+        <ul>
+        <li>В примере break используется уместно</li>
+        <li>Потому что по смыслу итерация состоит из чтения данных и исполнения</li>
+        <li>И хотя бы одно чтение всегда нужно</li>
+        <li>Поэтому while True оправдано</li>
+        <li>И решение о выходе принимаем между чтением и исполнением - по смыслу происходящего</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="12000"  data-y="-1500">
+        <h1>Пример</h1>
+        <pre><code class="python">
+
+def gcd(a, b):
+    """
+    Наибольший общий делитель
+    Алгоритм Евклида
+    a, b - неотрицательные целые
+    """
+    while a: # используем логический контекст
+        a, b = b % a, a # групповое присванивание
+    return b
+
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="13000"  data-y="-1500">
+        <h1>Пример</h1>
+        <pre><code class="python">
+
+def gcd(a, b):
+    """
+    Наибольший общий делитель
+    Алгоритм Евклида
+    a, b - неотрицательные целые
+    """
+    while True:
+        if not a:
+            break  # плохое использование break
+        a, b = b % a, a
+    return b
+
+        </code></pre>
+    </div>
+
+
+    <div class="step slide" data-x="14000" data-y="-1500">
+        <h1>continue</h1>
+        <ul>
+        <li>Еще одно вспомогательное предложение - continue</li>
+        <li>Тоже имеет смысл только по какому-то условию</li>
+        <li>Завершает текущую итерацию и идет снова на проверку условия</li>
+        <li>Например, в интерактивном приложении читаем вводимые команды</li>
+        <li>Если получили exit - то делаем break</li>
+        <li>Если получили пустую  строку - делаем continue</li>
+        <li>Если команда знакомая то исполняем</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="15000" data-y="-1500">
+        <h1>Пример</h1>
+        <pre><code class="python">
+
+while True:
+    command = input()
+    if not cmd:
+        continue
+    if cmd == 'exit':
+        break
+    ... # обрабатываем команду
+
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="16000" data-y="-1500">
+        <h1>Составные типы данных</h1>
+        <ul>
+          <li>В реальных задач редко дело ограничивается одиночными данными</li>
+          <li>Редко дело ограничивается вычисление одной формулы с числами</li>
+          <li>Чаще нам нужно обрабатывать наборы данных</li>
+          <li>Например данные о некоторых событиях: покупках, результатах контрольных и т.п. </li>
+          <li>Нужно уметь пройтись по всем событиям</li>
+          <li>Появляется потребность в структурах данных для хранения наборов объектов</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="17000" data-y="-1500">
+        <h1>Составные типы данных</h1>
+        <ul>
+          <li>И эта потребность многослойна</li>
+          <li>На первом уровне - наборы событий/фактов</li>
+          <li>На каждый отдельный факт или событие - тоже не сводится к одному объекту простого типа</li>
+          <li>У факта или события есть атрибуты и их значение </li>
+          <li>Это может быть дата, имена участников, количество купленных товаров (если это покупка)</li>
+          <li>Каждый элемент набора содержит в себе тоже какие-то элементы</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="18000" data-y="-1500">
+        <h1>Составные типы данных</h1>
+        <ul>     
+          <li>Дата события - уже ближе к элементарным типам данных</li>
+          <li>В простом случае она состоит из дня, номера месяца и года</li>
+          <li>Но может хранить или не хранить время</li>
+          <li>С разной точностью</li>
+          <li>С привязкой к часовому поясу или без таковой</li>
+          <li>С привязкой к календарной системе или без таковой</li>
+          <li>В общем случае все может быть непросто</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="19000" data-y="-1500">
+        <h1>Составные типы данных</h1>
+        <ul>
+          <li>На каком-то уровне разбиения на элементы приходим к строковым элементам</li>
+          <li>Со строками мы уже встречались - в силу их базовости</li>
+          <li>И еще встретимся подробнее</li>
+          <li>Но строка - тоже составной тип</li>
+          <li>Набор символов</li>
+        </ul>
+    </div>
+
+
+
+    <div class="step slide" data-x="20000" data-y="-1500">
+        <h1>Составные типы данных</h1>
+        <ul>
+          <li>Ключевые составные типы данных будут разобраны в деталях</li>
+          <li>И научимся строить свои</li>
+          <li>Многие типы имеют общие свойства</li>
+          <li>Например, по объектам многих составных типов можно пройтись циклом</li>
+          <li>И это отдельное составное предложение со своим стартовым ключевым словом - for</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="21000" data-y="-1500">
+        <h1>Пример</h1>
+        <pre><code class="python">
+
+for v in range(10):
+    print(v, v * v)
+
+for c in 'abcdefghiji1234!@#':
+    print(c, ord(c))
+
+# эту конструкцию пока не разбираем
+with open('data.txt') as f:
+    for s in f:
+        print(len(s))
+
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="22000" data-y="-1500">
+        <h1>Разберем</h1>
+        <ul>
+          <li>Все циклы for в примере структурно похожи</li>
+          <li>Везде есть ключевые слова for и in</li>
+          <li>Везде есть двоеточие в конце первой логической строки</li>
+          <li>Везде есть имя переменной между for и in</li>
+          <li>Везде есть что-то между in и двоеточием</li>
+          <li>Везде есть блок со смещением</li>
+          <li>И в блоке упоминается переменная, упомянутая в первой строке</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="23000" data-y="-1500">
+        <h1>Разберем</h1>
+        <ul>
+          <li>Справа от in - выражение (в общем случае)</li>
+          <li>Результатом выражения должен быть объект итерируемого типа</li>
+          <li>Примеры НЕитерируемых типов: int, float, bool</li>
+          <li>Итерируемые типы из примера выше: range(диапазон), str(строка), file object(файловый объект)</li>
+          <li>Другие примеры итерируемых типов: список, кортеж, множество, словарь, генератор</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="24000" data-y="-1500">
+        <h1>Разберем</h1>
+        <ul>
+          <li>Слева от in в примерах - имя переменной</li>
+          <li>В общем случае там может быть более сложная конструкция</li>
+          <li>В ходе цикла for перебираются значения итерируемого типа</li>
+          <li>На каждое значение исполняется блок кода</li>
+          <li>Перед очередным исполнением блока обрабатываемое значение сохраняется в переменную</li>
+          <li>Имя переменной - то, что указано сразу после for</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="25000" data-y="-1500">
+        <h1>range</h1>
+        <ul>
+          <li>range представляет диапазон целых чисел</li>
+          <li>Есть три формы задания range: с одним, двумя или тремя параметрами</li>
+          <li>Простейшая форма - с одним параметром: range(n)</li>
+          <li>Если n не положительно - это пустой диапазон</li>
+          <li>Если n положительно - диапазон включает 0, 1, ..., n - 1</li>
+          <li>n в диапазон не входит </li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="26000" data-y="-1500">
+        <h1>range</h1>
+        <ul>
+          <li>С двумя параметрами можно задавать левую и правую границы отрезка</li>
+          <li>Левая граница включается, правая - нет</li>
+          <li>Не запрещено правую границу делать меньше или равной левой</li>
+          <li>Получится пустой диапазон</li>
+        </ul>
+        <pre><code class="python">
+        
+for v in range(5, 10): 
+    print(v, v * v)
+        
+        </code></pre>
+    </div>
+
+
+
+    <div class="step slide" data-x="27000" data-y="-1500">
+        <h1>range</h1>
+        <ul>
+          <li>Если есть третий параметр - это шаг</li>
+          <li>По умолчанию шаг равен 1</li>
+          <li>Шаг 0 приводит к исключению</li>
+          <li>При положительном шаге k в диапазон в ходит каждое k-е число, начиная c левой границы</li>
+          <li>Пока число меньше правой границы</li>
+        </ul>
+        <pre><code class="python">
+for v in range(5, 14, 3):
+    print(v, v * v)
+# 5 25
+# 8 64
+# 11 121 
+            
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="28000" data-y="-1500">
+        <h1>range</h1>
+        <ul>
+          <li>Шаг может быть отрицательным</li>
+          <li>При отрицательном шагу у непустого диапазона правая граница должна быть меньше левой</li>
+          <li>Левая граница всегда попадает в непустой диапазон</li>
+          <li>Дальше проверяются все числа с отрицательным шагом k</li>
+          <li>Пока число больше правой границы</li>
+        </ul>
+        <pre><code class="python">
+for v in range(14, 5, -3):
+    print(v, v * v)
+# 14 196
+# 11 121
+# 8 64
+
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="29000" data-y="-1500">
+        <h1>Строка</h1>
+        <ul>
+          <li>Строка - последовательность символов</li>
+          <li>Цикл for по строке - перебор символов</li>
+        </ul>
+        <pre><code class="python">
+
+for c in 'abcdefg':
+    print(c, ord(c))
+
+
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="30000" data-y="-1500">
+        <h1>Файловый объект</h1>
+        <ul>
+          <li>Тоже итерируемый объект</li>
+          <li>Со своими особенностями</li>
+          <li>Создается путем открытия файла на чтение</li>
+          <li>В нашем примере это делает функция open</li>
+          <li>Количество файлов, которые может держать открытыми одна программа, ограничено</li>
+          <li>Файлы, которые больше не нужны, надо закрывать</li>
+          <li>with в примере - менеджер контекстов</li>
+          <li>При его использовании просходит закрытие файла по завершении блока</li>
+        </ul>
+    </div>
+
+    <!--
+        
+        * `data-x`, `data-y`, `data-z` - they define the position of **the center** of step element on
+            the canvas in pixels; their default value is 0;
+        * `data-rotate-x`, `data-rotate-y`, 'data-rotate-z`, `data-rotate` - they define the rotation of
+            the element around given axis in degrees; their default value is 0; `data-rotate` and `data-rotate-z`
+            are exactly the same;
+        * `data-scale` - defines the scale of step element; default value is 1
+        
+        These values are used by impress.js in CSS transformation functions, so for more information consult
+        CSS transfrom docs: https://developer.mozilla.org/en/CSS/transform
+        
+    -->
+    <div id="overview" class="step" data-x="3000" data-y="1500" data-z="0" data-scale="10">
+    </div>
+
+</div>
+
+<!--
+    This is a UI plugin. You can read more about plugins in src/plugins/README.md.
+    For now, I'll just tell you that this adds some graphical controls to navigate the
+    presentation. In the CSS file you can style them as you want. We've put them bottom right.
+-->
+<div id="impress-toolbar"></div>
+
+<!--
+    
+    Hint is not related to impress.js in any way.
+    
+    But it can show you how to use impress.js features in creative way.
+    
+    When the presentation step is shown (selected) its element gets the class of "active" and the body element
+    gets the class based on active step id `impress-on-ID` (where ID is the step's id)... It may not be
+    so clear because of all these "ids" in previous sentence, so for example when the first step (the one with
+    the id of `bored`) is active, body element gets a class of `impress-on-bored`.
+    
+    This class is used by this hint below. Check CSS file to see how it's shown with delayed CSS animation when
+    the first step of presentation is visible for a couple of seconds.
+    
+    ...
+    
+    And when it comes to this piece of JavaScript below ... kids, don't do this at home ;)
+    It's just a quick and dirty workaround to get different hint text for touch devices.
+    In a real world it should be at least placed in separate JS file ... and the touch content should be
+    probably just hidden somewhere in HTML - not hard-coded in the script.
+    
+    Just sayin' ;)
+    
+-->
+<div class="hint">
+    <p>Use a spacebar or arrow keys to navigate. <br/>
+       Press 'P' to launch speaker console.</p>
+</div>
+<script>
+if ("ontouchstart" in document.documentElement) { 
+    document.querySelector(".hint").innerHTML = "<p>Swipe left or right to navigate</p>";
+}
+</script>
+
+<!--
+    
+    Last, but not least.
+    
+    To make all described above really work, you need to include impress.js in the page.
+    I strongly encourage to minify it first.
+    
+    In here I just include full source of the script to make it more readable.
+    
+    You also need to call a `impress().init()` function to initialize impress.js presentation.
+    And you should do it in the end of your document. Not only because it's a good practice, but also
+    because it should be done when the whole document is ready.
+    Of course you can wrap it in any kind of "DOM ready" event, but I was too lazy to do so ;)
+    
+-->
+<script src="js/impress.js"></script>
+<script>impress().init();</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<!-- Include any specific language files AFTER the main library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/python.min.js"></script>
+
+<script>hljs.highlightAll();</script>
+<!--
+    
+    The `impress()` function also gives you access to the API that controls the presentation.
+    
+    Just store the result of the call:
+    
+        var api = impress();
+    
+    and you will get three functions you can call:
+    
+        `api.init()` - initializes the presentation,
+        `api.next()` - moves to next step of the presentation,
+        `api.prev()` - moves to previous step of the presentation,
+        `api.goto( stepIndex | stepElementId | stepElement, [duration] )` - moves the presentation to the step given by its index number
+                id or the DOM element; second parameter can be used to define duration of the transition in ms,
+                but it's optional - if not provided default transition duration for the presentation will be used.
+    
+    You can also simply call `impress()` again to get the API, so `impress().next()` is also allowed.
+    Don't worry, it won't initialize the presentation again.
+    
+    For some example uses of this API check the last part of the source of impress.js where the API
+    is used in event handlers.
+    
+-->
+
+</body>
+</html>
+
+<!--
+    
+    Now you know more or less everything you need to build your first impress.js presentation, but before
+    you start...
+    
+    Oh, you've already cloned the code from GitHub?
+    
+    You have it open in text editor?
+    
+    Stop right there!
+    
+    That's not how you create awesome presentations. This is only a code. Implementation of the idea that
+    first needs to grow in your mind.
+    
+    So if you want to build great presentation take a pencil and piece of paper. And turn off the computer.
+    
+    Sketch, draw and write. Brainstorm your ideas on a paper. Try to build a mind-map of what you'd like
+    to present. It will get you closer and closer to the layout you'll build later with impress.js.
+    
+    Get back to the code only when you have your presentation ready on a paper. It doesn't make sense to do
+    it earlier, because you'll only waste your time fighting with positioning of useless points.
+    
+    If you think I'm crazy, please put your hands on a book called "Presentation Zen". It's all about 
+    creating awesome and engaging presentations.
+    
+    Think about it. 'Cause impress.js may not help you, if you have nothing interesting to say.
+    
+-->
+
+<!--
+    
+    Are you still reading this?
+    
+    For real? I'm impressed! 
+    
+    But now, take my advice and take some time off. Make yourself a cup of coffee, tea,
+    or anything you like to drink.
+    
+    Cheers!
+    
+-->
+

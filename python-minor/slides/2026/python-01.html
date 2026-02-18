@@ -1,0 +1,807 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1024" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <title>impress.js | presentation tool based on the power of CSS3 transforms and transitions in modern browsers | by Bartek Szopka @bartaz</title>
+    
+    <meta name="description" content="impress.js is a presentation tool based on the power of CSS3 transforms and transitions in modern browsers and inspired by the idea behind prezi.com." />
+    <meta name="author" content="Bartek Szopka" />
+
+    <link href="//fonts.googleapis.com/css?family=Open+Sans:regular,semibold,italic,italicsemibold|PT+Sans:400,700,400italic,700italic|PT+Serif:400,700,400italic,700italic" rel="stylesheet" />
+
+    <link href="css/impress-demo.css" rel="stylesheet" />
+    <link href="css/impress-common.css" rel="stylesheet" />
+    
+    <link rel="shortcut icon" href="favicon.png" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/default.min.css">
+
+</head>
+
+<body class="impress-not-supported">
+
+<div class="fallback-message">
+    <p>Your browser <b>doesn't support the features required</b> by impress.js, so you are presented with a simplified version of this presentation.</p>
+    <p>For the best experience please use the latest <b>Chrome</b>, <b>Safari</b> or <b>Firefox</b> browser.</p>
+</div>
+
+<div id="impress"
+    data-transition-duration="1000"
+    
+    data-width="1024"
+    data-height="768"
+    data-max-scale="3"
+    data-min-scale="0"
+    data-perspective="1000"
+    >
+
+    <div  class="step slide" data-x="-1000" data-y="-1500">
+        <h1>Python</h1>
+        <ul>
+        <li>Язык программирования</li>
+        <li>Де-факто стандарт для не-программистов</li>
+        <li>Популярен среди профессинальных разработчиков</li>
+        <li>Позволяет быстро писать простой код</li>
+        <li>Включает немало продвинутых возможностей</li>
+        </ul>
+    </div>
+
+
+
+    <div class="step slide" data-x="0"  data-y="-1500">
+        <h1>Python: простое приложение</h1>
+        <pre><code class="python">
+print('Hello')
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="1000" data-y="-1500">
+        <h1>Python: повторяющиеся действия</h1>
+        <pre><code class="language-python">
+
+for _ in range(10):
+    print('*' * 20)
+
+        </code></pre>
+    </div>
+
+
+    <div class="step slide" data-x="2000" data-y="-1500">
+        <h1>Python: параметризация действий</h1>
+        <pre><code class="language-python">
+def print_square(height, wodth):
+    for _ in range(height):
+        print('*' * width)
+
+print_square(10, 20)
+print_square(18, 4)
+
+        </pre>
+    </div>
+    <div class="step slide" data-x="3000" data-y="-1500">
+        <h1>Python: приложение с вводом данных</h1>
+        <pre><code class="language-python">
+
+s = input()
+num = int(s)
+print(num * num)
+
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="4000" data-y="-1500">
+        <h1>Как исполнить Python-код</h1>
+        <ul>
+        <li>Принципиально есть два способа
+        <ol>
+            <li>Запустить интерпретатор и передать ему параметром файл с кодом</li>
+            <li>Запустить интерпретатор в интерактивном режиме</li>
+        </ol>
+        </li>
+        <li>В любом случае нужен Python-интерпретатор</li>
+        <li>Приложение, читающее и исполняющее Python-код</li>
+        <li>Доступно на python.org, раздел Download</li>
+        </ul>
+    </div>
+
+
+
+
+    <div class="step slide" data-x="5000" data-y="-1500">
+        <h1>Как исполнить Python-код</h1>
+        <ul>
+            <li>Через IDE (PyCharm, Visual Studio)</li>
+            <li>IDE - надстройка над интерпретатором</li>
+            <li>Через Jupyter Notebook</li>
+            <li>Расширенные дистрибутивы типа Anaconda</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="6000" data-y="-1500">
+        <h1>Схема работы Python-интерпретатора</h1>
+        <ul>
+        <li>Лексический анализ: разбиение файла на лексические элементы</li>
+        <li>Примеры лексических элементов
+        <ul>
+          <li>Числовые литералы: 18, 0</li>
+          <li>Строковые литералы: "hello", '*'</li>
+          <li>Операции: *, +</li>
+          <li>Специальные символы: скобки, запятая</li>
+          <li>Идентификаторы: print</li>
+        </ul>
+        </li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="7000" data-y="-1500">
+        <h1>Неявные лексические элементы</h1>
+        <ul>
+        <li>indent/dedent - неявные лексические элементы</li>
+        <li>indent - прямой отступ, dedent - обратный</li>
+        <li>Помогают в синтаксическом анализе</li>
+        <li>Выделяют структурные элементы кода</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="8000" data-y="-1500">
+        <h1>Лексические элементы</h1>
+        <pre><code class="language-python">
+print('Hello')
+        </code></pre>
+        <ul>
+        <li>print - идентификатор</li>
+        <li>( - открывающая скобка</li>
+        <li>'Hello' - строковый литерал</li>
+        <li>) - закрывающая скобка</li>
+        </ul>
+    </div>
+
+
+
+    <div class="step slide" data-x="9000" data-y="-1500">
+        <h1>Лексические элементы</h1>
+        <pre><code class="language-python">
+
+for _ in range(10):
+    print('*' * 20)
+
+        </code></pre>
+        <div>
+        <ul>
+        <li>for - ключевое слово</li>
+        <li>_ - идентификатор</li>
+        <li>in - ключевое слово</li>
+        <li>range - идентификатор</li>
+        <li>( - открывающая скобка</li>
+        <li>20 - числовой литерал</li>
+        <li>) - закрывающая скобка</li> 
+        <li>: - специальный символ</li> 
+        </ul>
+        </div>
+    </div>
+    <div class="step slide" data-x="10000" data-y="-1500">
+        <h1>Лексические элементы</h1>
+        <pre><code class="language-python">
+
+for _ in range(10):
+    print('*' * 20)
+
+        </code></pre>
+        <div>
+        <ul>
+        <li>indent</li>
+        <li>print - идентификатор</li>
+        <li>( - открывающая скобка</li>
+        <li>'Hello' - строковый литерал</li>
+        <li>) - закрывающая скобка</li>
+        <li>dedent</li>
+        </ul>
+        </div>
+    </div>
+    <div class="step slide" data-x="11000" data-y="-1500">
+        <h1>Синтаксический анализ</h1>
+        <ul>
+          <li>Лексические элементы формируют смысловые группы</li>
+          <li>Пример: <code>print('Hello')</code>
+          <li>Идентификатор print</li>
+          <li>За ним  - пара круглых скобок</li>
+          <li>В скобках - параметры</li>
+          <li>В данном случае - один параметр</li>
+          <li>Может быть больше</li>
+          <li>Параметров может не быть</li>
+          <li>Но скобки в вызове функции быть должны</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="12000" data-y="-1500">
+        <h1>Встроенные и определяемые функции</h1>
+        <ul>
+          <li>print - встроенная функция</li>
+          <li>print_square в наших примерах - определяемая в программе функция</li>
+          <li>Можно делиться функциями через механизмы модулей и пакетов</li>
+          <li>Есть огромное число Python-библиотек</li>
+          <li>Их можно использовать в своих приложениях</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="13000" data-y="-1500">
+        <h1>Выражения</h1>
+        <ul>
+          <li>В примерах есть несколько вызовов функций с параметрами </li>
+          <li>Иногда параметром выступает литерал - строковый или целочисленный</li>
+          <li>Но не всегда</li>
+          <li>Пример: <pre>'*' * width</pre></li>
+          <li>Это выражение</li>
+          <li>Литерал - частный случай выражения</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="14000" data-y="-1500">
+        <h1>Выражения</h1>
+        <ul>
+          <li>Простейшее выражение - базовый элемент</li>
+          <li>Это может быть литерал, имя переменной или вызов функции</li>
+          <ul>
+             <li>Каждый вызов функции возвращает значение</li>
+             <li>Но мы не всегда его используем</li>
+          </ul>
+          <li>Более сложные выражения формируются операциями</li>
+          <li>Пример: <pre>2 + 3</pre></li>
+        </ul>
+    </div>
+
+
+    <div class="step slide" data-x="15000" data-y="-1500">
+        <h1>Переменные</h1>
+        <ul>
+          <li>Переменная - именованное значение</li>
+          <li>Создается путем присваивания</li>
+          <li>Примеры:</li>
+          <ul>
+            <li><code>v1 = 123</code></li>
+            <li><code>v2 = v1 * v1</code></li>
+          </ul>
+          <li>При вычислении выражения имя переменной заменяется его значением</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="16000" data-y="-1500">
+        <h1>Функции</h1>
+        <ul>
+          <li>Подробно разберем позже</li>
+          <li>Сейчас - базовые моменты</li>
+          <li>У функции могут быть параметры</li>
+          <li>Их значение присваивается в момент вызова</li>
+          <li>Функция возвращает значение</li>
+          <li>Возвращаемое значение подставляется в точку вызова при вычислении выражения</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="17000" data-y="-1500">
+        <h1>Определение функции</h1>
+        <pre><code class="python">
+def sum(a, b):
+    return a + b        
+
+v = sum(1, 2)
+print(v)
+        
+        </code></pre>
+        <ul>
+          <li>В момент вызова sum создаются переменные a и b</li>
+          <li>В данном примере a получает значение 1, а b - 2</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="18000" data-y="-1500">
+        <h1>Типы данных</h1>
+        <ul>
+          <li>Данные могут быть разными по природе</li>
+          <li>Как минимум отличаем строковые данные от числовых</li>
+          <li>Некоторые операции имеют смысл только для определенных данных</li>
+          <li>Или могут иметь разные смыслы для разных данных</li>
+        </ul>
+        <pre><code class="python">
+print(12 + 34)
+print('12' + '34')
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="19000" data-y="-1500">
+        <h1>Типы данных</h1>
+        <ul>
+          <li>Этот факт находит отражение в концепции типизации</li>
+          <li>Базовый элемент данных - объект</li>
+          <li>У каждого объекта есть свой тип</li>
+          <li>Тип в Python тоже является объектом</li>
+          <li>(В Python очень много является объектом)</li>
+          <li>Часто используемые типы: строка(str), целое(int), вещественное(float), список(list)</li>
+          <li>Чуть позже научимся создавать свои типы данных</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="20000" data-y="-1500">
+        <h1>Типы данных</h1>
+        <pre><code class="python">
+
+print(type(12))
+print(type('12'))
+print(type(type(12)))
+print(type(type('12')))
+print(type(12.1))
+
+
+        </code></pre>
+    </div>
+
+
+
+
+
+    <div class="step slide" data-x="21000" data-y="-1500">
+        <h1>Операции</h1>
+        <ul>
+          <li>Операции обозначаются лексическими элементами</li>
+          <li>Примеры: +, +=, and, |</li>
+          <li>Корректность каждой операции и ее семантика зависят от типов операндов</li>
+          <li>Если операндом является переменная - все зависит от того, что будет в этой переменной в момент выполнения операцммм</li>
+          <li>Переменные в разные моменты могут хранить объекты разных типов</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="22000" data-y="-1500">
+        <h1>Операции</h1>
+        <pre><code class="python">
+
+
+a = 12
+b = 23
+print(a + b)
+print(a * b)
+a = '12'
+print(a * b)
+# a + b некорректно
+b = '23'
+print(a + b)
+# a * b некорректно
+
+
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="23000" data-y="-1500">
+        <h1>Унарные операции</h1>
+        <ul>
+          <li>Унарный минус: -a</li>
+          <li>Унарный плюс: +a</li>
+          <li>Логическое отрицание: not a</li>
+          <li>Побитовое отрицание: ~a</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="24000" data-y="-1500">
+        <h1>Унарные операции</h1>
+        <ul>
+          <li>Унарный минус и плюс определены для числовых типов данных</li>
+          <li>Унарный плюс возвращает значение операнда</li>
+          <li>Унарный минус меняет знак операнда</li>
+          <li>Побитовое отрицание определено для целых чисел (int)</li>
+          <li>Побитовое отрицание является элементом битовой арифметики</li>
+          <li>Логическое отрицание определено для значений любого типа</li>
+          <li>Результатом является значение логического типа</li>
+          <li>Логическое отрицание является элементом логической арифметики</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="25000" data-y="-1500">
+        <h1>Бинарные операции</h1>
+        <ul>
+          <li>Арифметические: +, -, *, /, //, %, **</li>
+          <li>Сравнения: ==, !=, &gt;, &lt;, &gt;=, &lt;=</li>
+          <li>Логические: and, or</li>
+          <li>Побитовые: &amp;, |, ^, &lt;&lt;, &gt;&gt;</li>
+          <li>Принадлежность: in, not in</li>
+          <li>Идентичность: is, not is</li>
+          <li>Присваивание как операция: :=</li>
+          <li>Операция с присваиванием: +=, |=, и т.п.</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="26000" data-y="-1500">
+        <h1>Семантика операций</h1>
+        <ul>
+          <li>Семантика операций зависит от типа</li>
+          <li>Конкретные случаи часто интуитивно понятны</li>
+          <li>Но бывают нюансы - особенно с числовыми типами</li>
+          <li>Нюансы определяются особеностями типов данных</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="27000" data-y="-1500">
+        <h1>Целые числа</h1>
+        <ul>
+          <li>Целые числа - ключевой тип данных, напрямую представленный в аппаратуре</li>
+          <li>Основные операции процессора - с целыми числами</li>
+          <li>Базовое представление числа - двоичное</li>
+          <li>Процессор наиболее эффективно работает с целыми числами ограниченного размера</li>
+          <li>В современных процессорах этот размер - 64 бита</li>
+          <li>Ограниченность размера создает проблему переполнения</li>
+        </ul>
+    </div>
+
+
+    <div class="step slide" data-x="28000" data-y="-1500">
+        <h1>Двоичное представление</h1>
+        <ul>
+          <li>0 - это 0 </li>
+          <li>1 - это 1</li>
+          <li>2 - это 10</li>
+          <li>3 - это 11</li>
+          <li>4 - это 100</li>
+          <li>8 - это 1000</li>
+          <li>2 в степени n - это 1 и n нулей</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="29000" data-y="-1500">
+        <h1>Переполнение</h1>
+        <ul>
+          <li>Если целое число хранится в конечном числе битов - в результате операции можно получить число, которое не влезет в данное число битов</li>
+          <li>Получим только то, что влезло</li>
+          <li>Получится странный результат</li>
+          <li>При желании можно отлавливать такие ситуации - но это очень хлопотно</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="30000" data-y="-1500">
+        <h1>Как это сделано в Python</h1>
+        <ul>
+          <li>Python берет на себя работу с переполнением целых</li>
+          <li>Целое в Python не ограничено фиксированным числом битов</li>
+          <li>Можно посчитать что-то вроде: 123456789987654321 * 123456789987654321 </li>
+          <li>Получим 15241578994055784200731595789971041</li>
+          <li>Это корректный результат и это больше, чем 2 в степени 64</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="31000" data-y="-1500">
+        <h1>Как это сделано в Python</h1>
+        <ul>
+          <li>Цена удобства - сравнительно медленная арифметика в Python</li>
+          <li>Такая цена разумна для относительно небольших вычислений</li>
+          <li>На уровне "просуммировать столбец в таблице"</li>
+          <li>Но дорога для интенсивных вычислений</li>
+          <li>На уровне "тренировать нейросеть"</li>
+          <li>Для таких задач есть библиотека numpy</li>
+          <li>В ней все быстро</li>
+          <li>Но в ней целые числа - конечного размера</li>
+          <li>Со всеми вытекающими последствиями</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="32000" data-y="-1500">
+        <h1>Отрицательные целые</h1>
+        <ul>
+          <li>В природе существуют три подхода к представлению двоиччных отрицательных чисел</li>
+          <li>Первый вариант: один бит для знака, остальные для абсолютного значения</li>
+          <li>Для n и -n представление одинаковое во всем, кроме знакового бита</li>
+          <li>Удобно и естественно для человека</li>
+          <li>Неудобно для эффективной реализации целочисленной арифметики</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="33000" data-y="-1500">
+        <h1>Отрицательные целые</h1>
+        <ul>
+          <li>Для 8-битового целого числа это бы выглядело так</li>
+          <ul>
+          <li>00000000 - 0</li>
+          <li>10000000 - тоже 0 (-0)</li>
+          <li>00000001 - 1</li>
+          <li>10000001 - -1</li>
+          <li>00000001 - 2</li>
+          <li>10000001 - -2</li>
+          </ul>
+        </ul>
+    </div>
+
+
+
+
+    <div class="step slide" data-x="34000" data-y="-1500">
+        <h1>Отрицательные целые</h1>
+        <ul>
+          <li>Второй вариант: смещенное представление</li>
+          <li>Для 8-битового целого числа это бы выглядело так</li>
+          <li>00000000 - -128</li>
+          <li>00000001 - -127</li>
+          <li>00000010 - -126</li>
+          <li>00000011 - -125</li>
+          <li>01111111 - -1</li> 
+          <li>10000000 - 0</li>    
+          <li>10000001 - 1</li>
+          <li>11111111 - 127</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="35000" data-y="-1500">
+        <h1>Отрицательные целые</h1>
+        <ul>
+          <li>Третий вариант: обратное представление</li>
+          <li>Для 8-битового целого числа это бы выглядело так</li>
+          <li>00000000 - 0</li>
+          <li>00000001 - 1</li>
+          <li>11111111 - -1</li>
+          <li>00000010 - 2</li>
+          <li>11111110 - -2</li>   
+          <li>10000000 - -128</li>
+          <li>10000001 - -127</li>
+          <li>01111111 - 127</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="36000" data-y="-1500">
+        <h1>Отрицательные целые</h1>
+        <ul>
+          <li>Процессоры для целых чисел используют обратное представление</li>
+          <li>Оно удобно для эффективной реализации числовой арифметики</li>
+          <li>Но таит сюрпризы - особенно в случае ограниченного числа битов</li>
+          <li>Например, сложение двух положительных чисел может дать отрицательное число</li>
+          <li>И есть отрицательное число, для которого нет противоположного положительного</li>
+          <li>Это надо иметь ввиду при работе с numpy</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="37000" data-y="-1500">
+        <h1>Отрицательные целые</h1>
+        <ul>
+          <li>Неограниченность битов в представлении целого избавляет от многих сюрпризов</li>
+          <li>Но ставит интересный вопрос: а как понимать обратное представление ?</li>
+          <li>Ответ такой</li>
+          <ul>
+             <li>Неотрицательному числу предшествует бесконечная последовательность нулей
+             <li>Отрицательному числу предшествует бесконечная последовательность единиц
+          </ul>
+          <li>Это такая модель для понимания</li>
+          <li>Реальное представление конечно</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="38000" data-y="-1500">
+        <h1>Арифметика на целых</h1>
+        <ul>
+          <li>Сложение и вычитание полностью совпадают с базовыми математическими представлениями</li>
+          <li>Умножение - тоже</li>
+          <li>Важно понимать, что при работе с очень большими числами (больше 2 в 64 степени по абсолютному значению) возможны издержки по производительности</li>
+          <li>Деление возможно двух видов - вещественное и нацело</li>
+          <li>Вещественное/нацело - это про операции, а не про типы операндов</li>
+          <li>Возможно вещественное деление целых аргументов и деление нацело вещественных аргументов</li>
+        </ul>
+    </div>
+
+
+
+    <div class="step slide" data-x="39000" data-y="-1500">
+        <h1>Деление</h1>
+        <ul>
+          <li>Вещественное деление целых аргументов дает результат с дробной частью</li>
+          <li>Обозначается как /</li>
+        </ul>
+        <pre><code class="python">
+
+print(23 / 5) # 4.6
+print(-23 / 5) # -4.6
+print(23 / -5) # -4.6
+print(-23 / -5) # 4.6
+ 
+        
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="40000" data-y="-1500">
+        <h1>Деление</h1>
+        <ul>
+          <li>Деление нацело представлено двумя операциями</li>
+          <li>Неполное частное: //</li>
+          <li>Остаток: %</li>
+        </ul>
+        <pre><code class="python">
+
+print(23 // 5) # 4
+print(23 % 5) # 3
+   
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="41000" data-y="-1500">
+        <h1>Деление</h1>
+        <ul>
+          <li>При отрицательном делимом и положительном делителе результат определяется по правилам теории чисел</li>
+          <li>Частное от деления a на b - наибольшее p такое, что p * b + q = a, где q < b</li>
+          <li>Остаток при положительном делителе всегда неотрицателен</li>
+        </ul>
+        <pre><code class="python">
+
+print(-23 // 5) # -5 (не -4)
+print(-23 % 5) # 2 (не -3)
+
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="42000" data-y="-1500">
+        <h1>Деление</h1>
+        <ul>
+          <li>При отрицательном делителе - остаток не должен быть положительным</li>
+          <li>И его абсолютное значение не должно превышать абсолютного значения делителя</li>
+        </ul>
+        <pre><code class="python">
+
+print(23 // -5) # -5
+print(23 % -5) # -2
+print(-23 // -5) # 4
+print(23 % -5) # -3
+
+        </code></pre>
+    </div>
+
+
+
+    <div class="step slide" data-x="43000" data-y="-1500">
+        <h1>Не-целые числа</h1>
+        <ul>
+          <li>В математике существуют натуральные, целые, дробные и вещественные числа</li>
+          <li>Натуральные - подмножество целых</li>
+          <li>Целые - подмножество дробных</li>
+          <li>Дробные - подмножество вещественных</li>
+          <li>Среди дробных есть те, которые выражаются как конечные десятичные дроби</li>
+          <li>И те, которые не выражаются как конечные периодические дроби</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="44000" data-y="-1500">
+        <h1>Не-целые числа в процессоре</h1>
+        <ul>
+          <li>Есть понятие "число с плавающей точкой"</li>
+          <li>С ним умеют работать процессоры</li>
+          <li>Числа с плавающей точкой очень похожи на вещественные </li>
+          <li>Но это не вещественные числа</li>
+          <li>Некоторые вещественные числа не могут быть представлены в памяти - из-за бесконечности своей дробной части</li>
+          <li>Представлены могут быть только их приближенные значения</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="45000" data-y="-1500">
+        <h1>Не-целые числа в процессоре</h1>
+        <ul>
+          <li>Не может быть точного представления числа PI</li>
+          <li>Не может быть точного представления периодической дроби</li>
+          <li>И дроби в процессоре двоичные</li>
+          <li>Не все "нормальные" (конечные)  десятичные дроби будут конечными двоичными</li>
+          <li>Пример: 3/10</li>
+        </ul>
+    </div>
+
+    <!--
+        
+        * `data-x`, `data-y`, `data-z` - they define the position of **the center** of step element on
+            the canvas in pixels; their default value is 0;
+        * `data-rotate-x`, `data-rotate-y`, 'data-rotate-z`, `data-rotate` - they define the rotation of
+            the element around given axis in degrees; their default value is 0; `data-rotate` and `data-rotate-z`
+            are exactly the same;
+        * `data-scale` - defines the scale of step element; default value is 1
+        
+        These values are used by impress.js in CSS transformation functions, so for more information consult
+        CSS transfrom docs: https://developer.mozilla.org/en/CSS/transform
+        
+    -->
+    <div id="overview" class="step" data-x="3000" data-y="1500" data-z="0" data-scale="10">
+    </div>
+
+</div>
+
+<!--
+    This is a UI plugin. You can read more about plugins in src/plugins/README.md.
+    For now, I'll just tell you that this adds some graphical controls to navigate the
+    presentation. In the CSS file you can style them as you want. We've put them bottom right.
+-->
+<div id="impress-toolbar"></div>
+
+<!--
+    
+    Hint is not related to impress.js in any way.
+    
+    But it can show you how to use impress.js features in creative way.
+    
+    When the presentation step is shown (selected) its element gets the class of "active" and the body element
+    gets the class based on active step id `impress-on-ID` (where ID is the step's id)... It may not be
+    so clear because of all these "ids" in previous sentence, so for example when the first step (the one with
+    the id of `bored`) is active, body element gets a class of `impress-on-bored`.
+    
+    This class is used by this hint below. Check CSS file to see how it's shown with delayed CSS animation when
+    the first step of presentation is visible for a couple of seconds.
+    
+    ...
+    
+    And when it comes to this piece of JavaScript below ... kids, don't do this at home ;)
+    It's just a quick and dirty workaround to get different hint text for touch devices.
+    In a real world it should be at least placed in separate JS file ... and the touch content should be
+    probably just hidden somewhere in HTML - not hard-coded in the script.
+    
+    Just sayin' ;)
+    
+-->
+<div class="hint">
+    <p>Use a spacebar or arrow keys to navigate. <br/>
+       Press 'P' to launch speaker console.</p>
+</div>
+<script>
+if ("ontouchstart" in document.documentElement) { 
+    document.querySelector(".hint").innerHTML = "<p>Swipe left or right to navigate</p>";
+}
+</script>
+
+<!--
+    
+    Last, but not least.
+    
+    To make all described above really work, you need to include impress.js in the page.
+    I strongly encourage to minify it first.
+    
+    In here I just include full source of the script to make it more readable.
+    
+    You also need to call a `impress().init()` function to initialize impress.js presentation.
+    And you should do it in the end of your document. Not only because it's a good practice, but also
+    because it should be done when the whole document is ready.
+    Of course you can wrap it in any kind of "DOM ready" event, but I was too lazy to do so ;)
+    
+-->
+<script src="js/impress.js"></script>
+<script>impress().init();</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<!-- Include any specific language files AFTER the main library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/python.min.js"></script>
+
+<script>hljs.highlightAll();</script>
+<!--
+    
+    The `impress()` function also gives you access to the API that controls the presentation.
+    
+    Just store the result of the call:
+    
+        var api = impress();
+    
+    and you will get three functions you can call:
+    
+        `api.init()` - initializes the presentation,
+        `api.next()` - moves to next step of the presentation,
+        `api.prev()` - moves to previous step of the presentation,
+        `api.goto( stepIndex | stepElementId | stepElement, [duration] )` - moves the presentation to the step given by its index number
+                id or the DOM element; second parameter can be used to define duration of the transition in ms,
+                but it's optional - if not provided default transition duration for the presentation will be used.
+    
+    You can also simply call `impress()` again to get the API, so `impress().next()` is also allowed.
+    Don't worry, it won't initialize the presentation again.
+    
+    For some example uses of this API check the last part of the source of impress.js where the API
+    is used in event handlers.
+    
+-->
+
+</body>
+</html>
+
+<!--
+    
+    Now you know more or less everything you need to build your first impress.js presentation, but before
+    you start...
+    
+    Oh, you've already cloned the code from GitHub?
+    
+    You have it open in text editor?
+    
+    Stop right there!
+    
+    That's not how you create awesome presentations. This is only a code. Implementation of the idea that
+    first needs to grow in your mind.
+    
+    So if you want to build great presentation take a pencil and piece of paper. And turn off the computer.
+    
+    Sketch, draw and write. Brainstorm your ideas on a paper. Try to build a mind-map of what you'd like
+    to present. It will get you closer and closer to the layout you'll build later with impress.js.
+    
+    Get back to the code only when you have your presentation ready on a paper. It doesn't make sense to do
+    it earlier, because you'll only waste your time fighting with positioning of useless points.
+    
+    If you think I'm crazy, please put your hands on a book called "Presentation Zen". It's all about 
+    creating awesome and engaging presentations.
+    
+    Think about it. 'Cause impress.js may not help you, if you have nothing interesting to say.
+    
+-->
+
+<!--
+    
+    Are you still reading this?
+    
+    For real? I'm impressed! 
+    
+    But now, take my advice and take some time off. Make yourself a cup of coffee, tea,
+    or anything you like to drink.
+    
+    Cheers!
+    
+-->
+

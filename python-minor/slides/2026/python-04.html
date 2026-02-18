@@ -1,0 +1,584 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1024" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <title>Python-04</title>
+    
+    <meta name="description" content="impress.js is a presentation tool based on the power of CSS3 transforms and transitions in modern browsers and inspired by the idea behind prezi.com." />
+    <meta name="author" content="Bartek Szopka" />
+
+    <link href="//fonts.googleapis.com/css?family=Open+Sans:regular,semibold,italic,italicsemibold|PT+Sans:400,700,400italic,700italic|PT+Serif:400,700,400italic,700italic" rel="stylesheet" />
+
+    <link href="css/impress-demo.css" rel="stylesheet" />
+    <link href="css/impress-common.css" rel="stylesheet" />
+    
+    <link rel="shortcut icon" href="favicon.png" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/default.min.css">
+
+</head>
+
+<body class="impress-not-supported">
+
+<div class="fallback-message">
+    <p>Your browser <b>doesn't support the features required</b> by impress.js, so you are presented with a simplified version of this presentation.</p>
+    <p>For the best experience please use the latest <b>Chrome</b>, <b>Safari</b> or <b>Firefox</b> browser.</p>
+</div>
+
+<div id="impress"
+    data-transition-duration="1000"
+    
+    data-width="1024"
+    data-height="768"
+    data-max-scale="3"
+    data-min-scale="0"
+    data-perspective="1000"
+    >
+
+    <div  class="step slide" data-x="-1000" data-y="-1500">
+        <h1>Python: лекция 4</h1>
+        <ul>
+        <li>Строки</li>
+        <li>Вырезки</li>
+        </ul>
+    </div>
+
+
+    <div class="step slide" data-x="0" data-y="-1500">
+        <h1>Строки</h1>
+        <ul>
+        <li>Один из ключевых типов данных</li>
+        <li>Можно задавать непосредственно в коде строковые литералы</li>
+        <li>Можно порождать новые строки с помощью операций</li>
+        <li>Можно читать строки из файлов</li>
+        <li>Можно записывать строки в файлы</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="1000" data-y="-1500">
+        <h1>Пример литералов</h1>
+        <pre><code class="python">
+s1 = 'abc'
+s2 = "abc"
+s3 = "O'Henry"
+s4 = "abc\ndef"
+s5 = "abc\
+def"
+s6 = "abc\\def"
+s7 = "abc" "def"
+s8 = "abc" \
+     "def"
+s9 = ( "abc"
+       "def" )
+        </code></pre>
+    </div>
+
+
+    <div class="step slide" data-x="2000" data-y="-1500">
+        <h1>Базовые правила</h1>
+        <ul>
+          <li>Начало и конец ограничиваются одинарными или двойными кавычками</li>
+          <li>Начальные и конечные кавычки должны быть на одной физической строке - с одним нюансом</li>
+          <li>Можно в незакрытом строковом литерале использовать \ перевод новой строкой</li>
+          <li>Тогда содержимое строкового литерала продолжается на следующей строке</li>
+          <li>И завершающая кавычка должна быть на следующей строке</li>
+          <li>Это похоже на продолжение логической строки, но есть отличия в семантике</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="3000" data-y="-1500">
+        <h1>Базовые правила</h1>
+        <ul>
+          <li>Внутри кавычек \ имеет особое значение</li>
+          <li>\ с последующим символом обозначает что-либо</li>
+          <li>То, для чего нет видимого символьного представления </li>
+          <li>То, что при обычном представлении вызывает неоднозначность</li>
+          <li>\n - перевод строки</li>
+          <li>\t - табуляция</li>
+          <li>\', \" - одинарная или двойная кавычка как часть строки</li>
+          <li>\\ - \ как символ</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="4000" data-y="-1500">
+        <h1>Базовые правила</h1>
+        <ul>
+          <li>Два строковых литерала подряд склеиваются вместе</li>
+          <li>Вариант применения - длинная строковая константа</li>
+          <li>Можно представить на нескольких физических строках</li>
+          <li>Но нужно для этого организовать логическую строку</li>
+          <li>Через скобки или \</li>
+        </ul>
+    </div>
+
+
+
+    <div class="step slide" data-x="5000" data-y="-1500">
+        <h1>Длинные строковые константы</h1>
+        <ul>
+          <li>Ограничиваются тремя подряд одинарными или двойными кавычками</li>
+          <li>Растягиваются на много физических строк</li>
+          <li>Перевод строки внутри такого литерала превращается в перевод строки внутри значения строки</li>
+          <li>Не нужно использовать \ для отдельно стоящей кавычки внутри такого литерала</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="6000" data-y="-1500">
+        <h1>Пример</h1>
+        <pre><code class="python">
+
+s1 = """
+Однажды в студеную зимнюю пору
+Я из лесу вышел
+Был сильный мороз
+"""
+
+s2 = """
+"To be, or not to be, that is the question" 
+Shakespeare, William. Hamlet
+"""
+
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="7000" data-y="-1500">
+        <h1>Буквенные префиксы</h1>
+        <ul>
+          <li>Перед кавычками можно использовать букву f или r</li>
+          <li>Поотдельности или вместе</li>
+          <li>Перед любыми - двойными или одинарными, простыми или тройные</li>
+          <li>r отключает интерпретацию \ как специального символа</li>
+          <li>f включает режим интерполяции: <a href="https://peps.python.org/pep-0498">PEP 498 – Literal String Interpolation</a></li>
+          <li>В режиме интерполяции можно внутрь строки вкраплять вычисляемые выражения</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="8000" data-y="-1500">
+        <h1>Пример</h1>
+        <pre><code class="python">
+
+s1 = r"\"
+s2 = r"\n"
+
+for v in range(10, 20):
+    print(f'{v}^2 is {v * v}')
+
+s3 = fr's1 contains \: {s1}'
+        
+        </code></pre>
+    </div>
+
+
+
+    <div class="step slide" data-x="9000" data-y="-1500">
+        <h1>Взятие символа но номеру</h1>
+        <ul>
+          <li>Можем взять значение символа по номеру</li>
+          <li>Например: s[0], s[3], s[i]</li>
+          <li>Номер символа принято называть индексом</li>
+          <li>Индекс должен быть целым числом</li>
+          <li>Начальный символ строки имеет индекс 0</li>
+          <li>Длина строки определяется функцией len</li>
+          <li>len(s) - 1 - максимальный корректный индекс для непустой строки</li>
+          <li>Это индекс последнего символа строки</li>
+          <li>(У пустой строки корректных индексов нет)</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="10000" data-y="-1500">
+        <h1>Пример</h1>
+        <pre><code class="python">
+
+s = "abcdefghij"
+
+print(s[0])
+print(s[1])
+print(s[8])
+print(s[9])
+print(s[len(s) - 1])
+
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="11000" data-y="-1500">
+        <h1>Отрицательный индекс</h1>
+        <ul>
+          <li>Довольно часто требуется взять элемент в конце строки</li>
+          <li>И/или с нумерацией позиции относительно конца</li>
+          <li>Последний, предпоследний, третий с конца, ...</li>
+          <li>Для такого случая появилась схема отрицательных индексов</li>
+          <li>Последний символ можно обозначить как элемент с индексом -1</li>
+          <li>Предпоследний: -2</li>
+          <li>Третий с конца: -3</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="12000" data-y="-1500">
+        <h1>Пример</h1>
+        <pre><code class="python">
+    
+s = "abcdefghij"
+
+print(s[-1])
+print(s[-2])
+print(s[-9])
+print(s[-10])
+
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="13000" data-y="-1500">
+        <h1>Отрицательный индекс</h1>
+        <ul>
+          <li>Отрицательный индекс часто бывает удобным</li>
+          <li>Но этот механизм коварен</li>
+          <li>Допустим, что индекс вычисляется</li>
+          <li>И в логике вычисления индекса есть ошибка</li>
+          <li>В результате ошибки получаем индекс на 1 меньше требуемого</li>
+          <li>Если нужно обратиться по индексу 0  и случайно попадаем в индекс -1 - можем не заметить ошибки</li>
+        </ul>
+    </div>
+
+
+    <div class="step slide" data-x="14000" data-y="-1500">
+        <h1>Отрицательный индекс</h1>
+        <ul>
+          <li>Если индекс i корректен, то кажется что индекс -i тоже корректен и указывает на "симмемтричную" позицию</li>
+          <li>Но есть нюансы</li>
+          <li>Если i == 0, то -i указывает на ту же позицию</li>
+          <li>Если i == -len(s), то -i - некорректный индекс, а i - корректный</li>
+          <li>Когда i и -i корректны и не 0 - ось симметрии проходит не по середине строки</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="15000" data-y="-1500">
+        <h1>Пример</h1>
+        <pre><code class="python">
+        
+s = "abcdefghij"
+for i in range(len(s)):
+    print(i, s[i], s[-i])
+
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="16000" data-y="-1500">
+        <h1>Тип значения по индексу</h1>
+        <ul>
+          <li>По общему смыслу одиночный символ и строка - разные объекты</li>
+          <li>Символ - это одиночная сущность</li>
+          <li>У него есть Unicode-код</li>
+          <li>У него может быть визуальное представление</li>
+          <li>Или связанное с ним действие - для управляющих символов</li>
+          <li>С ним сложно ассоциировать понятие "длины"</li>
+          <li>По символу странно итерироваться - как странно итерироваться по числу</li>
+          <li>Символ атомарен, его сложно разделить на составные части</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="17000" data-y="-1500">
+        <h1>Тип значения по индексу</h1>
+        <ul>
+          <li>А строка - набор символов</li>
+          <li>Он может состоять из 0, 1, 2, ... элементов</li>
+          <li>Для строки естественны операции итерирования или взятия элемента по индексу</li>
+          <li>Для строки естественно иметь длину</li>
+          <li>Для строки в целом странно ставить вопрос "какой у нее Unicode-код ?"</li>
+          <li>И поэтому естественно и логично иметь два отдельных типа данных: символ и строка</li>
+          <li>Примерно все языки программирования так и делают</li>
+          <li>Но не Python</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="18000" data-y="-1500">
+        <h1>Тип значения по индексу</h1>
+        <ul>
+          <li>В Python нет отдельного типа для символа</li>
+          <li>Результат индексирования строки - строка длиной 1</li>
+          <li>У результата индексирования есть длина - 1</li>
+          <li>По нему можно проитерироваться - это будет цикл с одной итерацией</li>
+          <li>Встроенная функция ord требует, чтобы аргументом была строка длиной 1</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="19000" data-y="-1500">
+        <h1>Пример</h1>
+        <pre><code class="python">
+s = "abcdefghij"
+print(type(s), type(s[0]))
+for v in s[0]:
+    print(v)
+for v1 in s:
+    print('v1', v1)
+    for v2 in v1:
+        print('v2', v2)
+        for v3 in v2:
+            print('v3', v3)
+          
+        </code></pre>
+    </div>
+
+
+
+    <div class="step slide" data-x="20000" data-y="-1500">
+        <h1>Вырезка</h1>
+        <ul>
+          <li>Может потребоваться подстрока</li>
+          <li>Для взятия подстроки есть операция вырезки</li>
+          <li>В квадратных скобках используем двоеточие</li>
+          <li>Или два двоеточия</li>
+          <li>Базовый вариант: s[i:j]</li>
+          <li>i -  начальный индекс, j - позиция после конечного индекса</li>
+          <li>(Полуоткрытый интервал)</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="21000" data-y="-1500">
+        <h1>Пример</h1>
+        <pre><code class="python">
+          
+s = "abcdefghij" 
+print(s[0:4])
+print(s[3:5])
+
+for i in range(len(s)):
+    for j in range(i, len(s)):
+        print(i, j, s[i:j])
+
+          
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="22000" data-y="-1500">
+        <h1>Отсутствующая граница</h1>
+        <ul>
+          <li>Число слева или справа от : может отсутствовать</li>
+          <li>Если отсутствует слева - это префикс</li>
+          <li>Это отсутствует справа - это суффикс</li>
+          <li>Числа могут отсутствовать с обоих сторон</li>
+          <li>Это будет копия строки</li>
+          <li>Практического смысла в копии строки мало - строки неизменяемы</li>
+          <li>Но чисто технически это корректная операция</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="23000" data-y="-1500">
+        <h1>Пример</h1>
+        <pre><code class="python">
+
+s = "abcdefghij"
+print(s[:4])
+print(s[3:])
+print(s[:])
+
+for i in range(len(s)):
+    print('prefix to pos', i, s[:i])
+    print('suffix from pos', i, s[i:])
+
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="24000" data-y="-1500">
+        <h1>Пустые вырезки и выходы за границы</h1>
+        <ul>
+          <li>(Пока только для неотрицательных индексов границ)</li>
+          <li>Если левая граница не меньше, чем длина строки - получим пустую строку</li>
+          <li>Если правая граница не больше, чем левая - получим пустую строку</li>
+          <li>Если правая граница больше, чем длина строки - это корректная вырезка</li>
+          <li>В нее входит то, что реально вошло в строку</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="25000" data-y="-1500">
+        <h1>Пример</h1>
+        <pre><code class="python">
+
+s = "abcdefghij"
+print(s[10:])
+print(s[15:20])
+print(s[15:10])
+print(s[5:5])
+print(s[7:2])
+
+for i in range(len(s), len(s) + 5):
+    print(f"{i}: <{s[3:i]}>")
+
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="26000" data-y="-1500">
+        <h1>Отрицательные индексы в вырезках</h1>
+        <ul>
+          <li>Зависит от абсолютного значения индекса</li>
+          <li>Если абсолютное значение НЕ превышает длины строки - реальный индекс получает как для обычного индекса</li>
+          <li>Если превышает - это просто отрицательный индекс, указывающий в воображаемую позицию левее начала строки</li>
+          <li>Для реально отрицательного индекса действуют зеркальные аналоги правил для слишком большого индекса</li>
+          <li>Если правая граница реально отрицательная - получим пустую строку</li>
+          <li>Если левая граница реально отрицательная - это корректная вырезка</li>
+          <li>В нее входит то, что реально вошло в строку</li>
+        </ul>
+    </div>
+
+
+
+    <div class="step slide" data-x="27000" data-y="-1500">
+        <h1>Пример</h1>
+        <pre><code class="python">
+
+s = "abcdefghij"
+
+for i in range(20, -20, -1):
+    for j in range(i, -20, -1):
+      print(f"i={i}, j={j}: <{s[i:j]}>")
+      print(f"j={i}, i={j}: <{s[j:i]}>")
+      print()
+
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="28000" data-y="-1500">
+        <h1>Пример</h1>
+        <pre><code class="python">
+
+s = "abcdefghij"
+
+for i in range(-20, 20, 1):
+    print(f"i={i}, i + 1={i + 1}: <{s[i:i+1]}>")
+
+        </code></pre>
+    </div>
+
+    <!--
+        
+        * `data-x`, `data-y`, `data-z` - they define the position of **the center** of step element on
+            the canvas in pixels; their default value is 0;
+        * `data-rotate-x`, `data-rotate-y`, 'data-rotate-z`, `data-rotate` - they define the rotation of
+            the element around given axis in degrees; their default value is 0; `data-rotate` and `data-rotate-z`
+            are exactly the same;
+        * `data-scale` - defines the scale of step element; default value is 1
+        
+        These values are used by impress.js in CSS transformation functions, so for more information consult
+        CSS transfrom docs: https://developer.mozilla.org/en/CSS/transform
+        
+    -->
+    <div id="overview" class="step" data-x="3000" data-y="1500" data-z="0" data-scale="10">
+    </div>
+
+</div>
+
+<!--
+    This is a UI plugin. You can read more about plugins in src/plugins/README.md.
+    For now, I'll just tell you that this adds some graphical controls to navigate the
+    presentation. In the CSS file you can style them as you want. We've put them bottom right.
+-->
+<div id="impress-toolbar"></div>
+
+<!--
+    
+    Hint is not related to impress.js in any way.
+    
+    But it can show you how to use impress.js features in creative way.
+    
+    When the presentation step is shown (selected) its element gets the class of "active" and the body element
+    gets the class based on active step id `impress-on-ID` (where ID is the step's id)... It may not be
+    so clear because of all these "ids" in previous sentence, so for example when the first step (the one with
+    the id of `bored`) is active, body element gets a class of `impress-on-bored`.
+    
+    This class is used by this hint below. Check CSS file to see how it's shown with delayed CSS animation when
+    the first step of presentation is visible for a couple of seconds.
+    
+    ...
+    
+    And when it comes to this piece of JavaScript below ... kids, don't do this at home ;)
+    It's just a quick and dirty workaround to get different hint text for touch devices.
+    In a real world it should be at least placed in separate JS file ... and the touch content should be
+    probably just hidden somewhere in HTML - not hard-coded in the script.
+    
+    Just sayin' ;)
+    
+-->
+<div class="hint">
+    <p>Use a spacebar or arrow keys to navigate. <br/>
+       Press 'P' to launch speaker console.</p>
+</div>
+<script>
+if ("ontouchstart" in document.documentElement) { 
+    document.querySelector(".hint").innerHTML = "<p>Swipe left or right to navigate</p>";
+}
+</script>
+
+<!--
+    
+    Last, but not least.
+    
+    To make all described above really work, you need to include impress.js in the page.
+    I strongly encourage to minify it first.
+    
+    In here I just include full source of the script to make it more readable.
+    
+    You also need to call a `impress().init()` function to initialize impress.js presentation.
+    And you should do it in the end of your document. Not only because it's a good practice, but also
+    because it should be done when the whole document is ready.
+    Of course you can wrap it in any kind of "DOM ready" event, but I was too lazy to do so ;)
+    
+-->
+<script src="js/impress.js"></script>
+<script>impress().init();</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<!-- Include any specific language files AFTER the main library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/python.min.js"></script>
+
+<script>hljs.highlightAll();</script>
+<!--
+    
+    The `impress()` function also gives you access to the API that controls the presentation.
+    
+    Just store the result of the call:
+    
+        var api = impress();
+    
+    and you will get three functions you can call:
+    
+        `api.init()` - initializes the presentation,
+        `api.next()` - moves to next step of the presentation,
+        `api.prev()` - moves to previous step of the presentation,
+        `api.goto( stepIndex | stepElementId | stepElement, [duration] )` - moves the presentation to the step given by its index number
+                id or the DOM element; second parameter can be used to define duration of the transition in ms,
+                but it's optional - if not provided default transition duration for the presentation will be used.
+    
+    You can also simply call `impress()` again to get the API, so `impress().next()` is also allowed.
+    Don't worry, it won't initialize the presentation again.
+    
+    For some example uses of this API check the last part of the source of impress.js where the API
+    is used in event handlers.
+    
+-->
+
+</body>
+</html>
+
+<!--
+    
+    Now you know more or less everything you need to build your first impress.js presentation, but before
+    you start...
+    
+    Oh, you've already cloned the code from GitHub?
+    
+    You have it open in text editor?
+    
+    Stop right there!
+    
+    That's not how you create awesome presentations. This is only a code. Implementation of the idea that
+    first needs to grow in your mind.
+    
+    So if you want to build great presentation take a pencil and piece of paper. And turn off the computer.
+    
+    Sketch, draw and write. Brainstorm your ideas on a paper. Try to build a mind-map of what you'd like
+    to present. It will get you closer and closer to the layout you'll build later with impress.js.
+    
+    Get back to the code only when you have your presentation ready on a paper. It doesn't make sense to do
+    it earlier, because you'll only waste your time fighting with positioning of useless points.
+    
+    If you think I'm crazy, please put your hands on a book called "Presentation Zen". It's all about 
+    creating awesome and engaging presentations.
+    
+    Think about it. 'Cause impress.js may not help you, if you have nothing interesting to say.
+    
+-->
+
+<!--
+    
+    Are you still reading this?
+    
+    For real? I'm impressed! 
+    
+    But now, take my advice and take some time off. Make yourself a cup of coffee, tea,
+    or anything you like to drink.
+    
+    Cheers!
+    
+-->
+
