@@ -1,0 +1,458 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1024" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <title>OS-seminar-02</title>
+    
+    <meta name="description" content="impress.js is a presentation tool based on the power of CSS3 transforms and transitions in modern browsers and inspired by the idea behind prezi.com." />
+    <meta name="author" content="Bartek Szopka" />
+
+    <link href="//fonts.googleapis.com/css?family=Open+Sans:regular,semibold,italic,italicsemibold|PT+Sans:400,700,400italic,700italic|PT+Serif:400,700,400italic,700italic" rel="stylesheet" />
+
+    <link href="css/impress-demo.css" rel="stylesheet" />
+    <link href="css/impress-common.css" rel="stylesheet" />
+    
+    <link rel="shortcut icon" href="favicon.png" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/default.min.css">
+
+</head>
+
+<body class="impress-not-supported">
+
+<div class="fallback-message">
+    <p>Your browser <b>doesn't support the features required</b> by impress.js, so you are presented with a simplified version of this presentation.</p>
+    <p>For the best experience please use the latest <b>Chrome</b>, <b>Safari</b> or <b>Firefox</b> browser.</p>
+</div>
+
+<div id="impress"
+    data-transition-duration="1000"
+    
+    data-width="1024"
+    data-height="768"
+    data-max-scale="3"
+    data-min-scale="0"
+    data-perspective="1000"
+    >
+
+    <div  class="step slide" data-x="-1000" data-y="-1500">
+        <h1>OS: семинар 2</h1>
+        <ul>
+        <li>Инструменты сборки</li>
+        <li>Ассемблеры</li>
+        </ul>
+    </div>
+
+
+    <div class="step slide" data-x="0" data-y="-1500">
+        <h1>Инструменты: обзор</h1>
+        <ul>
+        <li>Компиляторы</li>
+        <li>Системная библиотека (libc)</li>
+        <li>Линкер</li>
+        <li>Ассемблер</li>
+        <li>Линкер</li>
+        <li>Отладчик</li>
+        <li>binutils</li>
+        <li>Кросс-версии вышеперечисленного</li>
+        <li>Эмуляторы</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="1000" data-y="-1500">
+        <h1>Компилятор</h1>
+        <ul>
+        <li>Строго говоря - порождает машинные инструкции или объектный код</li>
+        <li>Часто то, что воспринимается как компилятор, заодно вызывает линковку</li>
+        <li>Но технически это отдельный инструмент</li>
+        <li>C-компилятор компилирует каждый файл отдельно</li>
+        <li>Для внешних символов (объявленных, но не определенных идентификаторов/функций) порождаются заглушки</li>
+        <li>Популярный компилятор - GCC</li>
+        </ul>
+    </div>
+
+
+    <div class="step slide" data-x="2000" data-y="-1500">
+        <h1>Компилятор</h1>
+        <ul>
+          <li>Можно ограничиться порождением ассемблера: gcc -S f.c</li>
+          <li>Можно ограничиться компиляцией без линковки: gcc -c f.c</li>
+          <li>Можно дизассемблировать объектный файл: objdump -S f.o</li>
+          <li>objdump - часть binutils</li>
+          <li>GCC поддерживает кросс-компиляцию</li>
+          <li>Но не в рамках одной утилиты</li>
+          <li>Из одной кодовой базы собираются/устанавливаются разные конфигурации компилятора</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="3000" data-y="-1500">
+        <h1>Компиляторы</h1>
+        <ul>
+          <li>Установка кросс-компилятора для riscv: apt install gcc-riscv64-unknown-elf</li>
+          <li>Установка кросс-компилятора для i686: apt install gcc-i686-linux-gnu</li>
+          <li>После установки: i686-linux-gnu-gcc, riscv64-unknown-elf-gcc</li>
+          <li>Заодно установятся binutils: i686-linux-gnu-objdump, riscv64-unknown-elf-objdump</li>
+          <li>Компилятор не использует все машинные инструкции - для них нет семантических эквивалентов в языках программирования</li>
+          <li>В некоторых ситуациях не обойтись без программирования на ассемблере</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="4000" data-y="-1500">
+        <h1>Ассемблер</h1>
+        <ul>
+          <li>Программирование в явно выписанных машинных инструкциях</li>
+          <li>В символьной форме</li>
+          <li>Структура ассемблер-кода для разных архитектур похожа</li>
+          <li>Отличаются инструкции, структура их аргументов и набор регистров</li>
+          <li>Это дает идейную основу для универсального ассемблера</li>
+        </ul>
+    </div>
+
+
+    <div class="step slide" data-x="5000" data-y="-1500">
+        <h1>Ассемблер</h1>
+        <ul>
+          <li>Производители процессоров заинтересованы в наличии ассемблера для своего процессера</li>
+          <li>И часто создают свои ассемблеры - только для своей архитектуры</li>
+          <li>Бывают независимые разработчики ассемблеров для одной архитектуры</li>
+          <li>Или поддерживаются производителями, или сами делают что-то свое по своим бизнес-планом</li>
+          <li>И фокусируются на отдельной архитектуре</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="6000" data-y="-1500">
+        <h1>Ассемблер</h1>
+        <ul>
+          <li>Универсальный ассемблер - gas (GNU assembler)</li>
+          <li>Устанавливается через apt вместе с компилятором</li>
+          <li>Принимает код, который был порожден GNU-компилятором</li>
+          <li>objdump порождает код по правилам GNU-ассемблера</li>
+          <li>У него есть много платформенно-независимой логики: макросы и т.п.</li>
+          <li>А минусы будут ?</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="7000" data-y="-1500">
+        <h1>Ассемблер</h1>
+        <ul>
+          <li>Субъективно gas для x86 хуже отличается по стилю привычных форм x86-ассемблера</li>
+          <li>В частности - от примеров в документации Intel</li>
+          <li>Более объективно - в записи операций gas использует ATT-нотацию </li>
+          <li>А в других ассемблерах - обычно используется Intel-нотация</li>
+          <li>ATT: source, dest</li>
+          <li>Intel: dest, source</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="8000" data-y="-1500">
+        <h1>Ассемблер</h1>
+        <ul>
+          <li>Для чтения того, что породил GCC, использование GAS неизбежно</li>
+          <li>Для работы с RISC-V  - тоже</li>
+          <li>Для Intel-ассемблирования привлекателен вариант альтернативного ассемблера, работающего в Intel-нотации</li>
+          <li>Живой пример такого ассемблера - <a href="https://www.nasm.us/">nasm</a></li>
+        </ul>
+    </div>
+
+
+    <div class="step slide" data-x="9000" data-y="-1500">
+        <h1>Типы реализации C</h1>
+        <ul>
+          <li>Реализация C бывает двух типов: hosted и free-standing</li>
+          <li>hosted предполагает наличие операционной системы там, где будет исполняться приложение</li>
+          <li>free-standing предполагает исполнение там, где есть просто память и процессор</li>
+          <li>hosted должна знать конкретную ОС</li>
+          <li>Поэтому в GCC есть два параметра в настройке инструментов: target CPU и target OS</li>
+          <li>hosted организует связь с загрузчиком и вызов функции main</li>
+          <li>hosted рассчитывает на системные вызовы и сводит к ним многие библиотечные функции</li>
+          <li>free-standing ни на что не рассчитывает</li>
+          <li>И предоставляет маленький поднабор библитечных функций - для которых не нужно обращаться к системным вызовам</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="10000" data-y="-1500">
+        <h1>"Hello, world" без компилятора</h1>
+        <ul>
+          <li>Напишем код на ассемблере, слинкуем и запустим</li>
+          <li>Постараемся максимально изобрести велосипед - сделать все своим кодом</li>
+          <li>printf нас точно не устроит</li>
+          <li>Нужно делать write в файловый дескриптор 1 (stdout)</li>
+          <li>Но библиотечный write - не функция</li>
+          <li>Это системный вызов сделаем его сразу</li>
+          <li>Будет три версии: linux x86 через nasm, linux на x86 через gas, osx на arm через gas</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="11000" data-y="-1500">
+        <h1>Пример</h1>
+        <pre>
+
+section .data
+    msg db "Hello, World!", 0xa
+    len equ $ - msg
+section .text
+    global _start
+_start:
+    mov rax, 1
+    mov rdi, 1
+    mov rsi, msg
+    mov rdx, len
+    syscall
+
+    mov rax, 60
+    xor rdi, rdi
+    syscall
+
+        </pre>
+    </div>
+    <div class="step slide" data-x="12000" data-y="-1500">
+        <h1>Пример</h1>
+        <pre>
+
+nasm -f elf64 -o hello.o hello.asm
+ld -o hello hello.o
+./hello
+
+
+        </pre>
+    </div>
+    <div class="step slide" data-x="13000" data-y="-1500">
+        <h1>Пример</h1>
+        <pre>
+.section .data
+    message: .ascii "Hello, world!\n"
+    length: .set length, . - message
+.section .text
+.global _start
+_start:
+    movl $4, %eax
+    movl $1, %ebx
+    movl $message, %ecx
+    movl $length, %edx
+    int $0x80
+
+    movl $1, %eax
+    xorl %ebx, %ebx
+    int $0x80      
+
+        </pre>
+    </div>
+
+
+
+
+
+    <div class="step slide" data-x="14000" data-y="-1500">
+        <h1>Пример</h1>
+        <pre>
+
+gcc -m32 -nostdlib hello.s -o hello
+./hello
+
+# или
+
+as hello.s -o hello.o
+ld hello.o -o hello
+./hello
+
+
+        </pre>
+    </div>
+    <div class="step slide" data-x="15000" data-y="-1500">
+        <h1>Пример</h1>
+        <pre>
+.global _start
+.align 2
+_start:
+    mov x0, #1
+    adrp x1, helloworld@PAGE
+    add x1, x1, helloworld@PAGEOFF
+    mov x2, #13
+    mov x16, #4
+    svc #0x80
+
+    mov x0, #0
+    mov x16, #1
+    svc #0x80
+
+.data
+helloworld:
+    .ascii "Hello World!\n"
+
+        </pre>
+    </div>
+    <div class="step slide" data-x="16000" data-y="-1500">
+        <h1>Пример</h1>
+        <pre>  
+
+as -arch arm64 -o hello.o hello.s
+ld -o hello hello.o -lSystem \
+  -syslibroot $(xcrun --sdk macosx --show-sdk-path) \
+  -e _start -arch arm64
+./hello
+
+        </pre>
+    </div>
+    <div class="step slide" data-x="17000" data-y="-1500">
+        <h1>Модель процессора x86</h1>
+        <ul>
+          <li>Существуют RISC и CISC-архитектуры</li>
+          <li>RISC - логичные регулярные простые инструкции</li>
+          <li>Упрощает реализацию в железе</li>
+          <li>Но более длинный по числу инструкций код</li>
+          <li>В CISC более увесистые и выразительные инструкции</li>
+          <li>Более гетерогенное распределение ролей регистров</li>
+          <li>x86  - CISC-архитектуры</li>
+          <li>С незначительными RISC-тенденциями</li>
+        </ul>
+    </div>
+
+
+    <!--
+        
+        * `data-x`, `data-y`, `data-z` - they define the position of **the center** of step element on
+            the canvas in pixels; their default value is 0;
+        * `data-rotate-x`, `data-rotate-y`, 'data-rotate-z`, `data-rotate` - they define the rotation of
+            the element around given axis in degrees; their default value is 0; `data-rotate` and `data-rotate-z`
+            are exactly the same;
+        * `data-scale` - defines the scale of step element; default value is 1
+        
+        These values are used by impress.js in CSS transformation functions, so for more information consult
+        CSS transfrom docs: https://developer.mozilla.org/en/CSS/transform
+        
+    -->
+    <div id="overview" class="step" data-x="3000" data-y="1500" data-z="0" data-scale="10">
+    </div>
+
+</div>
+
+<!--
+    This is a UI plugin. You can read more about plugins in src/plugins/README.md.
+    For now, I'll just tell you that this adds some graphical controls to navigate the
+    presentation. In the CSS file you can style them as you want. We've put them bottom right.
+-->
+<div id="impress-toolbar"></div>
+
+<!--
+    
+    Hint is not related to impress.js in any way.
+    
+    But it can show you how to use impress.js features in creative way.
+    
+    When the presentation step is shown (selected) its element gets the class of "active" and the body element
+    gets the class based on active step id `impress-on-ID` (where ID is the step's id)... It may not be
+    so clear because of all these "ids" in previous sentence, so for example when the first step (the one with
+    the id of `bored`) is active, body element gets a class of `impress-on-bored`.
+    
+    This class is used by this hint below. Check CSS file to see how it's shown with delayed CSS animation when
+    the first step of presentation is visible for a couple of seconds.
+    
+    ...
+    
+    And when it comes to this piece of JavaScript below ... kids, don't do this at home ;)
+    It's just a quick and dirty workaround to get different hint text for touch devices.
+    In a real world it should be at least placed in separate JS file ... and the touch content should be
+    probably just hidden somewhere in HTML - not hard-coded in the script.
+    
+    Just sayin' ;)
+    
+-->
+<div class="hint">
+    <p>Use a spacebar or arrow keys to navigate. <br/>
+       Press 'P' to launch speaker console.</p>
+</div>
+<script>
+if ("ontouchstart" in document.documentElement) { 
+    document.querySelector(".hint").innerHTML = "<p>Swipe left or right to navigate</p>";
+}
+</script>
+
+<!--
+    
+    Last, but not least.
+    
+    To make all described above really work, you need to include impress.js in the page.
+    I strongly encourage to minify it first.
+    
+    In here I just include full source of the script to make it more readable.
+    
+    You also need to call a `impress().init()` function to initialize impress.js presentation.
+    And you should do it in the end of your document. Not only because it's a good practice, but also
+    because it should be done when the whole document is ready.
+    Of course you can wrap it in any kind of "DOM ready" event, but I was too lazy to do so ;)
+    
+-->
+<script src="js/impress.js"></script>
+<script>impress().init();</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<!-- Include any specific language files AFTER the main library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/python.min.js"></script>
+
+<script>hljs.highlightAll();</script>
+<!--
+    
+    The `impress()` function also gives you access to the API that controls the presentation.
+    
+    Just store the result of the call:
+    
+        var api = impress();
+    
+    and you will get three functions you can call:
+    
+        `api.init()` - initializes the presentation,
+        `api.next()` - moves to next step of the presentation,
+        `api.prev()` - moves to previous step of the presentation,
+        `api.goto( stepIndex | stepElementId | stepElement, [duration] )` - moves the presentation to the step given by its index number
+                id or the DOM element; second parameter can be used to define duration of the transition in ms,
+                but it's optional - if not provided default transition duration for the presentation will be used.
+    
+    You can also simply call `impress()` again to get the API, so `impress().next()` is also allowed.
+    Don't worry, it won't initialize the presentation again.
+    
+    For some example uses of this API check the last part of the source of impress.js where the API
+    is used in event handlers.
+    
+-->
+
+</body>
+</html>
+
+<!--
+    
+    Now you know more or less everything you need to build your first impress.js presentation, but before
+    you start...
+    
+    Oh, you've already cloned the code from GitHub?
+    
+    You have it open in text editor?
+    
+    Stop right there!
+    
+    That's not how you create awesome presentations. This is only a code. Implementation of the idea that
+    first needs to grow in your mind.
+    
+    So if you want to build great presentation take a pencil and piece of paper. And turn off the computer.
+    
+    Sketch, draw and write. Brainstorm your ideas on a paper. Try to build a mind-map of what you'd like
+    to present. It will get you closer and closer to the layout you'll build later with impress.js.
+    
+    Get back to the code only when you have your presentation ready on a paper. It doesn't make sense to do
+    it earlier, because you'll only waste your time fighting with positioning of useless points.
+    
+    If you think I'm crazy, please put your hands on a book called "Presentation Zen". It's all about 
+    creating awesome and engaging presentations.
+    
+    Think about it. 'Cause impress.js may not help you, if you have nothing interesting to say.
+    
+-->
+
+<!--
+    
+    Are you still reading this?
+    
+    For real? I'm impressed! 
+    
+    But now, take my advice and take some time off. Make yourself a cup of coffee, tea,
+    or anything you like to drink.
+    
+    Cheers!
+    
+-->
+
