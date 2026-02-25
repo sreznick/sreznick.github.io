@@ -1,0 +1,629 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1024" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <title>OS-02</title>
+    
+    <meta name="description" content="impress.js is a presentation tool based on the power of CSS3 transforms and transitions in modern browsers and inspired by the idea behind prezi.com." />
+    <meta name="author" content="Bartek Szopka" />
+
+    <link href="//fonts.googleapis.com/css?family=Open+Sans:regular,semibold,italic,italicsemibold|PT+Sans:400,700,400italic,700italic|PT+Serif:400,700,400italic,700italic" rel="stylesheet" />
+
+    <link href="css/impress-demo.css" rel="stylesheet" />
+    <link href="css/impress-common.css" rel="stylesheet" />
+    
+    <link rel="shortcut icon" href="favicon.png" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/default.min.css">
+
+</head>
+
+<body class="impress-not-supported">
+
+<div class="fallback-message">
+    <p>Your browser <b>doesn't support the features required</b> by impress.js, so you are presented with a simplified version of this presentation.</p>
+    <p>For the best experience please use the latest <b>Chrome</b>, <b>Safari</b> or <b>Firefox</b> browser.</p>
+</div>
+
+<div id="impress"
+    data-transition-duration="1000"
+    
+    data-width="1024"
+    data-height="768"
+    data-max-scale="3"
+    data-min-scale="0"
+    data-perspective="1000"
+    >
+
+    <div  class="step slide" data-x="-1000" data-y="-1500">
+        <h1>OS: лекция 2</h1>
+        <ul>
+        <li>История операционных систем</li>
+        <li>Linux: ядро, приложения, дистрибутивы</li> 
+        <li>GUI и CLI</li>
+        <li>Введение в bash</li>
+        <li>Переменные окружения</li>
+        <li>Исполнения приложений</li>
+        </ul>
+    </div>
+
+
+    <div class="step slide" data-x="0" data-y="-1500">
+        <h1>Немного истории</h1>
+        <ul>
+          <li>Первые компьютеры часто использовались без операционных систем</li>
+          <li>(Это еще не персональные компьютеры)</li>
+          <li>Потом появляются операционные системы</li>
+          <li>Большинство из них на сегодняшний день не используется</li>
+          <li>В 1969 году появляется операционная система Unix</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="1000" data-y="-1500">
+        <h1>Немного истории</h1>
+        <ul>
+          <li>У нее находится много подражателей</li>
+          <li>Появляется много разных Unix-подобных систем</li>
+          <li>Параллельно развивается "железо"</li>
+          <li>Появляются персональные компьютеры</li>
+          <li>Для них создаются свои операционные системы</li>
+          <li>Одна из них - MS DOS (из нее вырастет Windows)</li>
+        </ul>
+    </div>
+
+
+
+    <div class="step slide" data-x="2000" data-y="-1500">
+        <h1>Немного истории</h1>
+        <ul>
+          <li>Ближе к 80-м годам получает популярность архитектуры процессоров Intel</li>
+          <li>В 1991 году финский студент Линус Торвальдс создает реализацию Unix-подобной системы для ПК </li>
+          <li>В начале 90-х годов появляется Windows - сначала как графическая оболочка для MS DOS</li>
+          <li>Затем Windows становится операционной системой</li>
+          <li>Linux развивается, появляются разные дистрибутивы</li>
+          <li>Параллельно с этим развивается архитектура Apple</li>
+          <li>Со своей вариацией на тему Unix</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="3000" data-y="-1500">
+        <h1>Немного истории</h1>
+        <ul>
+          <li>Еще одна область использования ОС - встроенные системы</li>
+          <li>Телефонные станции, фотоаппараты, принтеры</li>
+          <li>Медицинское оборудование, бортовое оборудование самолетов</li>
+          <li>Ядерные реакторы</li>
+          <li>Там тоже есть процессоры и сопутствующее железо</li>
+          <li>И им тоже нужно управлять</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="4000" data-y="-1500">
+        <h1>Немного истории</h1>
+        <ul>
+          <li>Для этих применений развиваются свои операционные системы</li>
+          <li>QNX, RTEMS, VxWorks, ...</li>
+          <li>Мы их не изучаем - лишь упоминаем для кругозора</li>
+          <li>Многие из них заимствуют идеи/код из Unix-подобных систем</li>
+        </ul>
+    </div>
+
+
+
+
+    <div class="step slide" data-x="5000" data-y="-1500">
+        <h1>Немного истории</h1>
+        <ul>
+          <li>Приходит виртуализация</li>
+          <li>Появляется концепция облачных вычислений</li>
+          <li>Вычислительные ресурсы становятся арендуемым товаром</li>
+          <li>Одновременно настольные ПК вытесняются ноутбуками</li>
+          <li>Появляются мобильные устройства</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="6000" data-y="-1500">
+        <h1>Немного истории</h1>
+        <ul>
+          <li>На ноутбуках вопроизводится расклад как на ПК</li>
+          <li>На мобильных устройствах господствуют Unix-системы (хотя и не всем это сходу очевидно)</li>
+          <li>В датацентрах есть два уровня применения ОС: на уровне физических сервер и на уровне вирталок</li>
+          <li>На обоих доминируют Unix-системы</li>
+          <li>(Хотя на уровне виртуалок есть ниша Windows)</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="7000" data-y="-1500">
+        <h1>Современное "железо"</h1>
+        <ul>
+          <li>Заметны три архитектуры процессоров: Intel/AMD, ARM, RISC-V</li>
+          <li>В мобильный устройствах доминирует ARM</li>
+          <li>В макбуках - тоже</li>
+          <li>В остальных сегментах доминирует Intel</li>
+          <li>RISC-V - попытка создать некорпоративную альтернативу</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="8000" data-y="-1500">
+        <h1>Linux: ядро и системные приложения</h1>
+        <ul>
+          <li>Ядро Linux - отдельный самостоятельный проект</li>
+          <li>Можно скачать исходники и собрать версию ядра</li>
+          <li>Для повседневной работы этого мало</li>
+          <li>Нужна командная оболочка, текстовые утилиты, файловые утилиты, компилятор (хотя бы C)</li>
+          <li>Технически - это уже приложения</li>
+          <li>Но не совсем прикладные приложения</li>
+        </ul>
+    </div>
+
+
+
+    <div class="step slide" data-x="9000" data-y="-1500">
+        <h1>Linux: ядро и системные приложения</h1>
+        <ul>
+          <li>Unix-подобных систем было и есть много</li>
+          <li>Они создаются разными разработчиками</li>
+          <li>Исторически сложился типовой набор сопутствующих системных утилит</li>
+          <li>Примеры: ls, ps, kill, ping, grep, cc, sed, vi, m4</li>
+          <li>Примерно для всех Unix-подобных систем есть их реализации</li> 
+          <li>Обычно под одними и теми же именами</li>
+        </ul> 
+    </div>
+    <div class="step slide" data-x="10000" data-y="-1500">
+        <h1>Linux: ядро и системные приложения</h1>
+        <ul>
+          <li>Сложился ряд стандартов</li>
+          <li>Чтобы обеспечивать унифицированное поведение разных систем</li>
+          <li>Но наличие не останаливает стремление развивать инструменты</li>
+          <li>Варианты совмещения стандартов и развития
+            <ul>
+              <li>Добавление новых опций к стандартным</li>
+              <li>Настройка режима совместимости со стандартами</li>
+            </ul>
+          </li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="11000" data-y="-1500">
+        <h1>Проект GNU</h1>
+        <ul>
+          <li>GNU: GNU is not Unix (рекурсивное определение)</li>
+          <li>Новая реализация Unix-утилит</li>
+          <li>По лицензии, предполагающей распространение ПО с исходниками</li>
+          <li>GNU-утилиты обычно устанавливаются под стандартными именами на Linux-машинах</li>
+          <li>sed на Linux - это GNU sed,  cc на Linux - это GNU-компилятор C</li>
+          <li>В GNU-утилитах добавлено много нового к традиционным возможностям</li>
+          <li>GNU-утилиты существуют для многих других Unix-систем (OS X, FreeBSD)</li>
+          <li>Там они обычно устранавливаются с буквой g в начале имени: gsed, gmake</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="12000" data-y="-1500">
+        <h1>Дистрибутивы Linux</h1>
+        <ul>
+          <li>Ядро + набор сопуствующих програм</li>
+          <li>Не только системных утилит, но более прикладных программ</li>
+          <li>Дистрибутив обеспечивает быструю настройку машины на повседневную работу</li>
+          <li>Включая графическую оболочку</li>
+          <li>Примеры: Ubuntu, Fedora, CentOS</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="13000" data-y="-1500">
+        <h1>Менеджеры пакетов</h1>
+        <ul>
+          <li>Дистрибутивы Linux используют менеджеры пакетов</li>
+          <li>Это приложения, управляющие установкой других приложений - пакетов</li>
+          <li>Они знают, какая версия лучше всего подходит для данного дистрибутива</li>
+          <li>Отслеживают установленные версии пакетов</li>
+          <li>При необходимости устанавливают зависимости</li>
+          <li>Менеджер пакетов Ubuntu - apt</li>
+        </ul>
+    </div>
+
+
+
+    <div class="step slide" data-x="14000" data-y="-1500">
+        <h1>CLI/GUI</h1>
+        <ul>
+          <li>CLI: command line interface</li>
+          <li>GUI: graphical user interface</li>
+          <li>В массовом сегменте доминирует GUI-подход</li>
+          <li>В Unix-системе он тоже присутствует</li>
+          <li>Ubuntu desktop содержит многие аналоги Window-приложений</li>
+          <li>Эта сторона не фокусе нашего курса</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="15000" data-y="-1500">
+        <h1>CLI/GUI</h1>
+        <ul>
+          <li>У CLI-подхода есть своя устойчивая ниша</li>
+          <li>И своя философия</li>
+          <li>Есть набор базовых утилит</li>
+          <li>Каждая из них делает что-то свое - и не пытается делать все</li>
+          <li>И есть набор механизмов для стыковки разных утилит</li>
+          <li>Каждый механизм сам по себе сравнительно прост и реализует одну концепцию</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="16000" data-y="-1500">
+        <h1>CLI/GUI</h1>
+        <ul>
+          <li>GUI-приложения приятны и удобны</li>
+          <li>Но не всегда есть техническая возможность их использовать - за пределами своего ноутбука</li>
+          <li>В среде, где нет графического дисплея</li>
+          <li>Или его использование становится вызовов в части конфигурирования</li>
+          <li>Например, когда нужно что-то сделать на виртуалке в датацентре</li>
+          <li>Или на сотне виртуалок</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="17000" data-y="-1500">
+        <h1>Минималистичные кирпичики</h1>
+        <ul>
+          <li>Приложения в стиле "swiss-army-knife" хороши, пока потребности не выходят за их возможности</li>
+          <li>И пока не возникает потребность состыковать два разных приложения</li>
+          <li>И пока не возникнет потребность автоматизировать сложные сценарии вызовов большого приложения</li>
+          <li>С обработкой возможных ошибок</li>
+          <li>Например, поменять стиль во всех заголовках в Word-файлах в данном каталоге и его подкаталогах</li>
+          <li>Пропуская файлы, имя которых начинается с 'abc'</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="18000" data-y="-1500">
+        <h1>Командная оболочка</h1>
+        <ul>
+          <li>При запуске терминала мы попадаем в диалоговую командную строку</li>
+          <li>Вводим команды, они запускаются</li>
+          <li>Пока команда не завершилась - не может запустить новую</li>
+          <li>Иногда такой стиль взаимодействия называют REPL (read-evaluate-print loop)</li>
+          <li>Но с "print" не так неоднозначно</li>
+          <li>Классический подход Unix-утилит - ничего не говорить без надобности</li>
+          <li>Молчаливое завершение - часто признак успеха</li>
+          <li>Успеха - в горизонте видения утилиты</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="19000" data-y="-1500">
+        <h1>Командная оболочка</h1>
+        <ul>
+          <li>Командная оболочка != ОС</li>
+          <li>Командная оболочка - это приложение</li>
+          <li>Есть популярные оболочки</li>
+          <li>Есть любимые в узком кругу</li>
+          <li>Можно реализовать свою оболочку</li>
+          <li>Используемая при запуске оболочка может быть настроена</li>
+          <li>В запущенном терминале можно запустить новую оболочку</li>
+          <li>Или новый экземпляр той же оболочки</li>
+          <li>Мы работаем с оболочкой bash (Bourne Again SHell)</li>
+          <li>Альтернативные оболочки: zsh, tcsh, dash, sh</li>
+        </ul>
+    </div>
+
+
+
+
+
+    <div class="step slide" data-x="20000" data-y="-1500">
+        <h1>Основы bash</h1>
+        <ul>
+          <li>Командная строка состоит из разделенных пробелами элементов</li>
+          <li>Первый элемент в первую очередь определяет, что произойдет в ответ на ввод команды</li>
+          <li>Есть ряд встроенных команд bash</li>
+          <li>Простейшая встроенная команда - echo</li>
+          <li>Простейшее применение: echo hello</li>
+          <li>Действие: "печатает" указанную строку</li>
+          <li>(Скоро поточнее разберемся с "печатает")</li>
+          <li>Встроенная команда исполняется самим bash-ем</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="21000" data-y="-1500">
+        <h1>Встроенная команда type</h1>
+        <ul>
+          <li>type помогает понять, как bash воспринимает переданную строку в качестве первого элемента командной строки</li>
+          <li>Пример: type echo</li>
+          <li>Пример: type type</li>
+          <li>Пример: type date</li>
+          <li>Пример: type echo type date man abc</li>
+          <li>В последнем примере - несколько параметров</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="22000" data-y="-1500">
+        <h1>Запуск программы</h1>
+        <ul>
+          <li>Сначала bash пытается найти встроенную команду с указанным именем</li>
+          <li>Если не нашел - попробует найти запускаемую программу по имени</li>
+          <li>Если первый элемент начинается с / - попробует запустить файл с таким именем</li>
+          <li>Пример: /usr/bin/date</li>
+          <li>Пример (скорее всего неудачный): /usr/bin/date22</li>
+          <li>Если первый элемент не содержит / - попробует найти файл с таким именем в заданных каталогах</li>
+          <li>Каталоги определяются переменной окружения PATH</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="23000" data-y="-1500">
+        <h1>Переменные окружения</h1>
+        <ul>
+          <li>Понятие уровня командной оболочки</li>
+          <li>В ядре Linux нет никаких переменных окружения</li>
+          <li>Никто не обязывает командные оболочки реализовывать такое понятие</li>
+          <li>Но оно есть во всех популярных оболочках</li>
+          <li>Это что-то вроде словарика, связанного с сеансом оболочки</li>
+          <li>Если работает несколько экземпляров оболочки - у каждого свой набор переменных</li>
+          <li>Посмотреть текущее состояние - встроенная команда set</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="24000" data-y="-1500">
+        <h1>Переменные окружения</h1>
+        <ul>
+          <li>Это способ настройки - как оболочки, так и приложений</li>
+          <li>Оболочка резервирует ряд переменных под свои нужды</li>
+          <li>PATH - пути поиска приложений</li>
+          <li>HOME - путь к домашнему каталогу пользователя</li>
+          <li>PWD - текущий каталог</li>
+          <li>Приложение, которое хочет настраиваться через переменные окружения - обычно определяет свой набор переменных со "своим" префиксом</li>
+          <li>Например, Python-интерпретатор настраивается через переменные с префиксом PYTHON_</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="25000" data-y="-1500">
+        <h1>Переменные окружения</h1>
+        <ul>
+          <li>Откроем терминал, сразу запустим set</li>
+          <li>Увидим много переменных - уже установленных</li>
+          <li>Откуда ? Как повлиять на их начальные значения ? Добавить/удалить ?</li>
+          <li>Некоторые переменные устанавливаются непосредственно оболочкой</li>
+          <li>Остальные прописываются в нескольких файлах: общесистемных и пользовательских</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="26000" data-y="-1500">
+        <h1>Переменные окружения</h1>
+        <ul>
+          <li>Установить переменную можно через присваивание в командной строке: ABC=value</li>
+          <li>Отсутствие пробелов слева и справа от = критично</li>
+          <li>|ABC =value| означает "запусти команду ABC с параметром =value"</li>
+          <li>|ABC= value| означает "запусти команду value, установив переменную окружения ABC в пустую строку"</li>
+          <li>Через set можем увидеть эффект присваивания</li>
+          <li>Другой способ увидеть ээфект присваивания - echo $ABC</li>
+          <li>Или так: echo ${ABC}</li>
+        </ul>
+    </div>
+
+
+
+    <div class="step slide" data-x="27000" data-y="-1500">
+        <h1>Переменные окружения</h1>
+        <ul>
+          <li>Установка новой переменной окружения новой переменной окружения сама по себе будет незаметна запущенному из оболочки приложению </li>
+          <li>Потому что это будет новый процесс</li>
+          <li>Чтобы было заметно - нужно использовать встроенную команду export</li>
+          <li>export ABC</li>
+          <li>Или сразу с присваиванием: export ABC=value</li>
+          <li>Вернемся к переменной PATH</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="28000" data-y="-1500">
+        <h1>PATH</h1>
+        <ul>
+          <li>PATH хранит разделенный двоеточиями список каталогов</li>
+          <li>Поиск исполняемого файла идет в этих каталогах - по очереди</li>
+          <li>Если в каталоге есть откомпилированный под данную ОС исполняемый файл - ОС попытается его исполнить</li>
+          <li>Если подробнее - условия успеха:
+            <ul>
+               <li>Файл с данным именем должен быть найден "в путях"</li>
+               <li>У пользователя должны быть права на чтение и исполнение файла</li>
+               <li>Содержимое файла должно быть исполняемым</li>
+            </ul>
+          </li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="29000" data-y="-1500">
+        <h1>Исполнение приложения</h1>
+        <ul>
+          <li>Права на  исполнение - это атрибут файла</li>
+          <li>Исполняемость содержимого - это свойство того, что лежит в файле</li>
+          <li>Один вариант исполняемого содержимого - бинарный исполняемый файл</li>
+          <li>В формате, понимаемом текущей операционной системой</li>
+          <li>В современном Linux это скорее всего ELF</li>
+          <li>То, что вы скомпилировали C/C++/Rust/Go/<что-то еще>-компилятором</li>
+          <li>Или скачали, или установили пакетным менеджером</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="30000" data-y="-1500">
+        <h1>Исполнение приложения</h1>
+        <ul>
+          <li>Второй вариант исполняемого содержимого - shebang line</li>
+          <li>Идея - запускать программы на скриптовых языках по подобию скомпилированных</li>
+          <li>По имени файла, без явного интерпретатора в командной строке</li>
+          <li>Это текстовый файл</li>
+          <li>Первая строка начинается с #!</li>
+          <li>То, что идет дальше + имя текущего файла формирует новую командную строку</li>
+          <li>Которая исполняется вместо текущей</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="31000" data-y="-1500">
+        <h1>Пример</h1>
+        <pre><code class="python">
+#!/usr/bin/python3
+
+print("Hello")
+
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="32000" data-y="-1500">
+        <h1>Более гибко</h1>
+        <pre><code class="python">
+#!/usr/bin/env python3/
+
+print("Hello")
+
+        </code></pre>
+    </div>
+
+
+    <div class="step slide" data-x="33000" data-y="-1500">
+        <h1>Помощь</h1>
+        <ul>
+          <li>У любого приложения почти всегда есть --help или -h</li>
+          <li>Есть системное приложение man</li>
+          <li>Пример применения: man ls</li>
+          <li>Рекурсивное применение: man man</li>
+          <li>Есть системное приложение info</li>
+          <li>Обычно (но не всегда) man - это скорее про опции, а info - более концептуально</li>
+          <li>man/info-страницы можно найти в интернете - только следить, чтобы было про Linux</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="34000" data-y="-1500">
+        <h1>cat/more/less</h1>
+        <ul>
+          <li>cat - печатает содержимое файла</li>
+          <li>Пример: cat data.txt</li>
+          <li>more - печатает порциями размером с высоту терминала</li>
+          <li>less - смотрелка текстовых файлов</li>
+          <li>Поддерживает прокрутку стрелочками</li>
+          <li>И текстовый поиск</li>
+        </ul>
+    </div>
+
+
+    <!--
+        
+        * `data-x`, `data-y`, `data-z` - they define the position of **the center** of step element on
+            the canvas in pixels; their default value is 0;
+        * `data-rotate-x`, `data-rotate-y`, 'data-rotate-z`, `data-rotate` - they define the rotation of
+            the element around given axis in degrees; their default value is 0; `data-rotate` and `data-rotate-z`
+            are exactly the same;
+        * `data-scale` - defines the scale of step element; default value is 1
+        
+        These values are used by impress.js in CSS transformation functions, so for more information consult
+        CSS transfrom docs: https://developer.mozilla.org/en/CSS/transform
+        
+    -->
+    <div id="overview" class="step" data-x="3000" data-y="1500" data-z="0" data-scale="10">
+    </div>
+
+</div>
+
+<!--
+    This is a UI plugin. You can read more about plugins in src/plugins/README.md.
+    For now, I'll just tell you that this adds some graphical controls to navigate the
+    presentation. In the CSS file you can style them as you want. We've put them bottom right.
+-->
+<div id="impress-toolbar"></div>
+
+<!--
+    
+    Hint is not related to impress.js in any way.
+    
+    But it can show you how to use impress.js features in creative way.
+    
+    When the presentation step is shown (selected) its element gets the class of "active" and the body element
+    gets the class based on active step id `impress-on-ID` (where ID is the step's id)... It may not be
+    so clear because of all these "ids" in previous sentence, so for example when the first step (the one with
+    the id of `bored`) is active, body element gets a class of `impress-on-bored`.
+    
+    This class is used by this hint below. Check CSS file to see how it's shown with delayed CSS animation when
+    the first step of presentation is visible for a couple of seconds.
+    
+    ...
+    
+    And when it comes to this piece of JavaScript below ... kids, don't do this at home ;)
+    It's just a quick and dirty workaround to get different hint text for touch devices.
+    In a real world it should be at least placed in separate JS file ... and the touch content should be
+    probably just hidden somewhere in HTML - not hard-coded in the script.
+    
+    Just sayin' ;)
+    
+-->
+<div class="hint">
+    <p>Use a spacebar or arrow keys to navigate. <br/>
+       Press 'P' to launch speaker console.</p>
+</div>
+<script>
+if ("ontouchstart" in document.documentElement) { 
+    document.querySelector(".hint").innerHTML = "<p>Swipe left or right to navigate</p>";
+}
+</script>
+
+<!--
+    
+    Last, but not least.
+    
+    To make all described above really work, you need to include impress.js in the page.
+    I strongly encourage to minify it first.
+    
+    In here I just include full source of the script to make it more readable.
+    
+    You also need to call a `impress().init()` function to initialize impress.js presentation.
+    And you should do it in the end of your document. Not only because it's a good practice, but also
+    because it should be done when the whole document is ready.
+    Of course you can wrap it in any kind of "DOM ready" event, but I was too lazy to do so ;)
+    
+-->
+<script src="js/impress.js"></script>
+<script>impress().init();</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<!-- Include any specific language files AFTER the main library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/python.min.js"></script>
+
+<script>hljs.highlightAll();</script>
+<!--
+    
+    The `impress()` function also gives you access to the API that controls the presentation.
+    
+    Just store the result of the call:
+    
+        var api = impress();
+    
+    and you will get three functions you can call:
+    
+        `api.init()` - initializes the presentation,
+        `api.next()` - moves to next step of the presentation,
+        `api.prev()` - moves to previous step of the presentation,
+        `api.goto( stepIndex | stepElementId | stepElement, [duration] )` - moves the presentation to the step given by its index number
+                id or the DOM element; second parameter can be used to define duration of the transition in ms,
+                but it's optional - if not provided default transition duration for the presentation will be used.
+    
+    You can also simply call `impress()` again to get the API, so `impress().next()` is also allowed.
+    Don't worry, it won't initialize the presentation again.
+    
+    For some example uses of this API check the last part of the source of impress.js where the API
+    is used in event handlers.
+    
+-->
+
+</body>
+</html>
+
+<!--
+    
+    Now you know more or less everything you need to build your first impress.js presentation, but before
+    you start...
+    
+    Oh, you've already cloned the code from GitHub?
+    
+    You have it open in text editor?
+    
+    Stop right there!
+    
+    That's not how you create awesome presentations. This is only a code. Implementation of the idea that
+    first needs to grow in your mind.
+    
+    So if you want to build great presentation take a pencil and piece of paper. And turn off the computer.
+    
+    Sketch, draw and write. Brainstorm your ideas on a paper. Try to build a mind-map of what you'd like
+    to present. It will get you closer and closer to the layout you'll build later with impress.js.
+    
+    Get back to the code only when you have your presentation ready on a paper. It doesn't make sense to do
+    it earlier, because you'll only waste your time fighting with positioning of useless points.
+    
+    If you think I'm crazy, please put your hands on a book called "Presentation Zen". It's all about 
+    creating awesome and engaging presentations.
+    
+    Think about it. 'Cause impress.js may not help you, if you have nothing interesting to say.
+    
+-->
+
+<!--
+    
+    Are you still reading this?
+    
+    For real? I'm impressed! 
+    
+    But now, take my advice and take some time off. Make yourself a cup of coffee, tea,
+    or anything you like to drink.
+    
+    Cheers!
+    
+-->
+
