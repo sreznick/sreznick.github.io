@@ -1,0 +1,548 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1024" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <title>OS-seminar-04</title>
+    
+    <meta name="description" content="Seminar #4" />
+    <meta name="author" content="Sergey Reznick" />
+
+    <link href="//fonts.googleapis.com/css?family=Open+Sans:regular,semibold,italic,italicsemibold|PT+Sans:400,700,400italic,700italic|PT+Serif:400,700,400italic,700italic" rel="stylesheet" />
+
+    <link href="css/impress-demo.css" rel="stylesheet" />
+    <link href="css/impress-common.css" rel="stylesheet" />
+    
+    <link rel="shortcut icon" href="favicon.png" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/default.min.css">
+
+</head>
+
+<body class="impress-not-supported">
+
+<div class="fallback-message">
+    <p>Your browser <b>doesn't support the features required</b> by impress.js, so you are presented with a simplified version of this presentation.</p>
+    <p>For the best experience please use the latest <b>Chrome</b>, <b>Safari</b> or <b>Firefox</b> browser.</p>
+</div>
+
+<div id="impress"
+    data-transition-duration="1000"
+    
+    data-width="1024"
+    data-height="768"
+    data-max-scale="3"
+    data-min-scale="0"
+    data-perspective="1000"
+    >
+
+    <div  class="step slide" data-x="-1000" data-y="-1500">
+        <h1>OS: семинар 4</h1>
+        <ul>
+        <li>Роль ассемблера</li>
+        <li>Запуск на QEMU x86</li>
+        </ul>
+    </div>
+
+
+
+    <div class="step slide" data-x="0" data-y="-1500">
+        <h1>Стыковка C и ассемблера</h1>
+        <ul>
+          <li>Мотивация
+            <ul>
+              <li>Не все, что можно сделать на процессоре, выразимо на C</li>
+              <li>Нельзя кодом на C прочитать/поменять регист IDTR</li>
+              <li>Или сохранить в памяти значения всех регистров общего назначения</li>
+              <li>Код на C предполагает наличие организации среды исполнения</li>
+              <li>И ее сложно организовать из кода на C</li>
+              <li>При этом - писать на ассемблере там, где это не является абсолютно неизбежным, не хочется</li>
+            </ul>
+          </li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="1000" data-y="-1500">
+        <h1>Стыковка C и ассемблера</h1>
+        <ul>
+          <li>Примеры ситуаций стыковки
+            <ul>
+              <li>Переход от первых действий по включению питания к инициализации структур ОС</li>
+              <li>Вызов вспомогательной asm-функции из C</li>
+              <li>Вызов вспомогательной C-функции из ассемблера</li>
+              <li>Создание первого штатного процесса</li>
+              <li>Запуск нового процесса/нити</li>
+              <li>Переключение контекста между процессами</li>
+              <li>Реализация входа в обработку системного вызова со стороны ОС</li>
+              <li>Системный вызов со стороны приложения</li>
+              <li>Аналоги вышеперечиленного в ситуации "user-level parallelism/concurrency"</li>
+            </ul>
+          </li>
+        </ul>
+    </div>
+
+
+
+
+
+    <div class="step slide" data-x="2000" data-y="-1500">
+        <h1>Первый вход в C</h1>
+        <ul>
+          <li>Обнуляем секцию bss</li>
+          <li>Выделяем место на стек вызовов</li>
+          <li>(Возможно, что временно)</li>
+          <li>Устанавливаем регистры RSP/RBP</li>
+          <li>Если точка входа предполагает параметры - записываем их в соответствии с соглашением о связях</li>
+          <li>Переходим на точку входа - через CALL или JMP</li>
+          <li>В данном случае JMP - допустимый вариант</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="3000" data-y="-1500">
+        <h1>Вспомогательные функции</h1>
+        <ul>
+          <li>Пишем код вспомогательных ассемблер  функций</li>
+          <li>Соблюдаем соглашение о связях</li>
+          <li>При вызове C-функций из ассемблер кода соблюдаем соглашения о связях</li>
+          <li>Есть еще вариант интеграции ассемблер фрагментов в C</li>
+        </ul>
+        <pre>
+void read_idtr(struct idtr *idt_reg) {
+    __asm__ __volatile__(
+        "sidt %0\n"
+        : "=m" (*idt_reg)
+        : // no input
+        : // no clobber
+    );
+}
+    </pre>
+    </div>
+    <div class="step slide" data-x="4000" data-y="-1500">
+        <h1>Запуск процессов</h1>
+        <ul>
+          <li>Для каждого процесса заводим место для хранения контекста</li>
+          <li>Контекст - как минимум значения всех регистров</li>
+          <li>Заводим место в памяти для стека</li>
+          <li>Без своего стека процессу точно никак</li>
+          <li>Хорошо бы еще и свой код, глобальные и статические данные</li>
+          <li>В базовом варианте можно обойтись общей монолитной сборкой</li>
+        </ul>
+    </div>
+
+
+
+
+    <div class="step slide" data-x="5000" data-y="-1500">
+        <h1>Запуск процессов</h1>
+        <ul>
+          <li>В полноценной ОС захотим загружать код приложений в память отдельно</li>
+          <li>И данные - тоже</li>
+          <li>И отдельные пространства памяти для процессов</li>
+          <li>Добавится код ядра, новые системные структуры</li>
+          <li>Расширится контекст процесса</li>
+          <li>Но начать можно без этого</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="6000" data-y="-1500">
+        <h1>Начнем делать ОС с нуля</h1>
+        <ul>
+          <li>Есть условная железка на основе Intel-процессора</li>
+          <li>Хотим сделать свою ОС</li>
+          <li>Очертим план действий</li>
+          <li>Будем писать на C + asm (nasm)</li>
+          <li>С нам нужен free-standing</li>
+          <li>Поэтому даже на Intel-хосте потребуется кросс-компилятор</li>
+          <li>И QEMU</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="7000" data-y="-1500">
+        <h1>QEMU</h1>
+        <ul>
+          <li>https://www.qemu.org/</li>
+          <li>Можно ставить прямо на Windows</li>
+          <li>Но код для исполнения проще порождать в WSL или на виртуалке</li>
+          <li>На Mac можно поставить через brew</li>
+          <li>После установки появится много приложений с префиксом qemu-system-</li>
+          <li>64-битный Intel - это qemu-system-x86_64</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="8000" data-y="-1500">
+        <h1>QEMU</h1>
+        <ul>
+          <li>Попытка запуска: qemu-system-x86_64</li>
+          <li>(Похоже на запуск ПК без диска)</li>
+          <li>Можно так: qemu-system-x86_64  -monitor stdio</li>
+          <li>Появляется CLI с панелью управления и наблюдения</li>
+          <li>В замороженном состоянии: qemu-system-x86_64  -S   -monitor stdio</li>
+        </ul>
+    </div>
+
+
+
+
+
+
+    <div class="step slide" data-x="9000" data-y="-1500">
+        <h1>Старт реального железа и старт QEMU</h1>
+        <ul>
+          <li>Часть адресного пространства процессора отображается на ROM</li>
+          <li>Эта часть включает адрес, с которого начинается исполнение при старте</li>
+          <li>В ноутбуках этот код делает производитель/сборщик</li>
+          <li>Разработчики ОС в него обычно не вмешиваются</li>
+          <li>ОС вступает в дело чуть позже</li>
+          <li>Ключевые слова этого этапа: BIOS, UEFI</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="10000" data-y="-1500">
+        <h1>Старт реального железа и старт QEMU</h1>
+        <ul>
+          <li>Стартовый код проводит базовое тестирование</li>
+          <li>Дает возможность зайти в базовые настройки: указать загрузочный диск и т.п.</li>
+          <li>Если не свернули в особые ветки - стартовый код начинает перебирать загрузочные устройства</li>
+          <li>Порядок перебора может регулироваться базовыми настройками</li>
+          <li>На устройстве проверяется наличие загрузочного сектора</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="11000" data-y="-1500">
+        <h1>Старт реального железа и старт QEMU</h1>
+        <ul>
+          <li>Если нашли - он загружается в память</li>
+          <li>(Стартовый код должен уметь общаться с диском без помощи ОС)</li>
+          <li>В загрузочном секторе может быть логика загрузки ОС</li>
+          <li>Особенно если ОС - единственная на данной машинке</li>
+          <li>И это пользовательская машинка</li>
+          <li>Но иногда хочется иметь несколько вариантов ОС</li>
+          <li>Особенно если кто-то любит поиграть со сборкой ядра</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="12000" data-y="-1500">
+        <h1>Загрузчик</h1>
+        <ul>
+          <li>Вспомогательное приложение, состоящее из двух частей</li>
+          <li>Одна часть работает как приложение в рамках ОС </li>
+          <li>Устанавливает вторую часть - работающую вне ОС</li>
+          <li>Вторая часть загружается с загрузочного сектора</li>
+          <li>Предлагает меню вариантов загрузки</li>
+          <li>Среди вариантов могут быть загрузочные сектора разных дисков</li>
+          <li>Но не только</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="13000" data-y="-1500">
+        <h1>Загрузчик</h1>
+        <ul>
+          <li>Альтернативный вариант - файл на диске</li>
+          <li>При выборе этого варианта содержимое файла загружается в память</li>
+          <li>Формат файла может напоминать обычный исполняемый файл</li>
+          <li>С небольшими отличиями</li>
+          <li>Например, не нужно иметь точку входа main</li>
+          <li>Это упрощает линковку</li>
+        </ul>
+    </div>
+
+
+
+
+
+
+
+
+    <div class="step slide" data-x="14000" data-y="-1500">
+        <h1>QEMU</h1>
+        <ul>
+          <li>Технически QEMU позволяет проимитировать загрузку, начиная с кода из ROM</li>
+          <li>Это усложняет путь</li>
+          <li>И это усложнение - не совсем про операционные системы</li>
+          <li>QEMU дает возможность проскочить сразу к работе загрузчика</li>
+          <li>В случае x86 - подготовить файл с образом ядра ОС</li>
+          <li>И указывать его при старте QEMU</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="15000" data-y="-1500">
+        <h1>Как отлаживать</h1>
+        <ul>
+          <li>QEMU не дает возможности пошагового исполнения сам по себе</li>
+          <li>Можно через GDB - но это еще отдельно разбираться</li>
+          <li>Можно сразу научиться печатать</li>
+          <li>При старте получаем доступ к видеопамяти</li>
+          <li>Текстовый режим</li>
+          <li>Экран 80x25</li>
+          <li>По 2 байта на позицию</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="16000" data-y="-1500">
+        <h1>Простой код для железки</h1>
+        <ul>
+          <li>Немного ассемблера в начале</li>
+          <ul>
+          <li>Организуем bss и стек вызовов</li>
+          <li>Переходим в C-context</li>
+          </ul>
+          </li>
+          <li>Начнем работать с видеопамятью в текстовом режиме</li>
+          <li>Этого никто не запрещает делать из C</li>
+          <li>Нужен правильный линкерный скрипт</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="17000" data-y="-1500">
+        <h1>Пример</h1>
+        <pre>
+
+ENTRY(start)
+
+SECTIONS {
+    . = 0x00100000;
+
+    .text ALIGN (0x1000):   /* align at 4 KB */
+    {
+        *(.text)
+    }
+    .data ALIGN (0x1000):
+    {
+        *(.data)
+    }
+}
+        </pre>
+    </div>
+    <div class="step slide" data-x="18000" data-y="-1500">
+        <h1>Простой код для железки</h1>
+        <ul>
+          <li>В ассемблере нужно отдельное приседание ради загрузки</li>
+          <li>Порожденный файл должен быть узнан загрузчиком, работающим в qemu/железке</li>
+          <li>Чтобы сработал протокол Multiboot</li>
+          <li>Нужно прописать некоторые магические значения</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="19000" data-y="-1500">
+        <h1>Пример</h1>
+        <pre>
+  global start                    ; the entry symbol for ELF
+    extern entry
+
+    MAGIC_NUMBER equ 0x1BADB002     ; define the magic number constant
+    FLAGS        equ 0x0            ; multiboot flags
+    CHECKSUM     equ -MAGIC_NUMBER  ; calculate the checksum
+                                    ; (magic number + checksum + flags should equal 0)
+
+    section .text:                  ; start of the text (code) section
+    align 4                         ; the code must be 4 byte aligned
+        dd MAGIC_NUMBER             ; write the magic number to the machine code,
+        dd FLAGS                    ; the flags,
+        dd CHECKSUM                 ; and the checksum
+
+    start:                          ; the loader label (defined as entry point in linker script)
+        </pre>
+    </div>
+
+
+
+
+    <div class="step slide" data-x="20000" data-y="-1500">
+        <h1>Очистим экран в ассемблере</h1>
+        <pre>
+    start:
+      ; the loader label (defined as entry point in linker script)
+      mov ebx, 0xb8000 ; VGA area base
+      mov ecx, 80*25 ; console size
+
+      ; Clear screen
+      mov edx, 0x0020;  space symbol (0x20) on black background
+    clear_loop:
+      mov [ebx + ecx], edx
+      dec ecx
+      cmp ecx, -1
+      jnz clear_loop
+        </pre>
+    </div>
+    <div class="step slide" data-x="21000" data-y="-1500">
+        <h1>Напишем что-то</h1>
+        <pre>
+      ; Print red 'A'
+      mov eax, ( 15 << 8 | 0x41) ; 'A' symbol (0x41) print in red (0x4)
+      mov [ebx], eax
+      mov eax, ( 8 << 8 | 0x42) ; 'B' symbol (0x41) print in red (0x4)
+      xor ecx, ecx
+
+      inc ecx
+      inc ecx
+      ;inc ecx
+      ;inc ecx
+      mov [ebx + ecx], eax
+lbl:
+	jmp lbl
+
+        </pre>
+    </div>
+    <div class="step slide" data-x="22000" data-y="-1500">
+        <h1>Переход в C</h1>
+        <ul>
+          <li>Хотим начать писать на C</li>
+          <li>По идее и очистку экрана можно сделать на C</li>
+          <li>Тем более - что-то более сложное</li>
+          <li>Нужно выделить память под стек</li>
+          <li>Очистить bss</li>
+          <li>И передать управление точке входа</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="23000" data-y="-1500">
+        <h1>Задания</h1>
+        <ul>
+          <li>Сделать вызов C-кода, подготовив стек и заполнив bss</li>
+          <li>Напечать новый символ из C</li>
+          <li>Перенести очистку экрана в C</li>
+          <li>Написать asm-функцию для установки/чтения GDTR</li>
+          <li>Вызывать ее из C</li>
+        </ul>
+    </div>
+    <!--
+        
+        * `data-x`, `data-y`, `data-z` - they define the position of **the center** of step element on
+            the canvas in pixels; their default value is 0;
+        * `data-rotate-x`, `data-rotate-y`, 'data-rotate-z`, `data-rotate` - they define the rotation of
+            the element around given axis in degrees; their default value is 0; `data-rotate` and `data-rotate-z`
+            are exactly the same;
+        * `data-scale` - defines the scale of step element; default value is 1
+        
+        These values are used by impress.js in CSS transformation functions, so for more information consult
+        CSS transfrom docs: https://developer.mozilla.org/en/CSS/transform
+        
+    -->
+    <div id="overview" class="step" data-x="3000" data-y="1500" data-z="0" data-scale="10">
+    </div>
+
+</div>
+
+<!--
+    This is a UI plugin. You can read more about plugins in src/plugins/README.md.
+    For now, I'll just tell you that this adds some graphical controls to navigate the
+    presentation. In the CSS file you can style them as you want. We've put them bottom right.
+-->
+<div id="impress-toolbar"></div>
+
+<!--
+    
+    Hint is not related to impress.js in any way.
+    
+    But it can show you how to use impress.js features in creative way.
+    
+    When the presentation step is shown (selected) its element gets the class of "active" and the body element
+    gets the class based on active step id `impress-on-ID` (where ID is the step's id)... It may not be
+    so clear because of all these "ids" in previous sentence, so for example when the first step (the one with
+    the id of `bored`) is active, body element gets a class of `impress-on-bored`.
+    
+    This class is used by this hint below. Check CSS file to see how it's shown with delayed CSS animation when
+    the first step of presentation is visible for a couple of seconds.
+    
+    ...
+    
+    And when it comes to this piece of JavaScript below ... kids, don't do this at home ;)
+    It's just a quick and dirty workaround to get different hint text for touch devices.
+    In a real world it should be at least placed in separate JS file ... and the touch content should be
+    probably just hidden somewhere in HTML - not hard-coded in the script.
+    
+    Just sayin' ;)
+    
+-->
+<div class="hint">
+    <p>Use a spacebar or arrow keys to navigate. <br/>
+       Press 'P' to launch speaker console.</p>
+</div>
+<script>
+if ("ontouchstart" in document.documentElement) { 
+    document.querySelector(".hint").innerHTML = "<p>Swipe left or right to navigate</p>";
+}
+</script>
+
+<!--
+    
+    Last, but not least.
+    
+    To make all described above really work, you need to include impress.js in the page.
+    I strongly encourage to minify it first.
+    
+    In here I just include full source of the script to make it more readable.
+    
+    You also need to call a `impress().init()` function to initialize impress.js presentation.
+    And you should do it in the end of your document. Not only because it's a good practice, but also
+    because it should be done when the whole document is ready.
+    Of course you can wrap it in any kind of "DOM ready" event, but I was too lazy to do so ;)
+    
+-->
+<script src="js/impress.js"></script>
+<script>impress().init();</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<!-- Include any specific language files AFTER the main library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/python.min.js"></script>
+
+<script>hljs.highlightAll();</script>
+<!--
+    
+    The `impress()` function also gives you access to the API that controls the presentation.
+    
+    Just store the result of the call:
+    
+        var api = impress();
+    
+    and you will get three functions you can call:
+    
+        `api.init()` - initializes the presentation,
+        `api.next()` - moves to next step of the presentation,
+        `api.prev()` - moves to previous step of the presentation,
+        `api.goto( stepIndex | stepElementId | stepElement, [duration] )` - moves the presentation to the step given by its index number
+                id or the DOM element; second parameter can be used to define duration of the transition in ms,
+                but it's optional - if not provided default transition duration for the presentation will be used.
+    
+    You can also simply call `impress()` again to get the API, so `impress().next()` is also allowed.
+    Don't worry, it won't initialize the presentation again.
+    
+    For some example uses of this API check the last part of the source of impress.js where the API
+    is used in event handlers.
+    
+-->
+
+</body>
+</html>
+
+<!--
+    
+    Now you know more or less everything you need to build your first impress.js presentation, but before
+    you start...
+    
+    Oh, you've already cloned the code from GitHub?
+    
+    You have it open in text editor?
+    
+    Stop right there!
+    
+    That's not how you create awesome presentations. This is only a code. Implementation of the idea that
+    first needs to grow in your mind.
+    
+    So if you want to build great presentation take a pencil and piece of paper. And turn off the computer.
+    
+    Sketch, draw and write. Brainstorm your ideas on a paper. Try to build a mind-map of what you'd like
+    to present. It will get you closer and closer to the layout you'll build later with impress.js.
+    
+    Get back to the code only when you have your presentation ready on a paper. It doesn't make sense to do
+    it earlier, because you'll only waste your time fighting with positioning of useless points.
+    
+    If you think I'm crazy, please put your hands on a book called "Presentation Zen". It's all about 
+    creating awesome and engaging presentations.
+    
+    Think about it. 'Cause impress.js may not help you, if you have nothing interesting to say.
+    
+-->
+
+<!--
+    
+    Are you still reading this?
+    
+    For real? I'm impressed! 
+    
+    But now, take my advice and take some time off. Make yourself a cup of coffee, tea,
+    or anything you like to drink.
+    
+    Cheers!
+    
+-->
+
