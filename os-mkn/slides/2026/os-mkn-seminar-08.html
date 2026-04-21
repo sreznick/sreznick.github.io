@@ -1,0 +1,352 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1024" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <title>OS-seminar-06</title>
+    
+    <meta name="description" content="Seminar 6" />
+    <meta name="author" content="Sergey Reznick" />
+
+    <link href="//fonts.googleapis.com/css?family=Open+Sans:regular,semibold,italic,italicsemibold|PT+Sans:400,700,400italic,700italic|PT+Serif:400,700,400italic,700italic" rel="stylesheet" />
+
+    <link href="css/impress-demo.css" rel="stylesheet" />
+    <link href="css/impress-common.css" rel="stylesheet" />
+    
+    <link rel="shortcut icon" href="favicon.png" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/default.min.css">
+
+</head>
+
+<body class="impress-not-supported">
+
+<div class="fallback-message">
+    <p>Your browser <b>doesn't support the features required</b> by impress.js, so you are presented with a simplified version of this presentation.</p>
+    <p>For the best experience please use the latest <b>Chrome</b>, <b>Safari</b> or <b>Firefox</b> browser.</p>
+</div>
+
+<div id="impress"
+    data-transition-duration="1000"
+    
+    data-width="1024"
+    data-height="768"
+    data-max-scale="3"
+    data-min-scale="0"
+    data-perspective="1000"
+    >
+
+    <div  class="step slide" data-x="-1000" data-y="-1500">
+        <h1>OS: семинар 8</h1>
+        <ul>
+        <li>Межпроцессное взаимодействие</li>
+        </ul>
+    </div>
+
+
+
+    <div class="step slide" data-x="0" data-y="-1500">
+        <h1>Сигналы</h1>
+        <ul>
+          <li>Есть два варианта - классические (POSIX) и линуксные</li>
+          <li>Фокусируемся на классических</li>
+          <li>Самые простой по форме</li>
+          <li>И не самый простой по семантике</li>
+          <li>Важно понимать семантику и не путаться в понятиях</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="1000" data-y="-1500">
+        <h1>Сигналы</h1>
+        <ul>
+          <li>Системный вызов kill</li>
+          <li>Два параметра</li>
+          <li>pid и номер сигнала</li>
+          <li>С номером все просто - набор статически известен и понятен</li>
+          <li>С pid - похитрее</li>
+        </ul>
+    </div>
+
+
+
+    <div class="step slide" data-x="2000" data-y="-1500">
+        <h1>Сигналы</h1>
+        <ul>
+          <li>На момент вызова должны узнать pid процесса</li>
+          <li>Между моментом узнавания и вызовом kill процесс может перестать существовать</li>
+          <li>Отправка сигнала несуществующему процессу приведет к ошибке</li>
+          <li>А может ли с под этим PID-ом появиться другой процесс ?</li>
+          <li>Теоретически - может</li>
+          <li>Но это - очень теоретически</li>
+          <li>Уникальность PID-а совсем глобально не гарантируется, но переиспользован будет нескоро</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="3000" data-y="-1500">
+        <h1>Гарантии доставки</h1>
+        <ul>
+          <li>Допустим, что PID корректен</li>
+          <li>И процесс никуда не девается</li>
+          <li>На стороне процесса стоит обработчик</li>
+          <li>Вызываем kill дважды</li>
+          <li>Есть ли гарантия двукратного вызова обработчиков ?</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="4000" data-y="-1500">
+        <h1>Гарантии доставки</h1>
+        <ul>
+          <li>Смежный вопрос: насколько асинхронна доставка ?</li>
+          <li>Есть ли какая-то буферизация сигналов ?</li>
+          <li>Если есть, то каковы ее параметры ?</li>
+          <li>Механизм в этом смысле предельно прост</li>
+        </ul>
+    </div>
+
+
+    <div class="step slide" data-x="5000" data-y="-1500">
+        <h1>Гарантии доставки</h1>
+        <ul>
+          <li>В структуре каждого процесса есть битовая маска</li>
+          <li>По биту на сигнал</li>
+          <li>Отправка сигнала со стороны отправителя - запись бита в битовой маске</li>
+          <li>И все</li>
+          <li>Возврат из kill никак не привязан к обработке бита получателем</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="6000" data-y="-1500">
+        <h1>На стороне получателя</h1>
+        <ul>
+          <li>Физически в момент установки бита процесс-получатель может на другом ядре</li>
+          <li>Или не исполняться: RUNNANBLE, WAITING, ZOMBIE</li>
+	  <li>ZOMBIE - законный получатель сигналов</li>
+          <li>Но без какой-либо реакции</li>
+          <li>Включая SIGKILL</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="7000" data-y="-1500">
+        <h1>На стороне получателя</h1>
+        <ul>
+          <li>RUNNABLE - это процесс, который готов к исполнению</li>
+          <li>Его реальное исполнение зависит от палнировщика</li>
+          <li>Факт прибытия сигнала никак не влияет на решение планировщика</li>
+          <li>Как минимум - в общем случае</li>
+          <li>Включая SIGKILL</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="8000" data-y="-1500">
+        <h1>На стороне получателя</h1>
+        <ul>
+          <li>В момент перехода в состояние RUNNING происходит проверка сигналов</li>
+          <li>И тут происходит обработка</li>
+          <li>Важный факт: реакция на сигнал может быт отложенной</li>
+          <li>Включая незамаскированные сигналы или SIGKILL</li>
+          <li>Для человека-наблюдателя это будет быстро</li>
+          <li>В масштабе тактов процессора это может быть много</li>
+        </ul>
+    </div>
+
+
+    <div class="step slide" data-x="9000" data-y="-1500">
+        <h1>На стороне получателя</h1>
+        <ul>
+          <li>А если RUNNING ?</li>
+          <li>Тоже не так просто</li>
+          <li>Работающий процесс исполняет свой код</li>
+          <li>Нет механизма прерывания по факту записи бита в память</li>
+          <li>Как работающему процессу отреагировать на прерывание ?</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="10000" data-y="-1500">
+        <h1>На стороне получателя</h1>
+        <ul>
+          <li>Есть два типа ситуаций, похожих на переключение контекста</li>
+          <li>Выход из обработки прерывания (таймер и т.п.)</li>
+          <li>Выход из системного вызова</li>
+          <li>В этих ситуациях проверяются биты сигналов</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="11000" data-y="-1500">
+        <h1>На стороне получателя</h1>
+        <ul>
+          <li>Работающий процесс не сразу бросит все и начнет реагировать</li>
+          <li>Он доработает до ближайшего выхода на уровень приложения</li>
+          <li>В том числе по этой причине системные вызовы делаются не очень длинными</li>
+          <li>Точно без потенциально бесконечных циклов</li>
+          <li>А если процесс в состоянии WAIT ?</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="12000" data-y="-1500">
+        <h1>На стороне получателя</h1>
+        <ul>
+          <li>Состояние WAIT</li>
+          <li>Вызывать обработчик нельзя - потому что с уровня ядра в уровень приложения можно только возвращаться</li>
+          <li>Откладывать обработку до планового завершения системного вызова странно - реакция на незамаскированный сигнал должна быть быстрой</li>
+          <li>Базовый подход - выйти из системного вызова и из состояния WAIT</li>
+          <li>Код, вызывающий системный вызов, должен это учитывать</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="12000" data-y="-1500">
+        <h1>На стороне получателя</h1>
+        <ul>
+          <li>NonInterrruptible WAIT</li>
+          <li>Разновидность состояния ожидания</li>
+          <li>Обычно используется при вводе-выводе</li>
+          <li>Потому что сложно просто так выйти - нужно завершить протокол работы с устройством</li>
+
+        </ul>
+    </div>
+
+
+    <!--
+        
+        * `data-x`, `data-y`, `data-z` - they define the position of **the center** of step element on
+            the canvas in pixels; their default value is 0;
+        * `data-rotate-x`, `data-rotate-y`, 'data-rotate-z`, `data-rotate` - they define the rotation of
+            the element around given axis in degrees; their default value is 0; `data-rotate` and `data-rotate-z`
+            are exactly the same;
+        * `data-scale` - defines the scale of step element; default value is 1
+        
+        These values are used by impress.js in CSS transformation functions, so for more information consult
+        CSS transfrom docs: https://developer.mozilla.org/en/CSS/transform
+        
+    -->
+    <div id="overview" class="step" data-x="3000" data-y="1500" data-z="0" data-scale="10">
+    </div>
+
+</div>
+
+<!--
+    This is a UI plugin. You can read more about plugins in src/plugins/README.md.
+    For now, I'll just tell you that this adds some graphical controls to navigate the
+    presentation. In the CSS file you can style them as you want. We've put them bottom right.
+-->
+<div id="impress-toolbar"></div>
+
+<!--
+    
+    Hint is not related to impress.js in any way.
+    
+    But it can show you how to use impress.js features in creative way.
+    
+    When the presentation step is shown (selected) its element gets the class of "active" and the body element
+    gets the class based on active step id `impress-on-ID` (where ID is the step's id)... It may not be
+    so clear because of all these "ids" in previous sentence, so for example when the first step (the one with
+    the id of `bored`) is active, body element gets a class of `impress-on-bored`.
+    
+    This class is used by this hint below. Check CSS file to see how it's shown with delayed CSS animation when
+    the first step of presentation is visible for a couple of seconds.
+    
+    ...
+    
+    And when it comes to this piece of JavaScript below ... kids, don't do this at home ;)
+    It's just a quick and dirty workaround to get different hint text for touch devices.
+    In a real world it should be at least placed in separate JS file ... and the touch content should be
+    probably just hidden somewhere in HTML - not hard-coded in the script.
+    
+    Just sayin' ;)
+    
+-->
+<div class="hint">
+    <p>Use a spacebar or arrow keys to navigate. <br/>
+       Press 'P' to launch speaker console.</p>
+</div>
+<script>
+if ("ontouchstart" in document.documentElement) { 
+    document.querySelector(".hint").innerHTML = "<p>Swipe left or right to navigate</p>";
+}
+</script>
+
+<!--
+    
+    Last, but not least.
+    
+    To make all described above really work, you need to include impress.js in the page.
+    I strongly encourage to minify it first.
+    
+    In here I just include full source of the script to make it more readable.
+    
+    You also need to call a `impress().init()` function to initialize impress.js presentation.
+    And you should do it in the end of your document. Not only because it's a good practice, but also
+    because it should be done when the whole document is ready.
+    Of course you can wrap it in any kind of "DOM ready" event, but I was too lazy to do so ;)
+    
+-->
+<script src="js/impress.js"></script>
+<script>impress().init();</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<!-- Include any specific language files AFTER the main library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/python.min.js"></script>
+
+<script>hljs.highlightAll();</script>
+<!--
+    
+    The `impress()` function also gives you access to the API that controls the presentation.
+    
+    Just store the result of the call:
+    
+        var api = impress();
+    
+    and you will get three functions you can call:
+    
+        `api.init()` - initializes the presentation,
+        `api.next()` - moves to next step of the presentation,
+        `api.prev()` - moves to previous step of the presentation,
+        `api.goto( stepIndex | stepElementId | stepElement, [duration] )` - moves the presentation to the step given by its index number
+                id or the DOM element; second parameter can be used to define duration of the transition in ms,
+                but it's optional - if not provided default transition duration for the presentation will be used.
+    
+    You can also simply call `impress()` again to get the API, so `impress().next()` is also allowed.
+    Don't worry, it won't initialize the presentation again.
+    
+    For some example uses of this API check the last part of the source of impress.js where the API
+    is used in event handlers.
+    
+-->
+
+</body>
+</html>
+
+<!--
+    
+    Now you know more or less everything you need to build your first impress.js presentation, but before
+    you start...
+    
+    Oh, you've already cloned the code from GitHub?
+    
+    You have it open in text editor?
+    
+    Stop right there!
+    
+    That's not how you create awesome presentations. This is only a code. Implementation of the idea that
+    first needs to grow in your mind.
+    
+    So if you want to build great presentation take a pencil and piece of paper. And turn off the computer.
+    
+    Sketch, draw and write. Brainstorm your ideas on a paper. Try to build a mind-map of what you'd like
+    to present. It will get you closer and closer to the layout you'll build later with impress.js.
+    
+    Get back to the code only when you have your presentation ready on a paper. It doesn't make sense to do
+    it earlier, because you'll only waste your time fighting with positioning of useless points.
+    
+    If you think I'm crazy, please put your hands on a book called "Presentation Zen". It's all about 
+    creating awesome and engaging presentations.
+    
+    Think about it. 'Cause impress.js may not help you, if you have nothing interesting to say.
+    
+-->
+
+<!--
+    
+    Are you still reading this?
+    
+    For real? I'm impressed! 
+    
+    But now, take my advice and take some time off. Make yourself a cup of coffee, tea,
+    or anything you like to drink.
+    
+    Cheers!
+    
+-->
+
