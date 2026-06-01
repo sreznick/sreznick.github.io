@@ -1,0 +1,469 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1024" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <title>OS-seminar-06</title>
+    
+    <meta name="description" content="Seminar 6" />
+    <meta name="author" content="Sergey Reznick" />
+
+    <link href="//fonts.googleapis.com/css?family=Open+Sans:regular,semibold,italic,italicsemibold|PT+Sans:400,700,400italic,700italic|PT+Serif:400,700,400italic,700italic" rel="stylesheet" />
+
+    <link href="css/impress-demo.css" rel="stylesheet" />
+    <link href="css/impress-common.css" rel="stylesheet" />
+    
+    <link rel="shortcut icon" href="favicon.png" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/default.min.css">
+
+</head>
+
+<body class="impress-not-supported">
+
+<div class="fallback-message">
+    <p>Your browser <b>doesn't support the features required</b> by impress.js, so you are presented with a simplified version of this presentation.</p>
+    <p>For the best experience please use the latest <b>Chrome</b>, <b>Safari</b> or <b>Firefox</b> browser.</p>
+</div>
+
+<div id="impress"
+    data-transition-duration="1000"
+    
+    data-width="1024"
+    data-height="768"
+    data-max-scale="3"
+    data-min-scale="0"
+    data-perspective="1000"
+    >
+
+    <div  class="step slide" data-x="-1000" data-y="-1500">
+        <h1>OS: семинар 6</h1>
+        <ul>
+        <li>xv6</li>
+        <li>Процессы</li>
+        </ul>
+    </div>
+
+
+
+    <div class="step slide" data-x="0" data-y="-1500">
+        <h1>xv6</h1>
+        <ul>
+          <li>xv6 работает на RISC-V</li>
+          <li>toolchain готов</li>
+          <li>docker pull sreznick/xv6-mkn</li>
+          <li>docker run -it sreznick/xv6-mkn</li>
+          <li>Изнутри контейнера: make qemu</li>
+          <li>Должны увидеть: init: starting sh</li>
+          <li>И командную строку</li>
+          <li>Выход: Ctrl-A сначала, потом X (отпустив Ctrl-A)</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="1000" data-y="-1500">
+        <h1>xv6: что есть</h1>
+        <ul>
+          <li>Изнутри видна файловая система: ls -l</li>
+          <li>Около 20 файлов</li>
+          <li>Каталогов сходу нет, но можно создать: mkdir d</li>
+          <li>Видны файлы с кодом приложений</li>
+          <li>Набор ограниченный</li>
+          <li>Возможности каждого ограничены</li>
+        </ul>
+    </div>
+
+
+
+    <div class="step slide" data-x="2000" data-y="-1500">
+        <h1>xv6: что есть</h1>
+        <ul>
+          <li>Почти все файлы в начальном состоянии - приложения</li>
+          <li>Один текстовый - README</li>
+          <li>Часть приложений - тесты</li>
+          <li>Часть - очень упрощенные варианты стандартных Unix-утилит</li>
+          <li>Командная строка - очень упрощенный shell</li>
+          <li>В нем есть конвейер и простые перенаправления ввода-вывода</li>
+          <li>Пример: grep ab README | wc > q</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="3000" data-y="-1500">
+        <h1>xv6: что есть</h1>
+        <ul>
+          <li>Готовые приложения не поддерживают --help</li>
+          <li>man-страниц тоже нет</li>
+          <li>Источник знаний - исходники</li>
+          <li>Есть имитация диска, фвйловая система</li>
+          <li>Можно добавить новый файл в начальное состояние системы</li>
+          <li>Нет простого способа добраться до текушего состояния файловой системы с хоста</li>
+          <li>Приложения запускаются из собранных файлов</li>
+          <li>Набор файлов фиксируется на момент сборки</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="4000" data-y="-1500">
+        <h1>Сделаем свое приложение</h1>
+        <ul>     
+          <li>Например, head</li>
+          <li>В самом простом виде - без параметров</li>
+          <li>Выводим на стандартный выход 10 строк стандартного входа</li>
+          <li>Проще всего оттолкнуться от существужщего</li>
+          <li>Возьмем исходники user/wc.c  и скопируем в user/head.c</li>
+          <li>Пропишем head везде, где прописан wc</li>
+          <li>Предварительно исполнив make clean</li>
+          <li>Должны получить приложение head с логикой wc</li>
+        </ul>
+    </div>
+
+
+
+
+
+
+    <div class="step slide" data-x="5000" data-y="-1500">
+        <h1>Сделаем свое приложение</h1>
+        <ul>
+          <li>Поменяем логику</li>
+          <li>Учтем все варианты</li>
+          <li>Обратим внимание на возвращаемые значения системных вызовов</li>
+          <li>Можно смотреть на исходники</li>
+          <li>Можно на описания - понимая приоритетность исходников</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="6000" data-y="-1500">
+        <h1>Сделаем свой системный вызов</h1>
+        <ul>
+          <li>Разберем работу существующего системного вызова</li>
+          <li>Начнем с формального шага: найдем все вхождения системного вызова в исходниках</li>
+          <li>Например, getpid: rgrep -l  getpid .</li>
+          <li>Сделаем свой - максимально похожий на getpid</li>
+          <li>Не принимающий параметров и возвращающий целое</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="7000" data-y="-1500">
+        <h1>Сделаем свой системный вызов</h1>
+        <ul>
+          <li>./user/user.h: объявление для приложений</li>
+          <li>Это немного обман трудящихся</li>
+          <li>Старательно делаем вид, что наш системный вызов - это как будто обычная функция</li>
+          <li>Компилятор будет готовит аргументы и забирать результат исходя из соглашений о вызовах</li>
+          <li>В других местах логика ОС будет на это полагаться</li>
+        </ul>
+   </div>
+    <div class="step slide" data-x="8000" data-y="-1500">
+        <h1>Сделаем свой системный вызов</h1>
+        <ul>
+          <li>./user/usys.pl: генератор точек входа</li>
+          <li>Это мостик между иллюзией вызова обычной функции и реальным системным вызовом</li>
+          <li>После сборки можно взять образ любого приложения и посмотреть на дамп</li>
+          <li>riscv64-unknown-elf-objdump -S  user/_usertests  | less</li>
+          <li>Найти определение getpid</li>
+          <li>Или другого системного вызова</li>
+        </ul>
+   </div>
+
+
+
+
+
+    <div class="step slide" data-x="9000" data-y="-1500">
+        <h1>Сделаем свой системный вызов</h1>
+        <ul>
+          <li>./kernel/syscall.c - массив отображающий номер системного вызова на обработчик</li>
+          <li>Это используется на стороне ядра</li>
+          <li>Код ядра смотрит на номер системного вызова</li>
+          <li>И диспетчеризуется на обработчик</li>
+          <li>В определении массива используется GNU-расширение</li>
+        </ul>
+   </div>
+    <div class="step slide" data-x="10000" data-y="-1500">
+        <h1>Сделаем свой системный вызов</h1>
+        <ul>
+          <li>./kernel/sysproc.c - здесь определяется логика системного вызова</li>
+          <li>./kernel/syscall.h - здесь определяется номер системного вызова</li>
+          <li>Остается пройтись по всем точкам и определить что-то для нашего системного вызова</li>
+          <li>Назовем его magic</li>
+          <li>Логика поведения - возврашает магическую константу</li>
+          <li>И добавим приложение, которое его вызывает</li>
+        </ul>
+   </div>
+    <div class="step slide" data-x="11000" data-y="-1500">
+        <h1>Системный вызов с параметрами</h1>
+        <ul>
+          <li>Сделаем еще один системный вызов</li>
+          <li>Назовем его sum</li>
+          <li>Вернем сумму двух чисел</li>
+          <li>Смысл - потренироваться в передаче параметров</li>
+          <li>Пройдем те же шаги, что и для magic</li>
+          <li>Разберемся с передачей и приемом параметров</li>
+          <li>Больше с приемом</li>
+          <li>Можно подсмотреть другие системные вызовы с целыми параметрами</li>
+        </ul>
+   </div>
+   <div class="step slide" data-x="12000" data-y="-1500">
+        <h1>Передача непримитивных данных в системный вызов</h1>
+        <ul>
+          <li>Сделаем системный вызов с передачей строки</li>
+          <li>Реализуем системный вызов, вычисляющий длину строки</li>
+          <li>Исключительно с целью разобраться с передачей параметров</li>
+          <li>Можно подсматривать детали у write</li>
+          <li>Основая интрига - переход между адресными пространствами</li>
+        </ul>
+   </div>
+   <div class="step slide" data-x="13000" data-y="-1500">
+        <h1>Передача непримитивных данных из системного вызова</h1>
+        <ul>
+          <li>Реализуем системный вызов, который повторит строку заданое число раз</li>
+          <li>Мне может выделить память на уровне ядра и дать к ней доступ приложению</li>
+          <li>Чисто формально-технически - могли бы</li>
+          <li>Но это бы сломало устоявшиеся традиции и стандарты</li>
+          <li>Альтернатива - передавать в ядро адрес памяти для хранения результата</li>
+          <li>Возможно, жалуясь, если памяти не хватило</li>
+        </ul>
+   </div>
+
+
+
+
+
+   <div class="step slide" data-x="14000" data-y="-1500">
+        <h1>Системные вызовы, обеспечивающие жизненный цикл процесса</h1>
+        <ul>
+          <li>fork - создание процесса</li>
+          <li>exec - замена текущего приложения на другое</li>
+          <li>wait - ожидание завершения ребенка</li>
+          <li>exit - завершение процесса</li>
+        </ul>
+   </div>
+   <div class="step slide" data-x="15000" data-y="-1500">
+        <h1>Задание</h1>
+        <ul>
+          <li>Напишите в Linux простой shell</li>
+          <li>Спросите командную строку</li>
+          <li>Вызовите fork</li>
+          <li>В ветке ребенка выполните exec</li>
+          <li>В ветке родителя вызовите wait</li>
+        </ul>
+   </div>
+   <div class="step slide" data-x="16000" data-y="-1500">
+        <h1>Задание</h1>
+        <ul>
+          <li>Напишите приложение в Linux, открывающее файл на чтение</li>
+          <li>Почитайте что-то из файла</li>
+          <li>Вызовите fork</li>
+          <li>Продолжите чтение из того же дескриптора в родителе и  в ребенке</li>
+          <li>Посмотрите, что получается</li>
+          <li>После чтения закройте файл и почитайте снова</li>
+          <li>Влияют ли чтения из разных процессов друг на друга ? </li>
+          <li>А закрытия ?</li>
+        </ul>
+   </div>
+   <div class="step slide" data-x="17000" data-y="-1500">
+        <h1>Перенаправление входа выхода на файлы</h1>
+        <ul>
+          <li>Открываем файл</li>
+          <li>Используем dup2</li>
+          <li>Практикуемся в на linux</li>
+          <li>Сравниваем с sh в xv6</li>
+        </ul>
+   </div>
+   <div class="step slide" data-x="18000" data-y="-1500">
+        <h1>Смотрим логику работы fork</h1>
+        <ul>
+          <li>Проходим по подзадачам</li>
+          <li>Разбираемся в структуре, представляющей процесс</li>
+          <li>Разбираемся в логике назначения pid</li>
+          <li>Разбираемся в логике работы с памятью</li>
+        </ul>
+   </div>
+   <div class="step slide" data-x="19000" data-y="-1500">
+        <h1>Локи</h1>
+        <ul>
+          <li>Механизм обеспечения целостности</li>
+          <li>CAS - базовый подход к реализации</li>
+          <li>Реентерабельность локов - способность захватить уже захваченный лок</li>
+          <li>И считать количество освобождений</li>
+          <li>Read/Write-локи</li>
+        </ul>
+   </div>
+
+
+   <div class="step slide" data-x="20000" data-y="-1500">
+        <h1>Дедлоки</h1>
+        <ul>
+          <li>Состояние, в котором процессы ждут друг друга</li>
+          <li>И никогда не дождутся</li>
+          <li>Потому что сложился цикл ожиданий</li>
+          <li>Простейший пример:
+            <ul>
+              <li>Один процесс захватил lockA и хочет захватить lockB</li>
+              <li>Другой процесс захватил lockB и хочет захватить lockA</li>
+            </ul>
+          </li>
+        </ul>
+   </div>
+   <div class="step slide" data-x="21000" data-y="-1500">
+        <h1>Дедлоки</h1>
+        <ul>
+          <li>Один их способов борьбы с дедлоками - определение дедлока с уничтожением элемента в цепочке зависимостей</li>
+          <li>Это работает в базах данных (отказ в исполнении запроса + ретрай)</li>
+          <li>Но плохо ложится на ОС - удаление процесса сильно болезненнее, чем отказ в исполнении запроса</li>
+          <li>Нужно следить за порядком захвата</li>
+          <li>Обязательное условие сдачи домашки - прохождение стандартных тестов</li>
+          <li>Зависание теста - почти всегда признак дедлока</li>
+          <li>Просто убрать лок - не всегда засчитывается за решение проблемы</li>
+        </ul>
+   </div>
+
+    <!--
+        
+        * `data-x`, `data-y`, `data-z` - they define the position of **the center** of step element on
+            the canvas in pixels; their default value is 0;
+        * `data-rotate-x`, `data-rotate-y`, 'data-rotate-z`, `data-rotate` - they define the rotation of
+            the element around given axis in degrees; their default value is 0; `data-rotate` and `data-rotate-z`
+            are exactly the same;
+        * `data-scale` - defines the scale of step element; default value is 1
+        
+        These values are used by impress.js in CSS transformation functions, so for more information consult
+        CSS transfrom docs: https://developer.mozilla.org/en/CSS/transform
+        
+    -->
+    <div id="overview" class="step" data-x="3000" data-y="1500" data-z="0" data-scale="10">
+    </div>
+
+</div>
+
+<!--
+    This is a UI plugin. You can read more about plugins in src/plugins/README.md.
+    For now, I'll just tell you that this adds some graphical controls to navigate the
+    presentation. In the CSS file you can style them as you want. We've put them bottom right.
+-->
+<div id="impress-toolbar"></div>
+
+<!--
+    
+    Hint is not related to impress.js in any way.
+    
+    But it can show you how to use impress.js features in creative way.
+    
+    When the presentation step is shown (selected) its element gets the class of "active" and the body element
+    gets the class based on active step id `impress-on-ID` (where ID is the step's id)... It may not be
+    so clear because of all these "ids" in previous sentence, so for example when the first step (the one with
+    the id of `bored`) is active, body element gets a class of `impress-on-bored`.
+    
+    This class is used by this hint below. Check CSS file to see how it's shown with delayed CSS animation when
+    the first step of presentation is visible for a couple of seconds.
+    
+    ...
+    
+    And when it comes to this piece of JavaScript below ... kids, don't do this at home ;)
+    It's just a quick and dirty workaround to get different hint text for touch devices.
+    In a real world it should be at least placed in separate JS file ... and the touch content should be
+    probably just hidden somewhere in HTML - not hard-coded in the script.
+    
+    Just sayin' ;)
+    
+-->
+<div class="hint">
+    <p>Use a spacebar or arrow keys to navigate. <br/>
+       Press 'P' to launch speaker console.</p>
+</div>
+<script>
+if ("ontouchstart" in document.documentElement) { 
+    document.querySelector(".hint").innerHTML = "<p>Swipe left or right to navigate</p>";
+}
+</script>
+
+<!--
+    
+    Last, but not least.
+    
+    To make all described above really work, you need to include impress.js in the page.
+    I strongly encourage to minify it first.
+    
+    In here I just include full source of the script to make it more readable.
+    
+    You also need to call a `impress().init()` function to initialize impress.js presentation.
+    And you should do it in the end of your document. Not only because it's a good practice, but also
+    because it should be done when the whole document is ready.
+    Of course you can wrap it in any kind of "DOM ready" event, but I was too lazy to do so ;)
+    
+-->
+<script src="js/impress.js"></script>
+<script>impress().init();</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<!-- Include any specific language files AFTER the main library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/python.min.js"></script>
+
+<script>hljs.highlightAll();</script>
+<!--
+    
+    The `impress()` function also gives you access to the API that controls the presentation.
+    
+    Just store the result of the call:
+    
+        var api = impress();
+    
+    and you will get three functions you can call:
+    
+        `api.init()` - initializes the presentation,
+        `api.next()` - moves to next step of the presentation,
+        `api.prev()` - moves to previous step of the presentation,
+        `api.goto( stepIndex | stepElementId | stepElement, [duration] )` - moves the presentation to the step given by its index number
+                id or the DOM element; second parameter can be used to define duration of the transition in ms,
+                but it's optional - if not provided default transition duration for the presentation will be used.
+    
+    You can also simply call `impress()` again to get the API, so `impress().next()` is also allowed.
+    Don't worry, it won't initialize the presentation again.
+    
+    For some example uses of this API check the last part of the source of impress.js where the API
+    is used in event handlers.
+    
+-->
+
+</body>
+</html>
+
+<!--
+    
+    Now you know more or less everything you need to build your first impress.js presentation, but before
+    you start...
+    
+    Oh, you've already cloned the code from GitHub?
+    
+    You have it open in text editor?
+    
+    Stop right there!
+    
+    That's not how you create awesome presentations. This is only a code. Implementation of the idea that
+    first needs to grow in your mind.
+    
+    So if you want to build great presentation take a pencil and piece of paper. And turn off the computer.
+    
+    Sketch, draw and write. Brainstorm your ideas on a paper. Try to build a mind-map of what you'd like
+    to present. It will get you closer and closer to the layout you'll build later with impress.js.
+    
+    Get back to the code only when you have your presentation ready on a paper. It doesn't make sense to do
+    it earlier, because you'll only waste your time fighting with positioning of useless points.
+    
+    If you think I'm crazy, please put your hands on a book called "Presentation Zen". It's all about 
+    creating awesome and engaging presentations.
+    
+    Think about it. 'Cause impress.js may not help you, if you have nothing interesting to say.
+    
+-->
+
+<!--
+    
+    Are you still reading this?
+    
+    For real? I'm impressed! 
+    
+    But now, take my advice and take some time off. Make yourself a cup of coffee, tea,
+    or anything you like to drink.
+    
+    Cheers!
+    
+-->
+
