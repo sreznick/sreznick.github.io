@@ -1,0 +1,440 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1024" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <title>OS-seminar-06</title>
+    
+    <meta name="description" content="Seminar 6" />
+    <meta name="author" content="Sergey Reznick" />
+
+    <link href="//fonts.googleapis.com/css?family=Open+Sans:regular,semibold,italic,italicsemibold|PT+Sans:400,700,400italic,700italic|PT+Serif:400,700,400italic,700italic" rel="stylesheet" />
+
+    <link href="css/impress-demo.css" rel="stylesheet" />
+    <link href="css/impress-common.css" rel="stylesheet" />
+    
+    <link rel="shortcut icon" href="favicon.png" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/default.min.css">
+
+</head>
+
+<body class="impress-not-supported">
+
+<div class="fallback-message">
+    <p>Your browser <b>doesn't support the features required</b> by impress.js, so you are presented with a simplified version of this presentation.</p>
+    <p>For the best experience please use the latest <b>Chrome</b>, <b>Safari</b> or <b>Firefox</b> browser.</p>
+</div>
+
+<div id="impress"
+    data-transition-duration="1000"
+    
+    data-width="1024"
+    data-height="768"
+    data-max-scale="3"
+    data-min-scale="0"
+    data-perspective="1000"
+    >
+
+    <div  class="step slide" data-x="-1000" data-y="-1500">
+        <h1>OS: семинар 11</h1>
+        <ul>
+        <li>Замер характеристик</li>
+        </ul>
+    </div>
+
+
+
+    <div class="step slide" data-x="0" data-y="-1500">
+        <h1>Базовая подготовка</h1>
+        <ul>
+          <li>Отключаем процессы по максимуму</li>
+          <li>Оставляем самое необходимое - без чего совсем никак</li>
+          <li>Или нересурсоемкое </li>
+          <li>Обеспечиваем наличие значительного свободного места на диске</li>
+          <li>Случайные обстоятельства сглаживаем повторяющими экспериментами</li>
+          <li>Оцениваем дисперсию</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="1000" data-y="-1500">
+        <h1>Запись: наивный псевдокод</h1>
+        <pre>
+
+for i in 0..1000 {
+    before = time();
+    f = open(f, O_WRITE);
+    data = new byte[4096];
+    write(f, data, 4096);
+    after = time();
+    print(after - before);
+}
+
+// Что здесь не так ?
+
+        </pre>
+    </div>
+
+
+
+
+    <div class="step slide" data-x="2000" data-y="-1500">
+        <h1>Проблемы</h1>
+        <ul>
+          <li>Файловый дескриптор неплохо бы закрывать</li>
+          <li>Но закрытие само по себе не означает запись данных на диск</li>
+          <li>Нужно позаботиться о явном синке</li>
+          <li>Иначе получим гипероптимистичный результат</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="3000" data-y="-1500">
+        <h1>Проблемы</h1>
+        <ul>
+          <li>Данных записывается очень мало</li>
+          <li>Время на позиционирование будет доминировать над временем на запись</li>
+          <li>И может примешиваться время на работу с метаданными файла</li>
+          <li>Сопоставимое с временем на записьо</li>
+          <li>Лучще писать мегабайтами</li>
+          <li>Или десятками/сотнями</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="4000" data-y="-1500">
+        <h1>Проблемы</h1>
+        <ul>
+          <li>Конкретные данные тоже важны</li>
+          <li>Для файловых систем семейства ext важно, чтобы были не нули</li>
+          <li>Блоки только из нулей не хранятся физически на диске</li>
+          <li>Хранение ограничивается маркерами в метаданных</li>
+          <li>Рискуем получить гипероптимистичный результат</li>
+        </ul>
+    </div>
+
+
+    <div class="step slide" data-x="5000" data-y="-1500">
+        <h1>Чтение</h1>
+        <ul>
+          <li>Нужно учесть опыт записи - в переложении для чтения</li>
+          <li>Но это НЕ решит всех проблем</li>
+          <li>Основная проблема - кеширование</li>
+          <li>Разберем два случая</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="6000" data-y="-1500">
+        <h1>Чтение</h1>
+        <ul>
+          <li>Можем читать предзаписанные данные</li>
+          <li>То, что существовало, до каких-либо экспериментов</li>
+          <li>Первое чтение будет реальным</li>
+          <li>Повторные чтения с большой вероятностью будут из кеша</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="7000" data-y="-1500">
+        <h1>Чтение</h1>
+        <ul>
+          <li>Можем читать то, что записали в ходе измерения скорости записи</li>
+          <li>И сначала что-то записать в рамках эксперимента по замеру скорости чтения</li>
+          <li>И тут же начать читать</li>
+          <li>Понятно, что нужен fsync</li>
+          <li>Менее очевидно, что fsync сам по себе не спасет от кеширования</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="8000" data-y="-1500">
+        <h1>Кеш в Linux</h1> 
+        <ul>
+          <li>В самом общем случае есть два пути обойти использование кеша</li>
+          <li>Первый способ - уменьшить его размер вплоть до 0</li>
+          <li>Второй способ - отказаться от его использования в конкретной операции</li>
+          <li>Первый способ в Linux принципиально невозможен</li>
+          <li>Кеш в Linux заполняет весь возможный объем памяти</li>
+        </ul>
+    </div>
+
+
+
+    <div class="step slide" data-x="9000" data-y="-1500">
+        <h1>Память в Linux</h1>
+        <ul>
+          <li>Есть внутренние структуры ядра</li>
+          <li>Есть память ядра, выделяемая на каждый процесс</li>
+          <li>Это все живет в RAM</li>
+          <li>И вычитается из общего бюджета RAM</li>
+          <li>За все остальное конкурируют три подсистемы</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="10000" data-y="-1500">
+        <h1>Память в Linux</h1>
+        <ul>
+          <li>Первая - кеширование внещних устройств</li>
+          <li>Вторая - memory-mapped files</li>
+          <li>mmap-files - файлы, отображаемые на память</li>
+          <li>Третья - swap</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="11000" data-y="-1500">
+        <h1>Пример</h1>
+        <pre>
+
+int
+main(int argc, char *argv[]) {
+    int fd = open(argv[1], O_RDONLY);
+    int offset = atoi(argv[2]);
+    int length = atoi(argv[3]);
+    void *addr = mmap(NULL, length, PROT_READ,
+                      MAP_PRIVATE, fd, offset);
+    s = write(0, addr, length);
+}
+        </pre>
+    </div>
+    <div class="step slide" data-x="12000" data-y="-1500">
+        <h1>Память в Linux</h1>
+        <ul>
+          <li>Сценарий 1: мало процессов</li>
+          <li>Кто-то интенсивно читает данные с диска</li>
+          <li>Но хранит только небольшую часть</li>
+          <li>Свободная память будет отводиться под кеширование данных с диска</li>
+          <li>Вплоть до заполнения всей памяти</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="13000" data-y="-1500">
+        <h1>Память в Linux</h1>
+        <ul>
+          <li>Сценарий 2: 500 процессов</li>
+          <li>Каждый использует примерно по 100M</li>
+          <li>Дисковые операции незначительны</li>
+          <li>Включен swap</li>
+          <li>Суммарно нужно 50G</li>
+          <li>Редко используемые страницы будут вытесняться на диск</li>
+        </ul>
+    </div>
+
+
+
+    <div class="step slide" data-x="14000" data-y="-1500">
+        <h1>Память в Linux</h1>
+        <ul>
+          <li>Сценарий 3: 50 активных процессов</li>
+          <li>Каждый использует примерно по 100M</li>
+          <li>И половина ходит на диск</li>
+          <li>В какой-то момент память будет занято смесью кеша и памятью процессов</li>
+          <li>Очередное дисковое чтение или подкачка страницы будут приводить к аытеснению</li>
+          <li>И жертва будем искать среди страниц данных и кешированных страниц</li>
+          <li>На общих основаниях</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="15000" data-y="-1500">
+        <h1>Борьба с кешированием</h1>
+        <ul>
+          <li>При открытии файла указываем опцию O_DIRECT</li>
+          <li>Обеспечивает чтение напрямую с диска</li>
+          <li>Полезна не только для измерения скорости</li>
+          <li>Пример применения: свое кеширование для СУБД и т.п.</li>
+          <li>Во избежание двойного кеширования</li>
+          <li>И для лучшей управляемости</li>
+          <li>(Но swap может интересно влиять)</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="16000" data-y="-1500">
+        <h1>Измерение скорости позиционирования</h1>
+        <ul>
+          <li>По-хорошему надо отдельно мерить позиционирование на чтение и на запись</li>
+          <li>Потому что приготовления могут быть разными</li>
+          <li>В любом случае просто вызывать lseek недостаточно</li>
+          <li>Сам по себе lseek ничего не делает с диском</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="17000" data-y="-1500">
+        <h1>Измерение скорости позиционирования</h1>
+        <ul>
+          <li>Нужно позиционироваться и сделать операцию ввода-вывода</li>
+          <li>Например, чтение</li>
+          <li>Снова может помешать кеширование</li>
+          <li>Причем "в обе стороны"</li>
+          <li>Случившееся кеширование может отменить необходимость чтения</li>
+          <li>И заодно - позиционирования</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="18000" data-y="-1500">
+        <h1>Измерение скорости позиционирования</h1>
+        <ul>
+          <li>Другой риск - если данный блок не закеширован</li>
+          <li>Когда кеширование есть, но конкретный блок не закеширован - может случиься prefetching</li>
+          <li>prefetching - чтение бОльшего объема, чем требуется для конкретной read-операции</li>
+          <li>Эвристическая оптимизация</li>
+          <li>В нашем случае помешает точности расчетов</li>
+          <li>O_DIRECT решит обе проблемы</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="19000" data-y="-1500">
+        <h1>Измерение скорости позиционирования</h1>
+        <ul>
+          <li>Для одиночного замера нужно спозиционироваться через lseek</li>
+          <li>И выполнить чтение заданного размера - в режиме O_DIRECT</li>
+          <li>И из замеренного времени вычесть время на чтение данных</li>
+          <li>Которое мы уже получили более или менее</li>
+        </ul>
+    </div>
+
+
+<!--
+    <div class="step slide" data-x="20000" data-y="-1500">
+        <h1>fifo</h1>
+        <ul>
+          <li></li>
+        </ul>
+    </div>
+-->
+
+    <!--
+        
+        * `data-x`, `data-y`, `data-z` - they define the position of **the center** of step element on
+            the canvas in pixels; their default value is 0;
+        * `data-rotate-x`, `data-rotate-y`, 'data-rotate-z`, `data-rotate` - they define the rotation of
+            the element around given axis in degrees; their default value is 0; `data-rotate` and `data-rotate-z`
+            are exactly the same;
+        * `data-scale` - defines the scale of step element; default value is 1
+        
+        These values are used by impress.js in CSS transformation functions, so for more information consult
+        CSS transfrom docs: https://developer.mozilla.org/en/CSS/transform
+        
+    -->
+    <div id="overview" class="step" data-x="3000" data-y="1500" data-z="0" data-scale="10">
+    </div>
+
+</div>
+
+<!--
+    This is a UI plugin. You can read more about plugins in src/plugins/README.md.
+    For now, I'll just tell you that this adds some graphical controls to navigate the
+    presentation. In the CSS file you can style them as you want. We've put them bottom right.
+-->
+<div id="impress-toolbar"></div>
+
+<!--
+    
+    Hint is not related to impress.js in any way.
+    
+    But it can show you how to use impress.js features in creative way.
+    
+    When the presentation step is shown (selected) its element gets the class of "active" and the body element
+    gets the class based on active step id `impress-on-ID` (where ID is the step's id)... It may not be
+    so clear because of all these "ids" in previous sentence, so for example when the first step (the one with
+    the id of `bored`) is active, body element gets a class of `impress-on-bored`.
+    
+    This class is used by this hint below. Check CSS file to see how it's shown with delayed CSS animation when
+    the first step of presentation is visible for a couple of seconds.
+    
+    ...
+    
+    And when it comes to this piece of JavaScript below ... kids, don't do this at home ;)
+    It's just a quick and dirty workaround to get different hint text for touch devices.
+    In a real world it should be at least placed in separate JS file ... and the touch content should be
+    probably just hidden somewhere in HTML - not hard-coded in the script.
+    
+    Just sayin' ;)
+    
+-->
+<div class="hint">
+    <p>Use a spacebar or arrow keys to navigate. <br/>
+       Press 'P' to launch speaker console.</p>
+</div>
+<script>
+if ("ontouchstart" in document.documentElement) { 
+    document.querySelector(".hint").innerHTML = "<p>Swipe left or right to navigate</p>";
+}
+</script>
+
+<!--
+    
+    Last, but not least.
+    
+    To make all described above really work, you need to include impress.js in the page.
+    I strongly encourage to minify it first.
+    
+    In here I just include full source of the script to make it more readable.
+    
+    You also need to call a `impress().init()` function to initialize impress.js presentation.
+    And you should do it in the end of your document. Not only because it's a good practice, but also
+    because it should be done when the whole document is ready.
+    Of course you can wrap it in any kind of "DOM ready" event, but I was too lazy to do so ;)
+    
+-->
+<script src="js/impress.js"></script>
+<script>impress().init();</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<!-- Include any specific language files AFTER the main library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/python.min.js"></script>
+
+<script>hljs.highlightAll();</script>
+<!--
+    
+    The `impress()` function also gives you access to the API that controls the presentation.
+    
+    Just store the result of the call:
+    
+        var api = impress();
+    
+    and you will get three functions you can call:
+    
+        `api.init()` - initializes the presentation,
+        `api.next()` - moves to next step of the presentation,
+        `api.prev()` - moves to previous step of the presentation,
+        `api.goto( stepIndex | stepElementId | stepElement, [duration] )` - moves the presentation to the step given by its index number
+                id or the DOM element; second parameter can be used to define duration of the transition in ms,
+                but it's optional - if not provided default transition duration for the presentation will be used.
+    
+    You can also simply call `impress()` again to get the API, so `impress().next()` is also allowed.
+    Don't worry, it won't initialize the presentation again.
+    
+    For some example uses of this API check the last part of the source of impress.js where the API
+    is used in event handlers.
+    
+-->
+
+</body>
+</html>
+
+<!--
+    
+    Now you know more or less everything you need to build your first impress.js presentation, but before
+    you start...
+    
+    Oh, you've already cloned the code from GitHub?
+    
+    You have it open in text editor?
+    
+    Stop right there!
+    
+    That's not how you create awesome presentations. This is only a code. Implementation of the idea that
+    first needs to grow in your mind.
+    
+    So if you want to build great presentation take a pencil and piece of paper. And turn off the computer.
+    
+    Sketch, draw and write. Brainstorm your ideas on a paper. Try to build a mind-map of what you'd like
+    to present. It will get you closer and closer to the layout you'll build later with impress.js.
+    
+    Get back to the code only when you have your presentation ready on a paper. It doesn't make sense to do
+    it earlier, because you'll only waste your time fighting with positioning of useless points.
+    
+    If you think I'm crazy, please put your hands on a book called "Presentation Zen". It's all about 
+    creating awesome and engaging presentations.
+    
+    Think about it. 'Cause impress.js may not help you, if you have nothing interesting to say.
+    
+-->
+
+<!--
+    
+    Are you still reading this?
+    
+    For real? I'm impressed! 
+    
+    But now, take my advice and take some time off. Make yourself a cup of coffee, tea,
+    or anything you like to drink.
+    
+    Cheers!
+    
+-->
+
