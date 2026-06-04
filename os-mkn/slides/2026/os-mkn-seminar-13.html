@@ -1,0 +1,620 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1024" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <title>OS-seminar-06</title>
+    
+    <meta name="description" content="Seminar 6" />
+    <meta name="author" content="Sergey Reznick" />
+
+    <link href="//fonts.googleapis.com/css?family=Open+Sans:regular,semibold,italic,italicsemibold|PT+Sans:400,700,400italic,700italic|PT+Serif:400,700,400italic,700italic" rel="stylesheet" />
+
+    <link href="css/impress-demo.css" rel="stylesheet" />
+    <link href="css/impress-common.css" rel="stylesheet" />
+    
+    <link rel="shortcut icon" href="favicon.png" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/default.min.css">
+
+</head>
+
+<body class="impress-not-supported">
+
+<div class="fallback-message">
+    <p>Your browser <b>doesn't support the features required</b> by impress.js, so you are presented with a simplified version of this presentation.</p>
+    <p>For the best experience please use the latest <b>Chrome</b>, <b>Safari</b> or <b>Firefox</b> browser.</p>
+</div>
+
+<div id="impress"
+    data-transition-duration="1000"
+    
+    data-width="1024"
+    data-height="768"
+    data-max-scale="3"
+    data-min-scale="0"
+    data-perspective="1000"
+    >
+
+    <div  class="step slide" data-x="-1000" data-y="-1500">
+        <h1>OS: семинар 14</h1>
+        <ul>
+        <li>Логи в файловой системе</li>
+        <li>Сети</li>
+        </ul>
+    </div>
+
+
+    <div class="step slide" data-x="0" data-y="-1500">
+        <h1>Логи: постановка задачи</h1>
+        <ul>
+          <li>В мире баз данных есть понятие ACID</li>
+          <li>Atomicity, Consistency. Isolation, Durability</li>
+          <li>Частично он проецируется и на файловые системы</li>
+          <li>Как минимум - на метаданные</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="1000" data-y="-1500">
+        <h1>Логи: постановка задачи</h1>
+        <ul>
+          <li>Atomicity - группа операций или выполняется целиком, или не выполняется целиком</li>
+          <li>Durability - завершившаяся операция реально имеет эффект</li>
+          <li>Любой рестарт после завершенной операции не потеряет ее результаты</li>
+          <li>Durability вступает в противоречие с производительностью</li>
+          <li>Durability в наивной реализации приводит к "маленьким" операциям</li>
+        </ul>
+    </div>
+
+
+
+
+
+    <div class="step slide" data-x="2000" data-y="-1500">
+        <h1>Логи: постановка задачи</h1>
+        <ul>
+          <li>Isolation можно разделить на две части</li>
+          <li>"Снаружи" - не хотим видеть результаты незаверненной транзакции</li>
+          <li>"Изнутри" - можем захлтеть зафиксировать состояние базы на момент начала транзакции</li>
+          <li>И не видеть даже завершенные после этого транзакции</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="3000" data-y="-1500">
+        <h1>Логи: постановка задачи</h1>
+        <ul>
+          <li>Consistency - необходимость соблюдения инвариантов</li>
+          <li>В общем случае инварианты могут определяться в терминах системы в целом</li>
+          <li>Основная сложность - в изолиции параллельно работающих транзакций</li>
+          <li>Идеальная цель - сериализуемость транзакций</li>
+          <li>И блокирование несериализуемых последовательностей</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="4000" data-y="-1500">
+        <h1>Логи</h1>
+        <ul>
+          <li>В контексте файловых систем хотим решить Atomicity+Durability</li>
+          <li>Не жертвуя производительностью</li>
+          <li>Будем писать лог событий</li>
+          <li>Ради Durability обязаны писать операции на диск</li>
+          <li>Обновление диска через append помогает избегать позиционирования</li>
+          <li>Фоновый процесс переносит обновления в штатное место</li>
+          <li>До переноса данные могут браться из кеша</li>
+        </ul>
+    </div>
+
+
+
+
+    <div class="step slide" data-x="5000" data-y="-1500">
+        <h1>Undo-лог</h1>
+        <ul>
+          <li>Будем писать в лог старые значения того, что обновляем</li>
+          <li>И маркеры начала и конца транзакции</li>
+          <li>До написания маркера конца транзакции транзакцию надо закомитить</li>
+          <li>При рестарте ищем в логе транзации без маркера конца</li>
+          <li>Для них возвращаем старые значения</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="6000" data-y="-1500">
+        <h1>Undo-лог</h1>
+        <ul>
+          <li>Ключевая проблема Undo-лога - необходимость делать коммит</li>
+          <li>Это очень плохо для производительности</li>
+          <li>Теоретически не так критично для транзакций с большим числом обновлений</li>
+          <li>Но это не случай файловых систем</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="7000" data-y="-1500">
+        <h1>Redo-лог</h1>
+        <ul>
+          <li>Redo-лог фиксирует новые значения</li>
+          <li>Завершение транзакции не требует коммита</li>
+          <li>При рестарте потенциально может потребоваться воспроизведение обновлений всех закомиченных транзакций </li>
+          <li>Можно добавить запись по факту завершения синхронизации транзакции</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="8000" data-y="-1500">
+        <h1>Checkpoint</h1>
+        <ul>
+          <li>Не хотим хранить вечно растущие логи</li>
+          <li>Checkpoint - механизм определения ненужного префикса лога</li>
+          <li>Не останавливая поток операций</li>
+          <li>Отличается для Undo и Redo</li>
+        </ul>
+    </div>
+
+
+
+
+
+     <div class="step slide" data-x="9000" data-y="-1500">
+        <h1>Checkpoint для Undo</h1>
+        <ul>
+          <li>Пишем в лог START CHECKPOINT</li>
+          <li>И ID незавершенных транзакций </li>
+          <li>По мере их завершения пишем END CHECKPOINT</li>
+          <li>Участок до последнего завершенного checkpoint-а становится ненужным</li>
+        </ul>
+    </div>
+     <div class="step slide" data-x="10000" data-y="-1500">
+        <h1>Checkpoint для  Redo</h1>
+        <ul>
+          <li>Пишем в лог START CHECKPOINT</li>
+          <li>И ID незавершенный транзакций</li>
+          <li>Активизируем запись на диск</li>
+          <li>По мере завершения пишем END CHECKPOINT</li>
+          <li>Участок до начала первой незавершенной транзакции становится ненужным</li>
+        </ul>
+    </div>
+     <div class="step slide" data-x="11000" data-y="-1500">
+        <h1>Смежные идеи и проблемы</h1>
+        <ul>
+          <li>Redo-лог можно передавать на другой узел - получится переливка данных</li>
+          <li>Можно организовать горячий бекап</li>
+          <li>Есть проблема вытеснения кеша до того, как обновленные данные записались в законное место</li>
+          <li>Можно организовать поиск по логу - и сделать лог хранилищем данных</li>
+        </ul>
+    </div>
+     <div class="step slide" data-x="12000" data-y="-1500">
+        <h1>Сети в контексте ОС</h1>
+        <ul>
+          <li>Сетевые возможности в контексте ОС можно понимать как еще один вариант межпроцессоного взаимодействия</li>
+          <li>Только процессы могут жить на разных узлах</li>
+          <li>Архитектура предполагает разнообразие протоколов на разных уровнях</li>
+          <li>На практике некоторые протоколы доминируют</li>
+          <li>И в силу этого особо важны</li>
+        </ul>
+    </div>
+     <div class="step slide" data-x="13000" data-y="-1500">
+        <h1>Общие принципы</h1>
+        <ul>
+          <li>Коммутация пакетов (не каналов)</li>
+          <li>Уровни протоколов</li>
+          <li>Нижний уровень - "физический"</li>
+          <li>Доступ к сетевой среде</li>
+          <li>Витая пара, коаксиальный кабель, WiFi</li>
+        </ul>
+    </div>
+
+
+
+
+
+     <div class="step slide" data-x="14000" data-y="-1500">
+        <h1>Общие принципы</h1>
+        <ul>
+          <li>Уровень выше - локальные сети</li>
+          <li>Пример: Ethernet</li>
+          <li>Адресация - MAC-адрес</li>
+          <li>Разделяемая физическая среда</li>
+          <li>Трафик между узлами физически доступен третьм узлам в той же сети</li>
+        </ul>
+    </div>
+     <div class="step slide" data-x="15000" data-y="-1500">
+        <h1>Общие принципы</h1>
+        <ul>
+          <li>Уровень выше - передача данных между локальными сетями </li>
+          <li>IP-адреса</li>
+          <li>Маршрутизация</li>
+          <li>Проблемы доставки: потери пакетов, пропажа пакетов, дублирование, наружение порядка</li>
+        </ul>
+    </div>
+     <div class="step slide" data-x="16000" data-y="-1500">
+        <h1>IP и UDP</h1>
+        <ul>
+          <li>IP - глобальный транспортный протокол</li>
+          <li>Старается обеспечить доставку пакетов от узла к узлу - через промежуточные сети</li>
+          <li>Адресация - от узла к узлу</li>
+          <li>Не учитывает приложения</li>
+          <li>UDP - легкая надстройка над IP</li>
+          <li>Появляется понятие "port" - для адресации приложения внутри хоста</li>
+        </ul>
+    </div>
+     <div class="step slide" data-x="17000" data-y="-1500">
+        <h1>TCP</h1>
+        <ul>
+          <li>TCP - дорогая надстройка над IP</li>
+          <li>Обеспечивает поток данных: файло-подобный интерфейс к сети</li>
+          <li>За кулисами - нумерация пакетов, перепосылки при необходимости</li>
+          <li>Основа клиент-серверной архитектуры</li>
+          <li>ВАЖНО: гарантии TCP работают в пределах соединения и в рамках сеанса</li>
+        </ul>
+    </div>
+     <div class="step slide" data-x="18000" data-y="-1500">
+        <h1>Реализация в ОС</h1>
+        <ul>
+          <li>IP и ниже - реализуется в ядре Linux</li>
+          <li>TCP и UDP - обычно управляется приложением</li>
+          <li>Выше TCP и UDP - прикладные протоколы</li>
+          <li>Для приложения используется абстракция сокета</li>
+        </ul>
+    </div>
+     <div class="step slide" data-x="19000" data-y="-1500">
+        <h1>Реализация в ОС</h1>
+        <ul>
+          <li>Сокет бывает клиентским и серверным</li>
+          <li>Сокет привязан к точке доступа</li>
+          <li>Точка доступа - в первую очередь сетевой интерфейс</li>
+          <li>Или что-то синтетически-виртуальное</li>
+        </ul>
+    </div>
+
+
+
+     <div class="step slide" data-x="20000" data-y="-1500">
+        <h1>Серверный сокет</h1>
+        <ul>
+          <li>Жизненный цикл: создание, bind, listen, accept</li>
+          <li>После accept получаем клиентский сокет у себя</li>
+          <li>Соединенный с удаленным клиентским сокетом</li>
+          <li>И возможность вернуть в accept</li>
+          <li>Вместе с необходимостью общаться по клиентскому сокету</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="21000" data-y="-1500">
+        <h1>Пример</h1>
+        <pre>
+
+    int server_fd;
+
+    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+        perror("socket failed");
+        exit(EXIT_FAILURE);
+    }
+
+    // Forcefully attaching socket to the port 8080
+    if (bind(server_fd, (struct sockaddr*)&address,
+             sizeof(address))
+        < 0) {
+        perror("bind failed");
+        exit(EXIT_FAILURE);
+    }
+
+
+    </pre>
+    </div>
+    <div class="step slide" data-x="22000" data-y="-1500">
+        <h1>Пример</h1>
+        <pre>
+
+    if (listen(server_fd, 3) < 0) {
+        perror("listen");
+        exit(EXIT_FAILURE);
+    }
+    if ((new_socket
+         = accept(server_fd, (struct sockaddr*)&address,
+                  &addrlen))
+        < 0) {
+        perror("accept");
+        exit(EXIT_FAILURE);
+    }
+
+
+    </pre>
+    </div>
+    <div class="step slide" data-x="23000" data-y="-1500">
+        <h1>Пример: клиент</h1>
+        <pre>
+
+    if ((sock_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+        perror("Socket creation failed");
+        return -1;
+    }
+
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(8080); // Port number
+    if (inet_pton(AF_INET, "127.0.0.1", &server_addr.sin_addr) <= 0) {
+        perror("Invalid address/ Address not supported");
+        return -1;
+    }
+
+
+    </pre>
+    </div>
+    <div class="step slide" data-x="24000" data-y="-1500">
+        <h1>Пример: клиент (продолжение)</h1> 
+        <pre>
+
+    if (connect(sock_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
+        perror("Connection Failed");
+        return -1;
+    }
+
+    // 4. Send and Receive Data
+    send(sock_fd, message, strlen(message), 0);
+    printf("Message sent\n");
+    
+    int valread = read(sock_fd, buffer, 1024);
+    printf("Server says: %s\n", buffer);
+
+    </pre>
+    </div>
+
+
+
+
+
+     <div class="step slide" data-x="25000" data-y="-1500">
+        <h1>Параллелизм</h1>
+        <ul>
+          <li>Острее всего на стороне сервера</li>
+          <li>Для клиента тоже бывает актуально</li>
+          <li>Лобовое решение - fork</li>
+          <li>Дорогое и плохо масштабируемое</li>
+          <li>Можно лечить пулингом</li>
+          <li>Но есть неудобства с разными адресными пространствами</li>
+        </ul>
+    </div>
+     <div class="step slide" data-x="26000" data-y="-1500">
+        <h1>Параллелизм</h1>
+        <ul>
+          <li>Альтернатива - нити</li>
+          <li>В терминах Linux это системный вызов clone</li>
+          <li>В библиотеках это прорастает в виде концепции Thread</li>
+          <li>Воспринимается как дихотомия нить/процесс</li>
+          <li>На уровне ОС вариантов больше, чем 2</li>
+        </ul>
+    </div>
+     <div class="step slide" data-x="27000" data-y="-1500">
+        <h1>Параллелизм</h1>
+        <ul>
+          <li>В Linux нити по стоимости сопоставимы с процессами</li>
+          <li>Но их легче пулить</li>
+          <li>Оборотная сторона: нить сложнее аккуратно завершать</li>
+          <li>На нити нет аналога kill -9 - по принципиальным причинам</li>
+        </ul>
+    </div>
+     <div class="step slide" data-x="28000" data-y="-1500">
+        <h1>Параллелизм</h1>
+        <ul>
+          <li>Еще одна альтернатива - асинхронная работа</li>
+          <li>Базируется на системном вызове select</li>
+          <li>В цикле наблюдаем за изменением состоянием дескрипторов</li>
+          <li>Обрабатываем тех, у кого изменилось состояние</li>
+          <li>Нужна хороша языково-библиотечная поддержка</li>
+        </ul>
+    </div>
+
+
+     <div class="step slide" data-x="29000" data-y="-1500">
+        <h1>Контейнерная виртуализация</h1>
+        <ul>
+          <li>В основе - три механизма</li>
+          <li>namespace - механизм "изменения сознания" процессов</li>
+          <li>control group - механизм управления ресурсами</li>
+          <li>union fs - интересная файловая система</li>
+          <li>В чистом и беспримесном виде это - достояние Linux</li>
+        </ul>
+    </div>
+     <div class="step slide" data-x="30000" data-y="-1500">
+        <h1>namespace</h1>
+        <ul>
+          <li>В Linux есть 8 типов namespace-в</li>
+          <li>Каждый процесс принадлежит одному namespace-у каждого типа</li>
+          <li>Типу namespace-а соответсвует подсистема ядра, в отношении которой элементы ns "изменяют сознание"</li>
+          <li>Простейший тип - UTS namespace</li>
+          <li>Он про представление процесса о именах хоста и доменном имени</li>
+          <li>Изначально хост и доменное имя - глобальные свойства системы</li>
+          <li>Но для группы процессов можно изменить представление о имени хоста и доменном имени</li>
+        </ul>
+    </div>
+     <div class="step slide" data-x="31000" data-y="-1500">
+        <h1>Создание нового namespace-а</h1>
+        <ul>
+          <li>Есть два способа создать ns</li>
+          <li>unshare - создает ns заданных типов и пересекает в них текущий процесс</li>
+          <li>Есть одноименная утилита: sudo unshare --uts /bin/bash</li>
+          <li>clone - создание нового процесса в новых ns</li>
+          <li>fork создает ребенка в ns родителя</li>
+        </ul>
+    </div>
+
+
+     <div class="step slide" data-x="32000" data-y="-1500">
+        <h1>Другие типы</h1>
+        <ul>   
+          <li>pid ns - представление о процессах</li>
+          <li>mount ns - представление о vfs и  устройствах</li>
+          <li>user ns - представление о пользователях</li>
+          <li>network ns - представление о сетях</li>
+          <li>ipc ns - представление о interprocess communication</li>
+          <li>time ns - представление о времени</li>
+          <li>cgroup ns - представление о control group</li>
+        </ul>
+    </div>
+     <div class="step slide" data-x="33000" data-y="-1500">
+        <h1>Union FS</h1>
+        <ul>
+          <li>Механизм монтирования с fallback-ом</li>
+          <li>Ищем путь в одной файловой системе</li>
+          <li>Если не нашли - ищем в другой</li>
+          <li>На этом строится механизм слоев</li>
+          <li>Экономим дисковую память на контейнерах со сначительным пересечением по содержимому файлов</li>
+        </ul>
+    </div>
+
+
+     <div class="step slide" data-x="33000" data-y="-1500">
+        <h1>cgroup</h1>
+        <ul>
+          <li>cgroup - механизм ограничения ресурсов</li>
+          <li>Можно ограничивать cpu, память и т.п.</li>
+          <li>Работает по принциту файловой системы</li>
+          <li>cgtoup ns задает корень файловой системы для ns</li>
+        </ul>
+    </div>
+
+    <!--
+        
+        * `data-x`, `data-y`, `data-z` - they define the position of **the center** of step element on
+            the canvas in pixels; their default value is 0;
+        * `data-rotate-x`, `data-rotate-y`, 'data-rotate-z`, `data-rotate` - they define the rotation of
+            the element around given axis in degrees; their default value is 0; `data-rotate` and `data-rotate-z`
+            are exactly the same;
+        * `data-scale` - defines the scale of step element; default value is 1
+        
+        These values are used by impress.js in CSS transformation functions, so for more information consult
+        CSS transfrom docs: https://developer.mozilla.org/en/CSS/transform
+        
+    -->
+    <div id="overview" class="step" data-x="3000" data-y="1500" data-z="0" data-scale="10">
+    </div>
+
+</div>
+
+<!--
+    This is a UI plugin. You can read more about plugins in src/plugins/README.md.
+    For now, I'll just tell you that this adds some graphical controls to navigate the
+    presentation. In the CSS file you can style them as you want. We've put them bottom right.
+-->
+<div id="impress-toolbar"></div>
+
+<!--
+    
+    Hint is not related to impress.js in any way.
+    
+    But it can show you how to use impress.js features in creative way.
+    
+    When the presentation step is shown (selected) its element gets the class of "active" and the body element
+    gets the class based on active step id `impress-on-ID` (where ID is the step's id)... It may not be
+    so clear because of all these "ids" in previous sentence, so for example when the first step (the one with
+    the id of `bored`) is active, body element gets a class of `impress-on-bored`.
+    
+    This class is used by this hint below. Check CSS file to see how it's shown with delayed CSS animation when
+    the first step of presentation is visible for a couple of seconds.
+    
+    ...
+    
+    And when it comes to this piece of JavaScript below ... kids, don't do this at home ;)
+    It's just a quick and dirty workaround to get different hint text for touch devices.
+    In a real world it should be at least placed in separate JS file ... and the touch content should be
+    probably just hidden somewhere in HTML - not hard-coded in the script.
+    
+    Just sayin' ;)
+    
+-->
+<div class="hint">
+    <p>Use a spacebar or arrow keys to navigate. <br/>
+       Press 'P' to launch speaker console.</p>
+</div>
+<script>
+if ("ontouchstart" in document.documentElement) { 
+    document.querySelector(".hint").innerHTML = "<p>Swipe left or right to navigate</p>";
+}
+</script>
+
+<!--
+    
+    Last, but not least.
+    
+    To make all described above really work, you need to include impress.js in the page.
+    I strongly encourage to minify it first.
+    
+    In here I just include full source of the script to make it more readable.
+    
+    You also need to call a `impress().init()` function to initialize impress.js presentation.
+    And you should do it in the end of your document. Not only because it's a good practice, but also
+    because it should be done when the whole document is ready.
+    Of course you can wrap it in any kind of "DOM ready" event, but I was too lazy to do so ;)
+    
+-->
+<script src="js/impress.js"></script>
+<script>impress().init();</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<!-- Include any specific language files AFTER the main library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/python.min.js"></script>
+
+<script>hljs.highlightAll();</script>
+<!--
+    
+    The `impress()` function also gives you access to the API that controls the presentation.
+    
+    Just store the result of the call:
+    
+        var api = impress();
+    
+    and you will get three functions you can call:
+    
+        `api.init()` - initializes the presentation,
+        `api.next()` - moves to next step of the presentation,
+        `api.prev()` - moves to previous step of the presentation,
+        `api.goto( stepIndex | stepElementId | stepElement, [duration] )` - moves the presentation to the step given by its index number
+                id or the DOM element; second parameter can be used to define duration of the transition in ms,
+                but it's optional - if not provided default transition duration for the presentation will be used.
+    
+    You can also simply call `impress()` again to get the API, so `impress().next()` is also allowed.
+    Don't worry, it won't initialize the presentation again.
+    
+    For some example uses of this API check the last part of the source of impress.js where the API
+    is used in event handlers.
+    
+-->
+
+</body>
+</html>
+
+<!--
+    
+    Now you know more or less everything you need to build your first impress.js presentation, but before
+    you start...
+    
+    Oh, you've already cloned the code from GitHub?
+    
+    You have it open in text editor?
+    
+    Stop right there!
+    
+    That's not how you create awesome presentations. This is only a code. Implementation of the idea that
+    first needs to grow in your mind.
+    
+    So if you want to build great presentation take a pencil and piece of paper. And turn off the computer.
+    
+    Sketch, draw and write. Brainstorm your ideas on a paper. Try to build a mind-map of what you'd like
+    to present. It will get you closer and closer to the layout you'll build later with impress.js.
+    
+    Get back to the code only when you have your presentation ready on a paper. It doesn't make sense to do
+    it earlier, because you'll only waste your time fighting with positioning of useless points.
+    
+    If you think I'm crazy, please put your hands on a book called "Presentation Zen". It's all about 
+    creating awesome and engaging presentations.
+    
+    Think about it. 'Cause impress.js may not help you, if you have nothing interesting to say.
+    
+-->
+
+<!--
+    
+    Are you still reading this?
+    
+    For real? I'm impressed! 
+    
+    But now, take my advice and take some time off. Make yourself a cup of coffee, tea,
+    or anything you like to drink.
+    
+    Cheers!
+    
+-->
+
