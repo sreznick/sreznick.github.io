@@ -1,0 +1,756 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1024" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <title>impress.js | presentation tool based on the power of CSS3 transforms and transitions in modern browsers | by Bartek Szopka @bartaz</title>
+    
+    <meta name="description" content="impress.js is a presentation tool based on the power of CSS3 transforms and transitions in modern browsers and inspired by the idea behind prezi.com." />
+    <meta name="author" content="Bartek Szopka" />
+
+    <link href="//fonts.googleapis.com/css?family=Open+Sans:regular,semibold,italic,italicsemibold|PT+Sans:400,700,400italic,700italic|PT+Serif:400,700,400italic,700italic" rel="stylesheet" />
+
+    <link href="css/impress-demo.css" rel="stylesheet" />
+    <link href="css/impress-common.css" rel="stylesheet" />
+    
+    <link rel="shortcut icon" href="favicon.png" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/default.min.css">
+
+</head>
+
+<body class="impress-not-supported">
+
+<div class="fallback-message">
+    <p>Your browser <b>doesn't support the features required</b> by impress.js, so you are presented with a simplified version of this presentation.</p>
+    <p>For the best experience please use the latest <b>Chrome</b>, <b>Safari</b> or <b>Firefox</b> browser.</p>
+</div>
+
+<div id="impress"
+    data-transition-duration="1000"
+    
+    data-width="1024"
+    data-height="768"
+    data-max-scale="3"
+    data-min-scale="0"
+    data-perspective="1000"
+    >
+
+    <div  class="step slide" data-x="-1000" data-y="-1500">
+        <h1>Альтернативные JVM-языки</h1>
+        <ul>
+        <li>Введение</li>
+        <li>Правила курса</li>
+        <li>Первые шаги</li>
+        </ul>
+    </div>
+
+
+    <div class="step slide" data-x="0" data-y="-1500">
+        <h1>Цель курса</h1>
+        <ul>
+        <li>Ознакомиться с экосистемой JVM-языков</li>
+        <li>С акцентом на продуктовую разработку</li>
+        <li>С вниманием к технически содержательным моментам</li>
+        <li>Scala выносится за скобки</li>
+        <li>В центре внимания - Kotlin</li>
+        <li>Общее знакомство с Groovy и Clojure</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="1000" data-y="-1500">
+        <h1>Входные знания</h1>
+        <ul>
+        <li>Принципиальных ограничений нет</li>
+        <li>Конкретное наполнение адаптируется к аудитории</li>
+        <li>Видятся два возможных образа студента
+           <ul>
+              <li>Знаю Java, интересны соседние языки</li>
+              <li>Не знаю Java, интересна новая область знаний</li>
+           </ul>
+        </li>
+        <li>Для каждого типа нужна своя подача материала</li>
+        <li>Ориентируюсь на  доминирующую группу</li>
+        </ul>
+    </div>
+
+
+
+    <div class="step slide" data-x="2000" data-y="-1500">
+        <h1>Образ результата</h1>
+        <ul>
+          <li>Способность проектировать и реализовывать Kotlin-проект</li>
+          <li>Способность писать идиоматичный код на Kotlin, используя лучшие практики и избегая антипаттернов</li>
+          <li>Понимание JVM-платформы</li>
+          <li>Понимание концепций Groovy</li>
+          <li>Понимание концепций Clojure</li>
+          <li>Понимание происходящего под капотом</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="3000" data-y="-1500">
+        <h1>Правила оценивания (возможны небольшие уточнения)</h1>
+        <ul>
+          <li>В первом приближении - оценивание по формуле</li>
+          <li>В отдельных (редких) случаях возможно ручное модерирование</li>
+          <li>Модерирование оценки - мера исключительная и редкая </li>
+          <li>Модерирование оценки обязательно сопровождается объяснением в объективных терминах</li>
+          <li>Модерирование оценки может быть проаппелировано</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="4000" data-y="-1500">
+        <h1>Правила оценивания</h1>
+        <ul>
+          <li>Внутренняя оценка - по 100-бальной шкале</li>
+          <li>Итоговая 100-бальная переводится в 10-бальную</li>
+          <li>Нижний порог зачета - 50 баллов</li>
+          <li>Границы между балламм - с шагом 7: 57, 64, 71, 78, 95, 92</li>
+          <li>Итоговая оценка по формуле 0.5 * Exam + 0.3 * Big-HW + 0.2 * Small-HW </li>
+          <li>Exam - 100-бальная оценка за экзамен</li>
+          <li>Big-HW - 100-бальная оценка большую домашку</li>
+          <li>Small-HW - 100-бальная оценка большую домашку</li>
+        </ul>
+    </div>
+
+
+
+    <div class="step slide" data-x="5000" data-y="-1500">
+        <h1>Big-HW</h1>
+        <ul>
+          <li>Большая домашка - мини-проект на Kotlin</li>
+          <li>Ориентировочно на 1000-1500 строк</li>
+          <li>Одна на семестр</li>
+          <li>Выдается в декабре</li>
+          <li>Требует аппрува на ревью</li>
+          <li>Для аппрува нужно устранение критичных замечаний</li>
+          <li>Объективно сформулированных и релевантных целям курса</li>
+          <li>Балл зависит от количества замечаний и итераций в исправлении</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="6000" data-y="-1500">
+        <h1>Small-HW</h1>
+        <ul>
+          <li>Малые домашки - небольшие задания</li>
+          <li>Отрабатываем материал прошедшего занятия</li>
+          <li>Небольшой размер</li>
+          <li>Могут быть разными по форме</li>
+          <li>Как вариант - небольшой контест</li>
+          <li>Еще вариант - небольшой кодинг с ревью</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="7000" data-y="-1500">
+        <h1>Small-HW</h1>
+        <ul>
+          <li>Идеальная цель - после каждого занятия</li>
+          <li>Смысл - оперативно закрепить материал</li>
+          <li>Увидеть, как идет усвоение</li>
+          <li>Важна быстрая проверка</li>
+          <li>Что я и планирую делать</li>
+          <li>При задержках в проверке новые задания не выдаются</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="8000" data-y="-1500">
+        <h1>Исправление после ревью</h1>
+        <ul>
+          <li>В больших домашках - возможно несколько попыток</li>
+          <li>Но в новых попытках может расти штраф</li>
+          <li>В малых с ревью - попытка скорее одна</li>
+          <li>Штраф - примерно 50 процентов</li>
+          <li>Возможны вариации</li>
+          <li>При задержках в проверке новые задания не выдаются</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="9000" data-y="-1500">
+        <h1>Правила оценивания</h1>
+        <ul>
+          <li>Каждая отдельная домашка оценивается на 100 баллов</li>
+          <li>Оценка за малые домашки в целом - среднее от отдельных домашек</li>
+          <li>У домашек есть дедлайны</li>
+          <li>Пропуск домашки снижает балл, но не фатально</li>
+          <li>Общий смысл правил про дедлайны - мотивация ритмичной и равномерно распределенной работы</li>
+          <li>Сглаживание последствий ситуативных проблем и цейтнотов</li>
+          <li>Регулярные небольшие задержки в сдаче НЕ влияют фатально на оценку</li>
+          <li>Долгие провалы в активности влияют - и сильно</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="10000" data-y="-1500">
+        <h1>Правила про дедлайны</h1>
+        <ul>
+          <li>Дедлайн выставляется в формате dd.mm.yyyy hh:mm</li>
+          <li>Если сдать до указанного времени - работа оценивается без понижающего коэффициента</li>
+          <li>В течение 14 суток действует период линейного понижающего коэффициента</li>
+          <li>В течение суток он уменьшается на 0.05</li>
+          <li>Если работа сдана в течение суток после дедлайна - действует коэффициент 0.95</li>
+          <li>Если задержка больше суток, но меньше двух - действует коэффициент 0.9</li>
+          <li>Если задержка больше 13 суток, но меньше 14 - действует коэффициент 0.35</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="11000" data-y="-1500">
+        <h1>Правила про дедлайны</h1>
+        <ul>
+          <li>После 14 суток понижающий коэффициент выходит на плато</li>
+          <li>Он навечно фиксируется на значении 0.3</li>
+          <li>Небольшая задержка на границе суток может прощаться</li>
+          <li>Минуты - почти наверняка</li>
+          <li>1-2 часа - очень может быть</li>
+          <li>Без гарантий, воспринимайте как бонус</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="12000" data-y="-1500">
+        <h1>Правила про дедлайны</h1>
+        <ul>
+          <li>Есть резерв индивидуального продления дедлайна</li>
+          <li>5 суток на семестр</li>
+          <li>Гранулярность использования - сутки</li>
+          <li>Об использовании нужно уведомить до общего дедлайна</li>
+          <li>Начало линейного спуска и последующего плато для конкретного человека сдвинется на заданное число суток</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="13000" data-y="-1500">
+        <h1>Правила про дедлайны</h1>
+        <ul>
+          <li>Просьбы о сдвиге общего дедлайна сходу не отвергаются</li>
+          <li>Но всесторонне исследуются</li>
+          <li>На решение влияет степень использования индивидуальных продлений</li>
+          <li>И контекст конкретного задания</li>
+          <li>И обсуждение в чате и/или на занятиях</li>
+        </ul>
+    </div>
+
+
+    <div class="step slide" data-x="14000" data-y="-1500">
+        <h1>Правила про доделки</h1>
+        <ul>
+          <li>В домашках возможны доделки</li>
+          <li>Кроме редких индивидуальных случаев - одна итерация</li>
+          <li>Почти всегда решение с доделкой оценивается ниже, чем аналогичное с первого раза</li>
+          <li>Конкретные понижающие коэффициенты зависят от задания и типа ошибок</li>
+          <li>Сценарий типа "отправить абы что, получить подсказки в комментариях, сделать по подсказкам нормальное решение" считается антипаттерном</li>
+          <li>Итоговая оценка будет в таком случае будет в районе 0.5-0.6 от полного балла</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="15000" data-y="-1500">
+        <h1>Критически важные моменты</h1>
+        <ul>
+          <li>Некоторые факты/определения будут помечены как критически важные моменты</li>
+          <li>Отсутствие понимания хотя бы n критически важного моментов делает невозможной оценку за курс (9 - n) и выше</li>
+          <li>(n - положительное число)</li>
+          <li>Пример критически важного момента: отличие корутины от нити</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="16000" data-y="-1500">
+        <h1>Честность и самостоятельность</h1>
+        <ul>
+          <li>Ожидается, что студенты пришли чему-то научиться, а не получить балл любой ценой</li>
+          <li>Самостоятельность работы - обязательное условие прохождения курса</li>
+          <li>При обнаружении признаков несамостоятельности работы возможно снятие штрафных баллов</li>
+          <li>Если несамостоятельность проявляется в копиях работ - штраф накладывается на всех сдавших копии</li>
+          <li>При разительном несоответствии балла за задание ДЗ из ответа по той же теме на экзамене -
+            баллы за ДЗ могут быть отозваны со штрафом</li>
+          <li>Студент может быть вызван на созвон для беседы о решениях</li>
+          <li>При неспособности поддержать беседу можно получить штрафные баллы</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="17000" data-y="-1500">
+        <h1>Особенности онлайн-обучения</h1>
+        <ul>
+          <li>Онлайн-занятия - это занятия, только в онлайн</li>
+          <li>Ожидается базовая вовлеченность в происходящее</li>
+          <li>Ожидается, что студент выделяет время и место для занятий</li>
+          <li>Базовая этика предполагает приветствие голосом</li>
+          <li>Ответ на вопрос, заданный голосом, ожидается голосом</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="18000" data-y="-1500">
+        <h1>Особенности онлайн-обучения</h1>
+        <ul>
+          <li>Лица слушателей - важный канал обратной связи</li>
+          <li>По умолчанию стараемся включать камеры</li>
+          <li>Качество связи может вносить коррективы</li>
+          <li>У нас нет формы наговаривания аудиолекций</li>
+          <li>При отсутствии студентов занятие не записывается</li>
+          <li>И считается проведенным</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="19000" data-y="-1500">
+        <h1>Посещаемость/активность</h1>
+        <ul>
+          <li>Отсутствие студента на занятия можно интерпретировать так
+          <ol>
+            <li>Человек заболел</li>
+            <li>Человек участвует в университетском мероприятии</li>
+            <li>Человека что-то не устраивает в занятиях</li>
+            <li>Человек и так все знает по данному предмету</li>
+            <li>Что-то другое</li>
+          </ol>
+        </ul>
+    </div>
+
+
+
+    <div class="step slide" data-x="20000" data-y="-1500">
+        <h1>Посещаемость/активность</h1>
+        <ul>
+          <li>Болезнь и мероприятия - явления скорее разовые</li>
+          <li>Если что-то не устраивает - имеет смысл дать обратную связь</li>
+          <li>По умолчанию систематически пропускающие люди воспринимаются как и так все знающие</li>
+          <li>Из этого исходим в оценивании</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="21000" data-y="-1500">
+        <h1>Пересдачи</h1>
+        <ul>
+          <li>Изложенные правила работают до конца сессии</li>
+          <li>Кто не получает зачет в рамках сессии - уходит на пересдачу</li>
+          <li>Пересдача - формальный термин, следующий из порядка работы вузов</li>
+          <li>Не обязательно это пересдача устного экзамена</li>
+          <li>Для каждого из ушедших на пересдачу предлагается свой план получения зачета</li>
+          <li>Планы индивидуальны, но с в каждом случае с мотивировкой</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="22000" data-y="-1500">
+        <h1>Пересдачи</h1>
+        <ul>
+          <li>Если немного не хватило баллов в общей сумме - скорее всего надо просто доделать какие-то домашки</li>
+          <li>Но доделки будут с учетом стандартных понижающих коэффициентов</li>
+          <li>Если плохо сдан экзамен - скорее всего потребуется пересдать экзамен</li>
+          <li>Если живого места нет - скорее всего потребуется хорошо сдать экзамен и сделать все домашки</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="23000" data-y="-1500">
+        <h1>К делу</h1>
+        <ul>
+          <li>Kotlin - мультипарадигменный язык программирования</li>
+          <li>В некотором смысле "безыдейный"</li>
+          <li>Со статической проверкой типов</li>
+          <li>Технически - позволяющий писать код в императивном стиле</li>
+          <li>Но де-факто с приоритетом ООП-подходов</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="24000" data-y="-1500">
+        <h1>К делу</h1>
+        <ul>
+          <li>Kotlin-код компилируется в байткод JVM</li>
+          <li>Первоначальная мотивация языка - преодоление проблем Java-программирования</li>
+          <li>Впоследствии появился KotlinJS</li>
+          <li>И KotlinNative</li>
+          <li>Наш приоритет - KotlinJVM</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="25000" data-y="-1500">
+        <h1>К делу</h1>
+        <ul>
+          <li>В паре Java-JVM оба элемента проектируются в общих интересах</li>
+          <li>В паре Kotlin-JVM такого нет</li>
+          <li>Какие-то свойства JVM ограничивают варианты семантики языка</li>
+          <li>Например, проблемы в семантике инициализации объектов в JVM переходят на семантику Kotlin</li>
+          <li>Какие-то элементы Kotlin-семантики остаются на уровне языка</li>
+          <li>Например, более богатая семантика прав доступа на уровне Kotlin не воплошается в полной мере в JVM</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="26000" data-y="-1500">
+        <h1>Пример</h1> 
+        <pre><code class="kotlin">
+
+fun main() {
+   println("Hello")
+}
+
+        </code></pre>
+    </div>
+
+
+
+    <div class="step slide" data-x="27000" data-y="-1500">
+        <h1>Разбор</h1>
+        <ul>
+          <li>Функция main - точка входа</li>
+          <li>Синтаксически это "просто" функция, без класса</li>
+          <li>В JVM нет "просто" функций</li>
+          <li>За кулисами будет создан класс</li>
+          <li>Для каждого исходника проекта - свой</li>
+          <li>"Просто" функции станут статическими методами в нем</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="28000" data-y="-1500">
+        <h1>Разбор</h1>
+        <ul>
+          <li>Компилятор порождает класс-файлы с байткодом</li>
+          <li>Исполнением байткода занимается реализация JVM (OpenJDK)</li>
+          <li>Kotlin-компилятор и реализация JVM - независимые продукты от разных разработчиков</li>
+          <li>У них нет персональных соглашений между собой</li>
+          <li>JVM работает по своей публичной спецификации</li>
+          <li>Kotlin порождает код согласно этой спецификации</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="29000" data-y="-1500">
+        <h1>Разбор</h1>
+        <ul>
+          <li>По спецификации JVM исполняемый класс должен содержать метод main</li>
+          <li>Статический</li>
+          <li>С публичным доступом</li>
+          <li>С одним параметром, тип которого - строковый массив (в системе типов JVM)</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="30000" data-y="-1500">
+        <h1>Разбор</h1>
+        <ul>
+          <li>В нашем случае будет содан метод main</li>
+          <li>Его статичность обеспечит Kotlin-компилятор</li>
+          <li>Доступ у нас явным не указан</li>
+          <li>Неуказанный доступ в Kotlin подразумевает публичный доступ</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="31000" data-y="-1500">
+        <h1>Пример</h1> 
+        <pre><code class="kotlin">
+          
+public fun main() {
+   println("Hello")
+}   
+        
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="32000" data-y="-1500">
+        <h1>Пример</h1>
+        <pre><code class="kotlin">
+          
+fun main() {
+    m()
+}
+
+private fun m() {
+    println("Hello")
+}
+        
+        </code></pre>
+    </div>
+
+
+    <div class="step slide" data-x="33000" data-y="-1500">
+        <h1>Пример</h1>
+        <pre><code class="kotlin">
+
+private fun main() { // может иметь смысл
+    m()
+}
+
+private fun m() {
+    println("Hello")
+}
+
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="34000" data-y="-1500">
+        <h1>private main</h1>
+        <ul>
+          <li>При штатном запуске JVM из командной строки не запустится</li>
+          <li>Но IDEA запускает через кнопку Run</li>
+          <li>Удобно для отладочных точек входа</li>
+          <li>Которые остаются недоступными для штатного запуска</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="35000" data-y="-1500">
+        <h1>Важно</h1>
+        <ul>
+          <li>В Java-коде метод без указания досупа НЕ становится public</li>
+          <li>Одна из целей Kotlin-а - сделать JVM-программирование более лаконичным и удобным</li>
+          <li>В силу этого по умолчанию методы в Kotlin становятся публичными</li>
+          <li>Но это не совсем стыкуется с дизайн-принципом максимальной закрытости</li>
+          <li>"Метод должен иметь минимально необходимый уровень доступа"</li>
+          <li>Легко пролить в публичное API служебный метод</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="36000" data-y="-1500">
+        <h1>Параметры main</h1>
+        <ul>
+          <li>JVM требует массива строк в качестве параметра</li>
+          <li>Чтобы передать аргументы командной строки</li>
+          <li>Часто они неинтересны</li>
+          <li>Kotlin дает упрощенный вариант</li>
+          <li>За кулисами он породит метод с параметром - массивом строк</li>
+          <li>Впишемся в контракт, полученные аргументы проигнорируем</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="37000" data-y="-1500">
+        <h1>Вызов println</h1>
+        <ul>
+          <li>println выглядит как вызов библиотечной функции</li>
+          <li>Но "просто" функций в JVM нет</li>
+          <li>Есть библиотечный класс java.lang.System</li>
+          <li>В нем есть публичное статическое поле out типа java.io.PrintStream</li>
+          <li>И у него есть метод println</li>
+        </ul>
+    </div>
+
+
+    <div class="step slide" data-x="38000" data-y="-1500">
+        <h1>Вызов println</h1>
+        <ul>
+          <li>println("Hello") превратится во время исполнения в java.lang.System.out.println("Hello")</li>
+          <li>Это не только удобство</li>
+          <li>Это уход закладки на платформу в коде</li>
+          <li>Код, использующий println("Hello"), можно использовать в контексте KotlinJS или KotlinNative</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="39000" data-y="-1500">
+        <h1>Типы данных</h1>
+        <ul>
+          <li>В JVM есть разделение между примитивными типами и классами</li>
+          <li>Примитивные целые: byte, short, int, long</li>
+          <li>Примитивные вещественные: float, double</li>
+          <li>Примитивный символьный: char</li>
+          <li>Примитивный логический: bool</li>
+          <li>Примитивный пустой: void</li>
+          <li>Строковый - объект класса java.lang.String</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="40000" data-y="-1500">
+        <h1>Типы данных</h1>
+        <ul>
+          <li>Kotlin переносит целые, вещественные и логические целиком к себе</li>
+          <li>Со всеми их свойствами и синтаксической поддержкой</li>
+          <li>Названия типов-аналогов в Kotlin начинаются с большой буквы</li>
+          <li>На уровне языка это классы</li>
+          <li>Компилятор прилагает максимальные усилия к сохранению эффективности во время исполнения</li>
+          <li>На уровне байткода данные хранятся в примитивных типах</li>
+          <li>Иногда это можно поломать - будем отмечать такие опасные места</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="41000" data-y="-1500">
+        <h1>Типы данных</h1>
+        <ul>
+          <li>Размеры целых зафиксированы</li>
+          <li>Byte - 8 бит, Short - 16, Int - 32, Long - 64</li>
+          <li>Все - знаковые</li>
+          <li>Целочисленный литерал с суффиксом L - Long</li>
+          <li>Тип целочисленного литерала без суффикса определяется по значению и по контексту</li>
+        </ul>
+    </div>
+
+
+    <div class="step slide" data-x="42000" data-y="-1500">
+        <h1>Типы данных</h1>
+        <ul>
+          <li>Если по контексту ожидается конкретный тип и литерал влезает в диапазон - будет этот тип</li>
+          <li>Если по контексту не ожидается конкретный тип и литерал влезает в диапазон Int - будет Int</li>
+          <li>Если по контексту не ожидается конкретный тип и литерал влезает в диапазон Long - будет Long</li>
+          <li>Если литерал не влезает в диапазон Long - будет ошибка</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="43000" data-y="-1500">
+        <h1>Приведение целочисленных типов</h1>
+        <ul>
+          <li>Разные правила для присваивания (в широком смысле) и для вычислений внутри выражений</li>
+          <li>В иерархии объектов Byte/Short/Int/Long - "братья"</li>
+          <li>Поэтому при присваивании нет автоматического приведения</li>
+          <li>Даже если более "узкий" тип присваивается более "широкому"</li>
+          <li>При вычислении аргументы приводятся к более "широкому" типу, но не менее, чем к int</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="44000" data-y="-1500">
+        <h1>Пример</h1>
+        <pre><code class="kotlin">
+
+fun main() {
+    val v: Int = 5
+    println(v + 1)
+}
+
+        </code></pre>
+    </div>
+
+
+    <div class="step slide" data-x="45000" data-y="-1500">
+        <h1>Пример</h1>
+        <pre><code class="kotlin">
+
+fun main() { 
+    val v = 0x12  // выведение типа
+    println(v + 1)
+}
+
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="46000" data-y="-1500">
+        <h1>Пример</h1>
+        <pre><code class="kotlin">
+
+// в комментариях - неработающие варианты
+
+fun main() {
+    val v1: Byte = 12
+    val v2: Byte = 1
+  //  val v3: Byte = v1 + v2 
+  //  val v4: Short = v1 + v2
+    val v5: Int = v1 + v2
+  //  val v6: Long = v1 + v2
+}
+
+        </code></pre>
+    </div>
+
+    <div class="step slide" data-x="47000" data-y="-1500">
+        <h1>Разбор</h1>
+        <ul>
+          <li>Byte + Byte дает Int</li>
+          <li>И поэтому не приводится к Byte</li>
+          <li>И к Long - тоже не приводится</li>
+          <li>Потому что при присваивании нет "расширяющего" приведения целых</li>
+        </ul>
+    </div>
+
+    <!--
+        
+        * `data-x`, `data-y`, `data-z` - they define the position of **the center** of step element on
+            the canvas in pixels; their default value is 0;
+        * `data-rotate-x`, `data-rotate-y`, 'data-rotate-z`, `data-rotate` - they define the rotation of
+            the element around given axis in degrees; their default value is 0; `data-rotate` and `data-rotate-z`
+            are exactly the same;
+        * `data-scale` - defines the scale of step element; default value is 1
+        
+        These values are used by impress.js in CSS transformation functions, so for more information consult
+        CSS transfrom docs: https://developer.mozilla.org/en/CSS/transform
+        
+    -->
+    <div id="overview" class="step" data-x="3000" data-y="1500" data-z="0" data-scale="10">
+    </div>
+
+</div>
+
+<!--
+    This is a UI plugin. You can read more about plugins in src/plugins/README.md.
+    For now, I'll just tell you that this adds some graphical controls to navigate the
+    presentation. In the CSS file you can style them as you want. We've put them bottom right.
+-->
+<div id="impress-toolbar"></div>
+
+<!--
+    
+    Hint is not related to impress.js in any way.
+    
+    But it can show you how to use impress.js features in creative way.
+    
+    When the presentation step is shown (selected) its element gets the class of "active" and the body element
+    gets the class based on active step id `impress-on-ID` (where ID is the step's id)... It may not be
+    so clear because of all these "ids" in previous sentence, so for example when the first step (the one with
+    the id of `bored`) is active, body element gets a class of `impress-on-bored`.
+    
+    This class is used by this hint below. Check CSS file to see how it's shown with delayed CSS animation when
+    the first step of presentation is visible for a couple of seconds.
+    
+    ...
+    
+    And when it comes to this piece of JavaScript below ... kids, don't do this at home ;)
+    It's just a quick and dirty workaround to get different hint text for touch devices.
+    In a real world it should be at least placed in separate JS file ... and the touch content should be
+    probably just hidden somewhere in HTML - not hard-coded in the script.
+    
+    Just sayin' ;)
+    
+-->
+<div class="hint">
+    <p>Use a spacebar or arrow keys to navigate. <br/>
+       Press 'P' to launch speaker console.</p>
+</div>
+<script>
+if ("ontouchstart" in document.documentElement) { 
+    document.querySelector(".hint").innerHTML = "<p>Swipe left or right to navigate</p>";
+}
+</script>
+
+<!--
+    
+    Last, but not least.
+    
+    To make all described above really work, you need to include impress.js in the page.
+    I strongly encourage to minify it first.
+    
+    In here I just include full source of the script to make it more readable.
+    
+    You also need to call a `impress().init()` function to initialize impress.js presentation.
+    And you should do it in the end of your document. Not only because it's a good practice, but also
+    because it should be done when the whole document is ready.
+    Of course you can wrap it in any kind of "DOM ready" event, but I was too lazy to do so ;)
+    
+-->
+<script src="js/impress.js"></script>
+<script>impress().init();</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<!-- Include any specific language files AFTER the main library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/python.min.js"></script>
+
+<script>hljs.highlightAll();</script>
+<!--
+    
+    The `impress()` function also gives you access to the API that controls the presentation.
+    
+    Just store the result of the call:
+    
+        var api = impress();
+    
+    and you will get three functions you can call:
+    
+        `api.init()` - initializes the presentation,
+        `api.next()` - moves to next step of the presentation,
+        `api.prev()` - moves to previous step of the presentation,
+        `api.goto( stepIndex | stepElementId | stepElement, [duration] )` - moves the presentation to the step given by its index number
+                id or the DOM element; second parameter can be used to define duration of the transition in ms,
+                but it's optional - if not provided default transition duration for the presentation will be used.
+    
+    You can also simply call `impress()` again to get the API, so `impress().next()` is also allowed.
+    Don't worry, it won't initialize the presentation again.
+    
+    For some example uses of this API check the last part of the source of impress.js where the API
+    is used in event handlers.
+    
+-->
+
+</body>
+</html>
+
+<!--
+    
+    Now you know more or less everything you need to build your first impress.js presentation, but before
+    you start...
+    
+    Oh, you've already cloned the code from GitHub?
+    
+    You have it open in text editor?
+    
+    Stop right there!
+    
+    That's not how you create awesome presentations. This is only a code. Implementation of the idea that
+    first needs to grow in your mind.
+    
+    So if you want to build great presentation take a pencil and piece of paper. And turn off the computer.
+    
+    Sketch, draw and write. Brainstorm your ideas on a paper. Try to build a mind-map of what you'd like
+    to present. It will get you closer and closer to the layout you'll build later with impress.js.
+    
+    Get back to the code only when you have your presentation ready on a paper. It doesn't make sense to do
+    it earlier, because you'll only waste your time fighting with positioning of useless points.
+    
+    If you think I'm crazy, please put your hands on a book called "Presentation Zen". It's all about 
+    creating awesome and engaging presentations.
+    
+    Think about it. 'Cause impress.js may not help you, if you have nothing interesting to say.
+    
+-->
+
+<!--
+    
+    Are you still reading this?
+    
+    For real? I'm impressed! 
+    
+    But now, take my advice and take some time off. Make yourself a cup of coffee, tea,
+    or anything you like to drink.
+    
+    Cheers!
+    
+-->
+
