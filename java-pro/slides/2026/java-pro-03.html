@@ -1,0 +1,1886 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1024" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <title>impress.js | presentation tool based on the power of CSS3 transforms and transitions in modern browsers | by Bartek Szopka @bartaz</title>
+    
+    <meta name="description" content="impress.js is a presentation tool based on the power of CSS3 transforms and transitions in modern browsers and inspired by the idea behind prezi.com." />
+    <meta name="author" content="Bartek Szopka" />
+
+    <link href="//fonts.googleapis.com/css?family=Open+Sans:regular,semibold,italic,italicsemibold|PT+Sans:400,700,400italic,700italic|PT+Serif:400,700,400italic,700italic" rel="stylesheet" />
+
+    <link href="css/impress-demo.css" rel="stylesheet" />
+    <link href="css/impress-common.css" rel="stylesheet" />
+    
+    <link rel="shortcut icon" href="favicon.png" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/default.min.css">
+
+</head>
+
+<body class="impress-not-supported">
+
+<div class="fallback-message">
+    <p>Your browser <b>doesn't support the features required</b> by impress.js, so you are presented with a simplified version of this presentation.</p>
+    <p>For the best experience please use the latest <b>Chrome</b>, <b>Safari</b> or <b>Firefox</b> browser.</p>
+</div>
+
+<div id="impress"
+    data-transition-duration="1000"
+    
+    data-width="1024"
+    data-height="768"
+    data-max-scale="3"
+    data-min-scale="0"
+    data-perspective="1000"
+    >
+
+    <div class="step slide" data-x="-1000" data-y="-1500">
+        <h1>Промышленная разработка на JVM. Лекция 3</h1>
+        <ul>
+        <li>java.nio</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="0" data-y="-1500">
+        <h1>java.nio: обзор</h1>
+        <ul>
+        <li>Появился в Java 1.4 (2002) как альтернатива потоковой модели java.io — буферизованный, а не побайтовый доступ к данным</li>
+        <li>Buffer — контейнер данных с произвольным доступом (position/limit/capacity), а не однонаправленный поток байт</li>
+        <li>Channel — источник/приёмник данных (файл, сокет), работающий через буферы, с поддержкой произвольного доступа и эффективного копирования</li>
+        <li>Path/Files (NIO.2, Java 7) — современная замена java.io.File для работы с файловой системой</li>
+        <li>Неблокирующий многоканальный I/O (Selector) и асинхронные каналы</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="1000" data-y="-1500">
+        <h1>ByteBuffer: создание</h1>
+        <pre><code>val heapBuffer = ByteBuffer.allocate(1024)          // в куче JVM
+val directBuffer = ByteBuffer.allocateDirect(1024)  // вне кучи
+
+println(heapBuffer.capacity())  // 1024</code></pre>
+        <ul>
+        <li>capacity фиксируется при создании и не может быть изменена</li>
+        <li>allocate() — буфер поверх обычного byte[] в управляемой куче JVM, доступен напрямую через array()</li>
+        <li>allocateDirect() — память вне кучи JVM; дороже создать/освободить, меньше лишних копирований между JVM и нативными буферами ОС</li>
+        </ul>
+    </div>
+
+
+
+    <div class="step slide" data-x="2000" data-y="-1500">
+        <h1>Запись и чтение: put/get</h1>
+        <pre><code>val buf = ByteBuffer.allocate(16)
+buf.put(1)
+buf.put(2)
+buf.put(3)
+
+println(buf.position())
+// 3 — сдвинулась после каждой записи
+
+println(buf.limit())
+// 16 — предел, пока равен capacity
+
+buf.put(0, 99)
+// абсолютная запись по индексу
+println(buf.position())
+// всё ещё 3 — position не сдвинулась</code></pre>
+    </div>
+    <div class="step slide" data-x="3000" data-y="-1500">
+        <h1>Запись и чтение: put/get</h1>
+        <ul>
+        <li>Относительные put()/get() каждый раз продвигают position на размер записанного/прочитанного значения</li>
+        <li>Абсолютные put(index, value)/get(index) обращаются по индексу напрямую и position не трогают</li>
+        <li>limit — граница, дальше которой ни читать, ни писать нельзя; по умолчанию равен capacity</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="4000" data-y="-1500">
+        <h1>flip / clear / rewind / compact</h1>
+        <pre><code>val buf = ByteBuffer.allocate(16)
+buf.put(1); buf.put(2); buf.put(3)
+
+buf.flip()             // limit = position (3), position = 0 — режим чтения
+val first = buf.get()  // читаем 1, position -&gt; 1
+
+buf.rewind()           // position = 0, limit не меняется — перечитать с начала
+buf.clear()            // position = 0, limit = capacity — готов к новой записи
+buf.compact()          // сдвигает непрочитанные данные в начало, освобождая хвост под дозапись</code></pre>
+    </div>
+
+
+
+
+
+    <div class="step slide" data-x="5000" data-y="-1500">
+        <h1>flip / clear / rewind / compact</h1>
+        <ul>
+        <li>flip() — универсальный переход "закончил писать → хочу читать"; забыть его перед чтением — классическая ошибка новичков</li>
+        <li>clear() не стирает данные физически, а просто сбрасывает указатели — старые байты логически считаются неактуальными</li>
+        <li>compact() нужен, когда прочитали не всё: непрочитанный хвост переносится в начало буфера, чтобы можно было дописать данные, не потеряв его</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="6000" data-y="-1500">
+        <h1>Типизированные представления и порядок байт</h1>
+        <pre><code>val buf = ByteBuffer.allocate(4).order(ByteOrder.BIG_ENDIAN)
+buf.putInt(65536)
+buf.flip()
+println(buf.getInt())  // 65536
+
+val ints = intArrayOf(1, 2, 3)
+val byteBuf = ByteBuffer.allocate(ints.size * Int.SIZE_BYTES)
+byteBuf.asIntBuffer().put(ints)  // запись сразу нескольких int</code></pre>
+        <ul>
+    </div>
+    <div class="step slide" data-x="7000" data-y="-1500">
+        <h1>Типизированные представления и порядок байт</h1>
+        <ul>
+        <li>order(ByteOrder.BIG_ENDIAN/LITTLE_ENDIAN) задаёт порядок байт при чтении/записи многобайтовых чисел — критично при обмене данными с другими системами</li>
+        <li>putInt()/getInt() и аналоги для других примитивов — удобные методы без ручной сборки байт побитовыми сдвигами</li>
+        <li>asIntBuffer()/asCharBuffer() — представление того же самого буфера как последовательности другого типа, без копирования данных</li>
+        </ul>
+    </div>
+<div class="step slide" data-x="8000" data-y="-1500">
+    <h1>View-методы ByteBuffer</h1>
+    <ul>
+        <li>ByteBuffer предоставляет методы для создания view-буферов других типов:
+            <ul>
+                <li>asIntBuffer() — view как IntBuffer</li>
+                <li>asLongBuffer() — view как LongBuffer</li>
+                <li>asShortBuffer() — view как ShortBuffer</li>
+                <li>asCharBuffer() — view как CharBuffer</li>
+                <li>asDoubleBuffer() — view как DoubleBuffer</li>
+                <li>asFloatBuffer() — view как FloatBuffer</li>
+            </ul>
+        </li>
+        <li>View-буферы разделяют общее состояние с исходным ByteBuffer:
+            <ul>
+                <li>Изменения в view видны в исходном буфере и наоборот</li>
+                <li>Позиция и лимит у view независимы от исходного буфера</li>
+                <li>Порядок байтов (ByteOrder) наследуется от ByteBuffer</li>
+            </ul>
+        </li>
+    </ul>
+</div>
+
+
+<div class="step slide" data-x="9000" data-y="-1500">
+    <h1>Общее состояние view-буферов</h1>
+    <ul>
+        <li>View-буферы используют тот же массив данных, что и исходный ByteBuffer</li>
+        <li>Изменение данных через view отражается в исходном буфере</li>
+        <li>Позиция и лимит у view независимы — они не синхронизируются</li>
+        <li>Но данные общие — изменения видны обоим</li>
+    </ul>
+</div>
+<div class="step slide" data-x="10000" data-y="-1500">
+    <h1>Общее состояние: пример</h1>
+    <ul>
+        <li>Пример:
+            <pre><code>ByteBuffer byteBuffer = ByteBuffer.allocate(8);
+byteBuffer.order(ByteOrder.BIG_ENDIAN);
+// Записываем int через ByteBuffer
+byteBuffer.putInt(0, 42);
+// Создаем view
+IntBuffer intView = byteBuffer.asIntBuffer();
+// Читаем через view — видим 42
+System.out.println(intView.get(0)); // 42
+// Изменяем через view
+intView.put(0, 100);
+// Читаем через исходный буфер — видим 100
+System.out.println(byteBuffer.getInt(0)); // 100</code></pre>
+        </li>
+    </ul>
+</div>
+<div class="step slide" data-x="11000" data-y="-1500">
+    <h1>Чтение big-endian view: код</h1>
+            <pre><code>public class ViewReadExample {
+    public static void main(String[] args) {
+        ByteBuffer byteBuffer = ByteBuffer.allocate(8);
+        byteBuffer.order(ByteOrder.BIG_ENDIAN);
+        byteBuffer.putInt(0, 1);
+        byteBuffer.putInt(4, 2);
+        
+        IntBuffer bigEndianView = byteBuffer.asIntBuffer();
+        System.out.println("Big-endian view:");
+        while (bigEndianView.hasRemaining()) {
+            System.out.print(bigEndianView.get() + " ");
+        }
+    }
+}</code></pre>
+</div>
+<div class="step slide" data-x="12000" data-y="-1500">
+    <h1>Идея Channel</h1>
+    <ul>
+        <li>Channel — это двунаправленный канал для передачи данных</li>
+        <li>В отличие от Stream (однонаправленный), Channel поддерживает и чтение, и запись</li>
+        <li>Основные реализации:
+            <ul>
+                <li>FileChannel — для работы с файлами</li>
+                <li>SocketChannel — для сетевых соединений</li>
+                <li>ServerSocketChannel — для серверных сокетов</li>
+                <li>DatagramChannel — для UDP</li>
+            </ul>
+        </li>
+        <li>Channel работает с ByteBuffer, а не с байтовыми массивами</li>
+    </ul>
+</div>
+<div class="step slide" data-x="13000" data-y="-1500">
+    <h1>Channel vs Stream</h1>
+    <ul>
+        <li>Stream:
+            <ul>
+                <li>Однонаправленный (InputStream или OutputStream)</li>
+                <li>Работает с байтами и массивами байтов</li>
+                <li>Блокирующий ввод-вывод</li>
+                <li>Нет поддержки scatter/gather</li>
+            </ul>
+        </li>
+        <li>Channel:
+            <ul>
+                <li>Двунаправленный (чтение и запись)</li>
+                <li>Работает с ByteBuffer</li>
+                <li>Поддержка неблокирующего режима</li>
+                <li>Поддержка scatter/gather (множественные буферы)</li>
+                <li>Прямой доступ к системным вызовам (mmap, sendfile)</li>
+            </ul>
+        </li>
+    </ul>
+</div>
+
+
+
+<div class="step slide" data-x="14000" data-y="-1500">
+    <h1>Scatter/Gather: что это</h1>
+    <ul>
+        <li>Scatter (разбрасывание) — чтение данных из канала в несколько буферов:
+            <pre><code>ByteBuffer header = ByteBuffer.allocate(8);
+ByteBuffer body = ByteBuffer.allocate(64);
+ByteBuffer trailer = ByteBuffer.allocate(4);
+
+ByteBuffer[] buffers = {header, body, trailer};
+
+// Читаем из канала в несколько буферов
+long bytesRead = channel.read(buffers);</code></pre>
+        </li>
+    </ul>
+</div>
+<div class="step slide" data-x="15000" data-y="-1500">
+    <h1>Scatter/Gather: что это</h1>
+    <ul>
+        <li>Gather (сборка) — запись данных из нескольких буферов в канал:
+            <pre><code>// Записываем из нескольких буферов в канал
+long bytesWritten = channel.write(buffers);</code></pre>
+        </li>
+    </ul>    
+</div> 
+<div class="step slide" data-x="16000" data-y="-1500">
+    <h1>Scatter/Gather: мотивация</h1>
+    <ul>
+        <li>Снижение числа системных вызовов (один вызов вместо нескольких)</li>
+        <li>Естественное разделение данных на логические части (заголовок, тело, хвост)</li>
+        <li>Избегание копирования данных для объединения</li>
+        <li>Удобство работы с сетевыми протоколами, где сообщение состоит из нескольких частей</li>
+    </ul>
+</div>
+<div class="step slide" data-x="17000" data-y="-1500">
+    <h1>transferTo / transferFrom: идея</h1>
+    <ul>
+        <li>Методы FileChannel для прямой передачи данных между каналами</li>
+        <li>Работают на уровне ядра ОС (zero-copy) — без копирования в пользовательское пространство</li>
+        <li>transferTo() — передает данные из файла в другой канал</li>
+        <li>transferFrom() — принимает данные из другого канала в файл</li>
+        <li>Используют системные вызовы sendfile() или mmap()</li>
+    </ul>
+</div>
+<div class="step slide" data-x="18000" data-y="-1500">
+    <h1>Пример transferTo</h1>
+    <ul>
+        <li>Копирование файла через transferTo:
+            <pre><code>try (FileChannel source = FileChannel.open(Paths.get("input.bin"));
+     FileChannel target = FileChannel.open(Paths.get("output.bin"),
+             CREATE, WRITE)) {
+    
+    long position = 0;
+    long size = source.size();
+    
+    // Передаем данные напрямую
+    while (position < size) {
+        position += source.transferTo(position, size - position, target);
+    }
+}</code></pre>
+        </li>
+    </ul>
+</div>
+<div class="step slide" data-x="19000" data-y="-1500">
+    <h1>Пример transferTo</h1>
+    <ul>
+        <li>Аналогично работает transferFrom:
+            <pre><code>target.transferFrom(source, 0, source.size());</code></pre>
+        </li>
+        <li>Zero-copy: данные не проходят через буферы Java</li>
+    </ul>
+</div>
+
+
+
+<div class="step slide" data-x="20000" data-y="-1500">
+    <h1>Path: основные возможности</h1>
+    <ul>
+        <li>Path — интерфейс для представления пути к файлу или директории</li>
+        <li>Создание:
+            <pre><code>Path p1 = Paths.get("/home/user/file.txt");
+Path p2 = Paths.get("/home", "user", "file.txt");
+Path p3 = Path.of("/home/user/file.txt");</code></pre>
+        </li>
+        <li>Основные методы:
+            <ul>
+                <li>toString() — строковое представление</li>
+                <li>getFileName() — имя файла</li>
+                <li>getParent() — родительская директория</li>
+                <li>getRoot() — корень пути</li>
+                <li>resolve() — объединение путей</li>
+                <li>relativize() — относительный путь</li>
+                <li>normalize() — нормализация (убирает . и ..)</li>
+            </ul>
+        </li>
+    </ul>
+</div>
+<div class="step slide" data-x="20000" data-y="-1500">
+    <h1>Files: основные операции</h1>
+    <ul>
+        <li>Files — утилитный класс для работы с файлами и директориями</li>
+        <li>Проверка и метаданные:
+            <pre><code>boolean exists = Files.exists(path);
+boolean isDir = Files.isDirectory(path);
+long size = Files.size(path);
+FileTime lastModified = Files.getLastModifiedTime(path);</code></pre>
+        </li>
+    </ul>
+</div>
+<div class="step slide" data-x="21000" data-y="-1500">
+    <h1>Files: основные операции</h1>
+    <ul>
+        <li>Создание и удаление:
+            <pre><code>Files.createFile(path);
+Files.createDirectory(dir);
+Files.createDirectories(nestedDir); // создает все родительские
+Files.delete(path);
+Files.deleteIfExists(path);</code></pre>
+        </li>
+        <li>Копирование и перемещение:
+            <pre><code>Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
+Files.move(source, target, StandardCopyOption.ATOMIC_MOVE);</code></pre>
+        </li>
+    </ul>
+</div>  
+<div class="step slide" data-x="22000" data-y="-1500">
+    <h1>Files: чтение</h1>
+    <ul>
+        <li>Чтение всех байтов:
+            <pre><code>byte[] bytes = Files.readAllBytes(path);</code></pre>
+        </li>
+        <li>Чтение всех строк:
+            <pre><code>List&lt;String&gt; lines = Files.readAllLines(path);</code></pre>
+        </li>
+        <li>Чтение через BufferedReader:
+            <pre><code>try (BufferedReader reader = Files.newBufferedReader(path)) {
+    String line;
+    while ((line = reader.readLine()) != null) {
+        System.out.println(line);
+    }
+}</code></pre>
+        </li>
+    </ul>
+</div>
+<div class="step slide" data-x="23000" data-y="-1500">
+    <h1>Files: запись</h1>
+    <ul>
+        <li>Запись байтов:
+            <pre><code>Files.write(path, bytes);</code></pre>
+        </li>
+        <li>Запись строк:
+            <pre><code>Files.write(path, lines);</code></pre>
+        </li>
+        <li>Запись через BufferedWriter:
+            <pre><code>try (BufferedWriter writer = Files.newBufferedWriter(path)) {
+    writer.write("Hello, world!");
+}</code></pre>
+        </li>
+        <li>Files работает с Path и автоматически управляет ресурсами</li>
+    </ul>
+</div>
+<div class="step slide" data-x="24000" data-y="-1500">
+    <h1>Files: walk по дереву</h1>
+    <ul>
+        <li>Обход дерева файлов:
+            <pre><code>// Рекурсивный обход всех файлов и директорий
+try (Stream&lt;Path&gt; paths = Files.walk(Paths.get("/home/user"))) {
+    paths.forEach(System.out::println);
+}
+
+// Обход с ограничением глубины
+try (Stream&lt;Path&gt; paths = Files.walk(Paths.get("/home/user"), 2)) {
+    paths.forEach(System.out::println);
+}</code></pre>
+        </li>
+    </ul>
+</div>
+<div class="step slide" data-x="25000" data-y="-1500">
+    <h1>Files: walk по дереву</h1>
+    <ul>
+        <li>Фильтрация по типу:
+            <pre><code>// Только файлы
+try (Stream&lt;Path&gt; paths = Files.walk(Paths.get("/home/user"))) {
+    paths.filter(Files::isRegularFile)
+         .forEach(System.out::println);
+}
+// Только директории
+try (Stream&lt;Path&gt; paths = Files.walk(Paths.get("/home/user"))) {
+    paths.filter(Files::isDirectory)
+         .forEach(System.out::println);
+}</code></pre>
+        </li>
+    </ul>
+</div>
+<div class="step slide" data-x="26000" data-y="-1500">
+    <h1>Files: walk по дереву</h1>
+    <ul>
+        <li>Поиск по расширению:
+            <pre><code>try (Stream&lt;Path&gt; paths = Files.walk(Paths.get("/home/user"))) {
+    paths.filter(p -> p.toString().endsWith(".java"))
+         .forEach(System.out::println);
+}</code></pre>
+        </li>
+        <li>walk возвращает Stream — ленивый обход, требует закрытия</li>
+        <li>Альтернатива: Files.list() для одного уровня, Files.find() с предикатом</li>
+    </ul>
+</div>
+
+
+<div class="step slide" data-x="27000" data-y="-1500">
+    <h1>Идея memory-mapped файлов</h1>
+    <ul>
+        <li>Файл отображается в адресное пространство процесса</li>
+        <li>Доступ к файлу через обычные операции с памятью</li>
+        <li>ОС сама синхронизирует память и диск</li>
+        <li>Данные читаются/пишутся без явных системных вызовов</li>
+    </ul>
+</div>
+<div class="step slide" data-x="28000" data-y="-1500">
+    <h1>Создание mapping</h1>
+    <ul>
+        <li>FileChannel.map() создает отображение:
+            <pre><code>FileChannel channel = FileChannel.open(path);
+MappedByteBuffer buffer = channel.map(
+    FileChannel.MapMode.READ_WRITE, 0, channel.size());</code></pre>
+        </li>
+        <li>Режимы: READ_ONLY, READ_WRITE, PRIVATE</li>
+    </ul>
+</div>
+<div class="step slide" data-x="29000" data-y="-1500">
+    <h1>Чтение и запись</h1>
+    <ul>
+        <li>Через MappedByteBuffer как обычный буфер:
+            <pre><code>// Чтение
+int value = buffer.getInt(0);
+
+// Запись
+buffer.putInt(0, 42);
+
+// Изменения автоматически попадают в файл</code></pre>
+        </li>
+        <li>Работает как ByteBuffer, но данные синхронизируются с файлом</li>
+    </ul>
+</div>
+<div class="step slide" data-x="30000" data-y="-1500">
+    <h1>Преимущества</h1>
+    <ul>
+        <li>Высокая производительность для больших файлов</li>
+        <li>Данные не копируются в пользовательское пространство</li>
+        <li>ОС управляет кэшированием и синхронизацией</li>
+        <li>Удобно для случайного доступа к данным</li>
+        <li>Позволяет работать с файлами больше RAM</li>
+    </ul>
+</div>
+<div class="step slide" data-x="31000" data-y="-1500">
+    <h1>Ограничения</h1>
+    <ul>
+        <li>Размер mapping ограничен адресным пространством (2 ГБ на 32-битных системах)</li>
+        <li>Не подходит для очень маленьких файлов (оверхед на создание)</li>
+        <li>Сложнее отлаживать ошибки синхронизации</li>
+        <li>Требует осторожности с многопоточным доступом</li>
+    </ul>
+</div>
+<div class="step slide" data-x="32000" data-y="-1500">
+    <h1>Пример: копирование файла</h1>
+    <ul>
+        <li>Копирование через memory-mapped:
+            <pre><code>try (FileChannel in = FileChannel.open(src);
+     FileChannel out = FileChannel.open(dst, CREATE, WRITE)) {
+    
+    MappedByteBuffer mapped = in.map(READ_ONLY, 0, in.size());
+    out.write(mapped);
+}</code></pre>
+        </li>
+        <li>Один вызов — и файл скопирован</li>
+    </ul>
+</div>
+<div class="step slide" data-x="33000" data-y="-1500">
+    <h1>Пример: случайный доступ</h1>
+    <ul>
+        <li>Чтение записей по индексу:
+            <pre><code>MappedByteBuffer buffer = channel.map(
+    READ_WRITE, 0, channel.size());
+
+// Читаем 1000-ю запись (каждая по 4 байта)
+int offset = 1000 * 4;
+int value = buffer.getInt(offset);
+
+// Обновляем запись
+buffer.putInt(offset, value + 1);</code></pre>
+        </li>
+        <li>Идеально для баз данных и индексных структур</li>
+    </ul>
+</div>
+<div class="step slide" data-x="34000" data-y="-1500">
+    <h1>Когда использовать</h1>
+    <ul>
+        <li>Большие файлы (сотни МБ и больше)</li>
+        <li>Случайный доступ к данным</li>
+        <li>Частые чтения/записи в разные позиции</li>
+        <li>Совместный доступ между процессами (через общий файл)</li>
+        <li>Реализация баз данных, кэшей, индексных структур</li>
+    </ul>
+</div>
+
+<div class="step slide" data-x="35000" data-y="-1500">
+    <h1>Память вне кучи: идея</h1>
+    <ul>
+        <li>ByteBuffer.allocateDirect() выделяет память вне кучи JVM</li>
+        <li>Память управляется ОС, а не сборщиком мусора</li>
+        <li>Используется для:
+            <ul>
+                <li>Сетевых операций (NIO)</li>
+                <li>Работы с большими данными</li>
+                <li>Снижения нагрузки на GC</li>
+            </ul>
+        </li>
+    </ul>
+</div>
+<div class="step slide" data-x="36000" data-y="-1500">
+    <h1>Выделение direct-буфера</h1>
+    <ul>
+        <li>Выделение:
+            <pre><code>// Выделяем 1 МБ вне кучи
+ByteBuffer buffer = ByteBuffer.allocateDirect(1024 * 1024);
+
+// Проверяем, direct ли буфер
+boolean isDirect = buffer.isDirect(); // true</code></pre>
+        </li>
+        <li>Отличие от обычного:
+            <pre><code>// Обычный буфер (в куче)
+ByteBuffer heapBuffer = ByteBuffer.allocate(1024);</code></pre>
+        </li>
+        <li>Direct-буферы быстрее для I/O, но дороже в выделении</li>
+    </ul>
+</div>
+<div class="step slide" data-x="37000" data-y="-1500">
+    <h1>Преимущества и ограничения</h1>
+    <ul>
+        <li>Преимущества:
+            <ul>
+                <li>Не создает давления на GC</li>
+                <li>Данные не перемещаются GC (стабильные адреса)</li>
+                <li>Быстрее для системных вызовов (нет копирования)</li>
+            </ul>
+        </li>
+        <li>Ограничения:
+            <ul>
+                <li>Выделение медленнее (системный вызов malloc)</li>
+                <li>Требует ручного освобождения (или Cleaner)</li>
+                <li>Сложнее отлаживать утечки</li>
+            </ul>
+        </li>
+    </ul>
+</div>
+
+
+<div class="step slide" data-x="38000" data-y="-1500">
+    <h1>Charset: основы</h1>
+    <ul>
+        <li>Charset — отображение символов в байты и обратно</li>
+        <li>Стандартные: UTF-8, UTF-16, ISO-8859-1, US-ASCII</li>
+        <li>Получение:
+            <pre><code>Charset utf8 = Charset.forName("UTF-8");
+Charset utf8 = StandardCharsets.UTF_8;</code></pre>
+        </li>
+        <li>Кодирование/декодирование:
+            <pre><code>byte[] bytes = "Hello".getBytes(StandardCharsets.UTF_8);
+String text = new String(bytes, StandardCharsets.UTF_8);</code></pre>
+        </li>
+    </ul>
+</div>
+<div class="step slide" data-x="39000" data-y="-1500">
+    <h1>Charset: кодирование и декодирование</h1>
+    <ul>
+        <li>Через CharsetEncoder/Decoder:
+            <pre><code>CharsetEncoder encoder = StandardCharsets.UTF_8.newEncoder();
+ByteBuffer encoded = encoder.encode(CharBuffer.wrap("Hello"));
+
+CharsetDecoder decoder = StandardCharsets.UTF_8.newDecoder();
+CharBuffer decoded = decoder.decode(encoded);</code></pre>
+        </li>
+        <li>Обработка ошибок:
+            <pre><code>decoder.onMalformedInput(CodingErrorAction.REPORT);
+decoder.onUnmappableCharacter(CodingErrorAction.REPLACE);</code></pre>
+        </li>
+    </ul>
+</div>
+<div class="step slide" data-x="40000" data-y="-1500">
+    <h1>Charset: работа с ByteBuffer</h1>
+    <ul>
+        <li>Декодирование из ByteBuffer:
+            <pre><code>ByteBuffer buffer = ByteBuffer.wrap(bytes);
+CharBuffer chars = StandardCharsets.UTF_8.decode(buffer);
+String text = chars.toString();</code></pre>
+        </li>
+        <li>Кодирование в ByteBuffer:
+            <pre><code>CharBuffer chars = CharBuffer.wrap("Hello");
+ByteBuffer encoded = StandardCharsets.UTF_8.encode(chars);</code></pre>
+        </li>
+        <li>Удобно при работе с NIO и каналами</li>
+    </ul>
+</div>
+<div class="step slide" data-x="41000" data-y="-1500">
+    <h1>Charset: список доступных</h1>
+    <ul>
+        <li>Просмотр всех доступных:
+            <pre><code>SortedMap&lt;String, Charset&gt; charsets = Charset.availableCharsets();
+charsets.forEach((name, cs) -> System.out.println(name));</code></pre>
+        </li>
+        <li>Проверка поддержки:
+            <pre><code>boolean supported = Charset.isSupported("UTF-8");</code></pre>
+        </li>
+        <li>Основные: UTF-8, UTF-16, UTF-16BE, UTF-16LE, ISO-8859-1, US-ASCII, windows-1251</li>
+    </ul>
+</div>
+
+
+<div class="step slide" data-x="42000" data-y="-1500">
+    <h1>Асинхронный I/O: мотивация</h1>
+    <ul>
+        <li>Проблема блокирующего I/O:
+            <ul>
+                <li>Поток ждет завершения операции и простаивает</li>
+                <li>Много потоков → много контекстных переключений</li>
+                <li>Ограничение по количеству потоков</li>
+            </ul>
+        </li>
+        <li>Решение: не блокировать поток, а получить уведомление о завершении</li>
+        <li>Один поток может обслуживать тысячи соединений</li>
+    </ul>
+</div>
+<div class="step slide" data-x="43000" data-y="-1500">
+    <h1>Ключевые концепции</h1>
+    <ul>
+        <li>Selector — мониторинг нескольких каналов на готовность</li>
+        <li>SelectionKey — регистрация канала в селекторе с интересующими операциями</li>
+        <li>Non-blocking режим — операции не блокируют поток</li>
+        <li>CompletionHandler — обратный вызов при завершении операции</li>
+        <li>Future — асинхронный результат операции</li>
+    </ul>
+</div>
+<div class="step slide" data-x="44000" data-y="-1500">
+    <h1>Основные классы</h1>
+    <ul>
+        <li>AsynchronousChannelGroup — пул потоков для обработки</li>
+        <li>AsynchronousFileChannel — асинхронная работа с файлами</li>
+        <li>AsynchronousSocketChannel — асинхронные сокеты</li>
+        <li>AsynchronousServerSocketChannel — асинхронный сервер</li>
+        <li>CompletionHandler&lt;V, A&gt; — интерфейс с completed() и failed()</li>
+    </ul>
+</div>
+<div class="step slide" data-x="45000" data-y="-1500">
+    <h1>Пример: асинхронное чтение</h1>
+            <pre><code>AsynchronousFileChannel channel = AsynchronousFileChannel.open(path);
+
+ByteBuffer buffer = ByteBuffer.allocate(1024);
+channel.read(buffer, 0, buffer, new CompletionHandler&lt;Integer, ByteBuffer&gt;() {
+    @Override
+    public void completed(Integer result, ByteBuffer attachment) {
+        attachment.flip();
+        System.out.println("Прочитано: " + result + " байт");
+    }
+
+    @Override
+    public void failed(Throwable exc, ByteBuffer attachment) {
+        System.err.println("Ошибка: " + exc);
+    }
+});
+</div>
+<div class="step slide" data-x="46000" data-y="-1500">
+    <h1>Пример: Selector</h1>
+    <ul>
+            <pre><code>Selector selector = Selector.open();
+SocketChannel channel = SocketChannel.open();
+channel.configureBlocking(false);
+channel.register(selector, SelectionKey.OP_READ);
+// Обработка событий
+while (true) {
+    selector.select(); // ждем событий
+    
+    for (SelectionKey key : selector.selectedKeys()) {
+        if (key.isReadable()) {
+            // читаем из канала
+        }
+    }
+}</code></pre>
+    </ul>
+</div>
+
+<div class="step slide" data-x="47000" data-y="-1500">
+    <h1>Преимущества и ограничения</h1>
+    <ul>
+        <li>Преимущества:
+            <ul>
+                <li>Масштабируемость (тысячи соединений на поток)</li>
+                <li>Эффективное использование ресурсов</li>
+                <li>Подходит для высоконагруженных серверов</li>
+            </ul>
+        </li>
+        <li>Ограничения:
+            <ul>
+                <li>Сложность разработки и отладки</li>
+                <li>Труднее читать последовательный код</li>
+                <li>Требует аккуратности с общими данными</li>
+            </ul>
+        </li>
+    </ul>
+</div>
+
+<!--
+<div class="step slide" data-x="9000" data-y="-1500">
+    <h1>Общее состояние view-буферов</h1>
+    <ul>
+        <li>View-буферы используют тот же массив данных, что и исходный ByteBuffer</li>
+        <li>Изменение данных через view отражается в исходном буфере</li>
+        <li>Пример:
+            <pre><code>ByteBuffer byteBuffer = ByteBuffer.allocate(8);
+byteBuffer.order(ByteOrder.BIG_ENDIAN);
+
+// Записываем int через ByteBuffer
+byteBuffer.putInt(0, 42);
+
+// Создаем view
+IntBuffer intView = byteBuffer.asIntBuffer();
+
+// Читаем через view — видим 42
+System.out.println(intView.get(0)); // 42
+
+// Изменяем через view
+intView.put(0, 100);
+
+// Читаем через исходный буфер — видим 100
+System.out.println(byteBuffer.getInt(0)); // 100</code></pre>
+        </li>
+        <li>Позиция и лимит у view независимы — они не синхронизируются</li>
+        <li>Но данные общие — изменения видны обоим</li>
+    </ul>
+</div>
+
+
+
+<!--
+    <div class="step slide" data-x="2000" data-y="-1500">
+        <h1>Жизненный цикл класса</h1>
+        <ul>
+        <li>Создание</li>
+        <li>Загрузка</li>
+        <li>Связывание/линковка - linking</li>
+        <li>Инициализация</li>
+        <li>Иногда - удаление</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="3000" data-y="-1500">
+        <h1>Жизненный цикл класса</h1>
+        <ul>
+          <li>Создание - выделение памяти под внутреннее представление класса</li>
+          <li>Загрузка - поиск байткода и чтение его в память виртуальной машины</li>
+          <li>В общем случае формами загрузки можно управлять</li>
+          <li>Можно создавать свои загрузчики классов - реализовывать как Java-код</li>
+          <li>Свой загрузчик может добывать байткод из произвольных источников</li>
+          <li>Добыть набор байтов в соответствии со специальным API</li>
+          <li>Стандартный загрузчик по умолчанию ищет класс в класс-путях</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="4000" data-y="-1500">
+        <h1>Жизненный цикл класса</h1>
+        <ul>
+          <li>Linking включает в себя verification, preparing и resolution</li>
+          <li>Verification - проверка структурных ограничений на байткод</li>
+          <li>Preparation - устовка статических полей в значеня по умолчанию</li>
+          <li>Resolution - разрешение ссылок на другие классы</li>
+          <li>Resolution может быть ленивым - отложенным до момента использования разрешаемой сущности</li>
+        </ul>
+    </div>
+
+
+    <div class="step slide" data-x="5000" data-y="-1500">
+        <h1>Пример</h1>
+        <pre><code class="kotlin">
+
+class C2 {
+    static int v = 5;
+}
+
+public class C1 {
+     public static void main(String[] args) {
+         if (args.length > 0) {
+             System.out.println(C2.v);
+         }
+     }
+}
+
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="6000" data-y="-1500">
+        <h1>Эксперименты</h1>
+        <ul>
+          <li>Работаем из командной строки</li>
+          <li>Заходим в каталог с файлом</li>
+          <li>Компилируем: javac C1.java</li>
+          <li>Запускаем: java C1</li>
+          <li>Запускаем: java C1 1</li>
+          <li>Удаляем C1.class</li>
+          <li>Запускаем: java C1</li>
+          <li>Запускаем: java C1 1</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="7000" data-y="-1500">
+        <h1>Пример</h1>
+        <pre><code>
+
+i112591748:2026 s-reznick$ javap -c  C1
+Compiled from "C1.java"
+public class C1 {
+  public C1();
+    Code:
+         0: aload_0
+         1: invokespecial #1                  // Method java/lang/Object."<init>":()V
+         4: return
+
+  public static void main(java.lang.String[]);
+    Code:
+         0: aload_0
+         1: arraylength
+         2: ifle          14
+         5: getstatic     #7                  // Field java/lang/System.out:Ljava/io/PrintStream;
+         8: getstatic     #13                 // Field C2.v:I
+        11: invokevirtual #19                 // Method java/io/PrintStream.println:(I)V
+        14: return
+}
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="8000" data-y="-1500">
+        <h1>Пример</h1>
+        <pre><code>
+
+i112591748:2026 s-reznick$ javap -c  C2
+Compiled from "C1.java"
+class C2 {
+  static int v;
+
+  C2();
+    Code:
+         0: aload_0
+         1: invokespecial #1                  // Method java/lang/Object."<init>":()V
+         4: return
+
+  static {};
+    Code:
+         0: iconst_5
+         1: putstatic     #7                  // Field v:I
+         4: return
+}
+
+        </code></pre>
+    </div>
+
+
+
+    <div class="step slide" data-x="9000" data-y="-1500">
+        <h1>Разберем</h1>
+        <ul>
+          <li>Отсутствие класса может не помешать исполнению</li>
+          <li>Даже если на него ссылается используемый класс</li>
+          <li>Во время верификации JVM проверифицировала соответствие типа поля v и типа параметра println</li>
+          <li>Но загрузка класса C2 была отложена</li>
+          <li>Если бы в позднее загруженном классе тип поля оказался другим - тоже сломались бы</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="10000" data-y="-1500">
+        <h1>Важно</h1>
+        <ul>
+          <li>В байткоде класса C2 виден синтетический метод</li>
+          <li>С присваиванием 5 статической перед</li>
+          <li>Это метод инициализации класса</li>
+          <li>Присвание целочисленной константы статическому полю происходит в коде</li>
+          <li>То есть существует момент по времени, когда в статическом поле лежит значение по умолчанию (0)</li>
+          <li>Это может приводить к неочевидному поведению при сложных зависимостях</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="11000" data-y="-1500">
+        <h1>Пример</h1>
+        <pre><code>
+          
+class C2 {
+    static int v = C3.m();
+    static int v2 = 5;
+}
+
+class C3 {
+     static int m() {
+         return C2.v2;
+     }
+}
+
+public class C1 {
+     public static void main(String[] args) {
+         System.out.println(C2.v);
+     }
+}
+
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="12000" data-y="-1500">
+        <h1>Сравним</h1>
+        <pre><code>
+
+class C2 {
+    static int v = C3.m();
+    static final int v2 = 5;
+}
+
+class C3 {
+     static int m() {
+         return C2.v2;
+     }
+}
+
+public class C1 {
+     public static void main(String[] args) {
+         System.out.println(C2.v);
+     }
+}
+
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="13000" data-y="-1500">
+        <h1>Типы данных</h1>
+        <ul>
+          <li>Есть примитивные типы данных и объекты</li>
+          <li>4 целочисленных примитивных типа: byte, short, int, long</li> 
+          <li>2 вещественных примитивных типа: float, double</li>
+          <li>Символьный примитивный тип: char</li>
+          <li>Логический примитивный тип: bool</li>
+          <li>void</li>
+        </ul>
+    </div>
+
+
+    <div class="step slide" data-x="14000" data-y="-1500">
+        <h1>Типы данных</h1>
+        <ul>
+          <li>Размеры почти всех примитивных типов зафиксированы</li>
+          <li>byte - 8, short - 16, int - 32, long - 64</li>
+          <li>float - 32, double - 64</li>
+          <li>char - 16</li>
+          <li>bool - на усмотрение реализации</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="15000" data-y="-1500">
+        <h1>Типы данных</h1>
+        <ul>
+          <li>Объекты представлены как указатели</li>
+          <li>Нет арифметики указателей</li>
+          <li>Массив формально является объектом</li>
+          <li>Создается только синтакическими средствами</li>
+          <li>Нельзя явным образом вызвать конструктор массива</li>
+          <li>Массив объектов - массив указателей</li>
+          <li>Многомерные массивы - массивы указателей на подмассивы</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="16000" data-y="-1500">
+        <h1>Важные следствия</h1>
+        <ul>
+          <li>Нет способа хранить массив структур сплошной областью памяти</li>
+          <li>Как минимум - простого способа</li>
+          <li>Эффективные многомерные числовые массивы нужно реализовывать своими руками</li>
+          <li>Через одномерный массив со своей индексацией</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="17000" data-y="-1500">
+        <h1>Классы, интерфейсы, записи</h1>
+        <ul>
+          <li>Есть классы и интерфейсы</li>
+          <li>Множественного наследования нет</li>
+          <li>Можно реализовывать много интерфейсов</li>
+          <li>Возможен интефейс с реализацией по умолчанию</li>
+          <li>Состояния у интерфеса нет</li>
+          <li>Запись - упрощенный синтаксис для data-класса</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="18000" data-y="-1500">
+        <h1>Пакеты (package)</h1>
+        <ul>
+          <li>Классы/интерфейсы/записи в полноценном приложении должны жить в пакетах</li>
+          <li>Пакеты в исходниках должны храниться в каталогах</li>
+          <li>Повторяя структуру вложенности</li>
+          <li>Во время исполнения - в общем случае зависит от class-loader-а</li>
+          <li>Стандартный class-loader предполагает аналогичеую структуру вложенности</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="19000" data-y="-1500">
+        <h1>Классы, интерфейсы, записи</h1>
+        <ul>
+          <li>Для класса/интерфейса/записи в пакете есть два варианты с точки зрения видимости</li>
+          <li>Публичный или непубличный</li>
+          <li>Непубличный класс недоступен вне своего пакета</li>
+          <li>Публиный класс обязан храниться в одноименном файле</li>
+          <li>У пакетов нет "вложенности"</li>
+          <li>Содержимое пакета a.b.c не является частью содержимого пакета a.b</li>
+        </ul>
+    </div>
+
+
+
+
+    <div class="step slide" data-x="20000" data-y="-1500">
+        <h1>Элементы класса</h1>
+        <ul>
+          <li>В классе могут описываться поля, конструкторы и методы</li>
+          <li>Поля и методы могут быть статическими</li>
+          <li>Поля могут быть финальными (final)</li>
+          <li>final - не всегда константа в строгом смысле</li>
+          <li>Модификаторы доступа: public, private, protected</li>
+          <li>Отсутствие модификатора - отдельный режим (default access)</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="21000" data-y="-1500">
+        <h1>Пример</h1> 
+        <pre><code>
+
+class C {
+  // код для примера, не надо так писать в жизни
+  int v1;
+  final int v2 = 5;
+  static int v3;
+  static final int v4 = 123;
+  static String v5 = "hello";
+}
+          
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="22000" data-y="-1500">
+        <h1>Разбор</h1>
+        <ul>
+          <li>Код корректен и компилируем</li>
+          <li>Но совсем не идиоматичен</li>
+          <li>Можно посмотреть байткод</li>
+          <li>В нем будет конструктор без параметров и статический инициализатор</li>
+          <li>Хотя в коде их в явном виде нет</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="23000" data-y="-1500">
+        <h1>Инициализация класса и объекта</h1>
+        <ul>
+          <li>В момент создания класса все статические поля устанавливаются в "нулевые" значения</li>
+          <li>0, 0.0, false, null</li>
+          <li>Потом запускается статический инициализатор</li>
+          <li>Он может быть явно прописан в классе</li>
+          <li>Но все "просто" инициализации в него добавляются компилятором</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="24000" data-y="-1500">
+        <h1>Пример</h1> 
+        <pre><code>
+
+class C {
+  public static void main(String[] args) {
+  }
+  static int v1 = 123;
+  static {
+     System.out.println(v1);
+  }
+  static String v2 = "hello";
+  static {
+    System.out.println(v2);
+  }
+}
+
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="25000" data-y="-1500">
+        <h1>Инициализация класса и объекта</h1>
+        <ul>
+          <li>Подобное происходит с нестатическими полями при инициализации объекта</li>
+          <li>Прописанные вне конструкторов присваивания полям добавляются в начало всех конструкторов</li>
+          <li>Полю можно не присвоить значение</li>
+          <li>Оно останется в "нулевом" значении</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="26000" data-y="-1500">
+        <h1>Пример</h1>
+        <pre><code>
+        
+class C {
+  public static void main(String[] args) {
+     new C();
+     new C(1);
+  }
+  int v1;
+  C() {
+     System.out.println(v1);
+     System.out.println(v2);
+  }
+  String v2 = "hello";
+  C(int v) {
+    System.out.println(v1);
+    System.out.println(v2);
+  }
+}
+          
+        </code></pre>
+    </div>
+
+    <div class="step slide" data-x="27000" data-y="-1500">
+        <h1>final</h1>
+        <ul>
+          <li>Модификатор final означает, что значение полю может быть присвоено 1 раз</li>
+          <li>И это должно быть сделано - в термих JVM - в конструкторе</li>
+          <li>Причем в final-поле присваивание обязано состояться явным образом</li>
+          <li>Отдельный нюанс есть у статического публичного финального поля</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="28000" data-y="-1500">
+        <h1>static final</h1>
+        <ul>
+          <li>Статическое финальное поле может стать чем-то вроде константы</li>
+          <li>Если оно примитивного или строкового типа</li>
+          <li>И инициализируется непосредственно константным выражением</li>
+          <li>Там, где происходит обращение к такому полю - непосредственно подставляется такое значение</li>
+          <li>Не байткодовая инструкция загрузки статического поля</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="29000" data-y="-1500">
+        <h1>final в контексте паралелизма</h1>
+        <ul>
+          <li>final-поля (не статические) очень полезны в контексте параллелизма</li>
+          <li>Java Memory Model гарантирует отношение happens-before между присваиванием final-полю внутри конструктора и чтением поля из сконструированного объекта</li>
+          <li>Другими словами - final-поля не надо синхронизировать</li>
+          <li>Хороша мотивация работать в immutable-стиле</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="30000" data-y="-1500">
+        <h1>Наследование</h1>
+        <ul>
+          <li>Все просто и естественно</li>
+          <li>Есть общей корень иерархии - java.lang.Object</li>
+          <li>Его прямыми потомками являются все классы без явного указания родителя</li>
+          <li>И все массивы</li>
+          <li>И все интерфейсы</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="31000" data-y="-1500">
+        <h1>Интерфейсы</h1>
+        <ul>
+          <li>Интерфейс - контракт на реализации методов интерфейса</li>
+          <li>Возможны реализации по умолчанию</li>
+          <li>Интерфейсы могут содержать статические поля</li>
+          <li>И статические методы</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="32000" data-y="-1500">
+        <h1>Доступ к полям и методам</h1>
+        <ul>
+          <li>На одном полюсе - public, на другом private</li>
+          <li>private относительно мягок</li>
+          <li>Объект класса C может обращаться к приватным методам/полям другого объекта класса C</li>
+          <li>Два других варианта немного необычны</li>
+        </ul>
+    </div>
+
+
+
+
+    <div class="step slide" data-x="33000" data-y="-1500">
+        <h1>protected и package-private</h1>
+        <ul>
+          <li>Ожидаемо - наследники видят protected-элементы предков</li>
+          <li>Менее очевидно - protected-элементы доступны объектам любого класса того же пакета</li>
+          <li>Без модификатора  - доступ package-private</li>
+          <li>Элемент виден изнутри пакета</li>
+          <li>Вне пакета никто не видит</li>
+          <li>Построже, чем protected - наследование не помогает</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="34000" data-y="-1500">
+        <h1>Максимальное ограничение видимости</h1>
+        <ul>
+          <li>При дизайне имеет смысл давать минимально необходимый уровень доступа до элемента</li>
+          <li>Это ограничивает варианты возможного поведения</li>
+          <li>Проще тестировать и делать утверждения о поведении системы</li>
+          <li>И уменьшает обязательства по поддержке обратной совместимости</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="35000" data-y="-1500">
+        <h1>Вложенные классы</h1>
+        <ul>
+          <li>Бывают статически вложенные и внутренние (inner) классы</li>
+          <li>Статическая вложенность - просто namespace</li>
+          <li>Объекты синтаксически вложенного класса никак не связаны с объектами объемлющего</li>
+          <li>И сами классы для JVM никак содержательно между собой не связаны</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="36000" data-y="-1500">
+        <h1>Пример</h1>
+        <pre><code>
+class C {
+  static class C1 {}
+  static class C2 {}
+
+  C1 c1;
+  C2 c2;
+
+  C() {
+     c1 = new C1();
+     c2 = new C2();
+  }
+
+}
+
+class D {
+   C.C1 c1;
+}
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="37000" data-y="-1500">
+        <h1>Пример</h1>
+        <pre><code>
+class C {
+  private static class C1 {}
+  static class C2 {}
+
+  C1 c1;
+  C2 c2;
+
+  C() {
+     c1 = new C1();
+     c2 = new C2();
+  }
+
+}
+
+class D {
+   // C.C1 c1;
+}
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="38000" data-y="-1500">
+        <h1>inner-классы</h1>
+        <ul>
+          <li>Синтаксически это класс, определенный внутри другого определения класса</li>
+          <li>Без слова static</li>
+          <li>Объекты inner-класса могут создаваться только нестатическим кодом объемлющего класса</li>
+          <li>Объект inner-класса хранит ссылку на создавший его объект объемлющего класса</li>
+          <li>Мотивирующий пример: класс Table и inner-класс Column</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="39000" data-y="-1500">
+        <h1>Пример</h1>
+        <pre><code>
+
+class C {
+  private int v = 123;
+  class C1 {
+     C1() {
+        System.out.println(C.this.v);
+     }
+  }
+
+  void m() {
+     var c1 = new C1();
+
+  }
+
+}
+
+        </code></pre>
+    </div>
+
+    <div class="step slide" data-x="40000" data-y="-1500">
+        <h1>Пример: опасный код</h1>
+        <pre><code>
+class C {
+  private final int v;
+
+  class C1 {
+     C1() {
+        System.out.println(C.this.v);
+     }
+  }
+
+  C(int v) {
+     var c1 = new C1();
+     this.v = v;
+  }
+
+  public static void main(String[] args) {
+        new C(5);
+  }
+}
+
+        </code></pre>
+    </div>
+    <div class="step slide" data-x="41000" data-y="-1500">
+        <h1>record</h1>
+        <ul>
+          <li>Сокращенная форма для класса, с приватными финальными полями</li>
+          <li>Можно добавить компактный конструктор</li>
+          <li>(это официальный термин)</li>
+          <li>Может содержать методы - обычные и статические</li>
+        </ul>
+    </div>
+
+
+
+
+    <div class="step slide" data-x="42000" data-y="-1500">
+        <h1>Ввод-вывод в Java</h1>
+        <ul>
+          <li>Первое API - java.io</li>
+          <li>Довольно регулярное и продуманное</li>
+          <li>Но не очень подходящее для асинхронности</li>
+          <li>Или для переинтерпретации байтовых данных</li>
+          <li>И без готовых высокоуровневых операций</li>
+          <li>Эти проблемы решает новое API - java.nio</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="43000" data-y="-1500">
+        <h1>Понятия java.io</h1>
+        <ul>
+          <li>Первая пара базовых классов - InputStream и OutputStream</li>
+          <li>Работают с потоками байтов</li>
+          <li>Вторая пара базовых классов - Reader и Writer</li>
+          <li>Работают с потоками символов</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="44000" data-y="-1500">
+        <h1>Понятия java.io</h1>
+        <ul>
+          <li>У каждого из базовых классов есть наследники</li>
+          <li>Есть "терминальные" - обеспечивают привязку к реальным источникам или целям</li>
+          <li>Примеры: FileInputStream, FileOutputStream, FileReader, FileWriter</li>
+          <li>Есть "трансформирующие" - преобразуют входной/выходной поток байтов/символов</li>
+          <li>Наследники классов FilterInputStream, FilterOutputStream, FileReader, FileWriter</li>
+        </ul>
+    </div>
+
+
+<!--
+    <div class="step slide" data-x="2000" data-y="-1500">
+        <h1>Структура курса</h1>
+        <ul>
+          <li>Второй блок тем - проблемы хранения данных</li>
+          <li>Принципы кеширования</li>
+          <li>Иерархия механизмов хранения</li>
+          <li>Типы внешних носителей</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="2000" data-y="-1500">
+        <h1>Структура курса</h1>
+        <ul>
+          <li>Третий блок тем - параллельные вычисления в контексте архитектуры</li>
+          <li>Уровни и формы параллелизма</li>
+          <li>Трудности распараллеливания</li>
+          <li>Влияние параллелизма на архитектуру и архитектуры на параллелизм</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="2000" data-y="-1500">
+        <h1>Структура курса</h1>
+        <ul>
+          <li>Четвертый блок тем - сети</li>
+          <li>Сетевое оборудование</li>
+          <li>Общие принципы - с точки зрения аппаратной архитекутуры</li>
+          <li>Введение в распределенные вычисления</li>
+        </ul>
+    </div>
+
+
+    <div class="step slide" data-x="2000" data-y="-1500">
+        <h1>Структура курса</h1>
+        <ul>
+          <li>Пятый блок тем - виртуализация</li>
+          <li>Зачем нужна</li>
+          <li>Виды виртуализации</li>
+          <li>Облачные вычисления</li>
+          <li>Дата-центры</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="2000" data-y="-1500">
+        <h1>Структура курса</h1>
+        <ul>
+          <li>Шестой блок тем - GPU</li>
+          <li>История вопроса</li>
+          <li>Модель вычислений</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="3000" data-y="-1500">
+        <h1>Правила оценивания (возможны небольшие уточнения)</h1>
+        <ul>
+          <li>В первом приближении - оценивание по формуле</li>
+          <li>В отдельных (редких) случаях возможно ручное модерирование</li>
+          <li>Модерирование оценки - мера исключительная и редкая </li>
+          <li>Модерирование оценки обязательно сопровождается объяснением в объективных терминах</li>
+          <li>Модерирование оценки может быть проаппелировано</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="4000" data-y="-1500">
+        <h1>Правила оценивания</h1>
+        <ul>
+          <li>Внутренняя оценка - по 100-бальной шкале</li>
+          <li>Итоговая 100-бальная переводится в 10-бальную</li>
+          <li>Нижний порог зачета - 50 баллов</li>
+          <li>Границы между балламм - с шагом 7: 57, 64, 71, 78, 95, 92</li>
+          <li>Итоговая оценка по формуле 0.5 * Exam + 0.5 * HW </li>
+          <li>Exam - 100 бальная оценка за экзамен</li>
+          <li>HW - 100 бальная оценка за домашки</li>
+        </ul>
+    </div>
+
+
+    <div class="step slide" data-x="5000" data-y="-1500">
+        <h1>Правила оценивания</h1>
+        <ul>
+          <li>Каждая отдельная домашка оценивается на 100 баллов</li>
+          <li>Оценка за домашки в целом - среднее от отдельных домашек</li>
+          <li>У домашек есть дедлайны</li>
+          <li>Пропуск домашки снижает балл, но не фатально</li>
+          <li>Общий смысл правил про дедлайны - мотивация ритмичной и равномерно распределенной работы</li>
+          <li>Сглаживание последствий ситуативных проблем и цейтнотов</li>
+          <li>Регулярные небольшие задержки в сдаче НЕ влияют фатально на оценку</li>
+          <li>Долгие провалы в активности влияют - и сильно</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="6000" data-y="-1500">
+        <h1>Правила про дедлайны</h1>
+        <ul>
+          <li>Дедлайн выставляет в формате dd.mm.yyyy hh:mm</li>
+          <li>Если сдать до указанного времени - работа оценивается без понижающего коэффициента</li>
+          <li>В течение 14 суток действует период линейного понижающего коэффициента</li>
+          <li>В течение суток он уменьшается на 0.05</li>
+          <li>Если работа сдана в течение суток после дедлайна - действует коэффициент 0.95</li>
+          <li>Если задержка больше суток, но меньше двух - действует коэффициент 0.9</li>
+          <li>Если задержка больше 13 суток, но меньше 14 - действует коэффициент 0.35</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="7000" data-y="-1500">
+        <h1>Правила про дедлайны</h1>
+        <ul>
+          <li>После 14 суток понижающий коэффициент выходит на плато</li>
+          <li>Он навечно фиксируется на значении 0.3</li>
+          <li>Небольшая задержка на границе суток может прощаться</li>
+          <li>Минуты - почти наверняка</li>
+          <li>1-2 часа - очень может быть</li>
+          <li>Без гарантий, воспринимайте как бонус</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="8000" data-y="-1500">
+        <h1>Правила про дедлайны</h1>
+        <ul>
+          <li>Есть резерв индивидуального продления дедлайна</li>
+          <li>5 суток на семестр</li>
+          <li>Гранулярность использования - сутки</li>
+          <li>Об использовании нужно уведомить до общего дедлайна</li>
+          <li>Начало линейного спуска и последующего плато для конкретного человека сдвинется на заданное число суток</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="9000" data-y="-1500">
+        <h1>Правила про дедлайны</h1>
+        <ul>
+          <li>Просьбы о сдвиге общего дедлайна сходу не отвергаются</li>
+          <li>Но всесторонне исследуются</li>
+          <li>На решение влияет степень использования индивидуальных продлений</li>
+          <li>И контекст конкретного задания</li>
+          <li>И обсуждение в чате и/или на занятиях</li>
+        </ul>
+    </div>
+
+
+    <div class="step slide" data-x="10000" data-y="-1500">
+        <h1>Правила про доделки</h1>
+        <ul>
+          <li>В домашках возможны доделки</li>
+          <li>Кроме редких индивидуальных случаев - одна итерация</li>
+          <li>Почти всегда решение с доделкой оценивается ниже, чем аналогичное с первого раза</li>
+          <li>Конкретные понижающие коэффициенты зависят от задания и типа ошибок</li>
+          <li>Сценарий типа "отправить абы что, получить подсказки в комментариях, сделать по подсказкам нормальное решение" считается антипаттерном</li>
+          <li>Итоговая оценка будет в таком случае будет в районе 0.5-0.6 от полного балла</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="14000" data-y="-1500">
+        <h1>Критически важные моменты</h1>
+        <ul>
+          <li>Некоторые факты/определения будут помечены как критически важные моменты</li>
+          <li>Отсутствие понимания хотя бы n критически важного моментов делает невозможной оценку за курс (9 - n) и выше</li>
+          <li>(n - положительное число)</li>
+          <li>Пример критически важного момента: отличие процесса и нити</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="15000" data-y="-1500">
+        <h1>Честность и самостоятельность</h1>
+        <ul>
+          <li>Ожидается, что студенты пришли чему-то научиться, а не получить балл любой ценой</li>
+          <li>Самостоятельность работы - обязательное условие прохождения курса</li>
+          <li>При обнаружении признаков несамостоятельности работы возможно снятие штрафных баллов</li>
+          <li>Если несамостоятельность проявляется в копиях работ - штраф накладывается на всех сдавших копии</li>
+          <li>При разительном несоответствии баллз за задание ДЗ из ответа по той же теме на экзамене -
+            баллы за ДЗ могут быть отозваны со штрафом</li>
+          <li>Студент может быть вызван на созвон для беседы о решениях</li>
+          <li>При неспособности поддержать беседу можно получить штрафные баллы</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="16000" data-y="-1500">
+        <h1>Особенности онлайн-обучения</h1>
+        <ul>
+          <li>Онлайн-занятия - это занятия, только в онлайн</li>
+          <li>Ожидается базовая вовлеченность в происходящее</li>
+          <li>Ожидается, что студент выделяет время и место для занятий</li>
+          <li>Базовая этика предполагает приветствие голосом</li>
+          <li>Ответ на вопрос, заданный голосом, ожидается голосом</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="17000" data-y="-1500">
+        <h1>Особенности онлайн-обучения</h1>
+        <ul>
+          <li>Лица слушателей - важный канал обратной связи</li>
+          <li>По умолчанию стараемся включать камеры</li>
+          <li>Качество связи может вносить коррективы</li>
+          <li>У нас нет формы наговаривания аудиолекций</li>
+          <li>При отсутствии студентов занятие не записывается</li>
+          <li>И считается проведенным</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="18000" data-y="-1500">
+        <h1>Посещаемость/активность</h1>
+        <ul>
+          <li>Отсутствие студента на занятия можно интерпретировать так
+          <ol>
+            <li>Человек заболел</li>
+            <li>Человек участвует в университетском мероприятии</li>
+            <li>Человека что-то не устраивает в занятиях</li>
+            <li>Человек и так все знает по данному предмету</li>
+            <li>Что-то другое</li>
+          </ol>
+        </ul>
+    </div>
+
+
+
+
+    <div class="step slide" data-x="19000" data-y="-1500">
+        <h1>Посещаемость/активность</h1>
+        <ul>
+          <li>Болезнь и мероприятия - явления скорее разовые</li>
+          <li>Если что-то не устраивает - имеет смысл дать обратную связь</li>
+          <li>По умолчанию систематически пропускающие люди воспринимаются как и так все знающие</li>
+          <li>Из этого исходим в оценивании</li>
+        </ul>
+    </div>
+
+
+
+    <div class="step slide" data-x="20000" data-y="-1500">
+        <h1>Пересдачи</h1>
+        <ul>
+          <li>Изложенные правила работают до конца сессии</li>
+          <li>Кто не получает зачет в рамках сессии - уходит на пересдача</li>
+          <li>Пересдача - формальный термин, следующий из порядка работы вузов</li>
+          <li>Не обязательно это пересдача устного экзамена</li>
+          <li>Для каждого ушедших на пересдачу предлагается свой план получения зачета</li>
+          <li>Планы индивидуальны, но с в каждом случае с мотивировкой</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="21000" data-y="-1500">
+        <h1>Пересдачи</h1>
+        <ul>
+          <li>Если немного не хватило баллов в общей сумме - скорее всего надо просто доделать какие-то домашки</li>
+          <li>Но доделки будут с учетом стандартных понижающих коэффициентов</li>
+          <li>Если плохо сдан экзамен - скорее всего потребуется пересдать экзамен</li>
+          <li>Если живого места нет - скорее всего потребуется хорошо сдать экзамен и сделать все домашки</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="22000" data-y="-1500">
+        <h1>К делу</h1>
+        <ul>
+          <li>Существует вычислительная аппаратура
+            <ul>
+              <li>Процессор</li>
+              <li>Системная плата</li>
+              <li>Жесткие диски</li>
+              <li>USB-интерфейсы</li>
+              <li>Видеокарты/GPU</li>
+              <li>Клавиатуры</li>
+            </ul>
+          </li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="23000" data-y="-1500">
+        <h1>К делу</h1>
+        <ul>
+          <li>Существует существует прикладное ПО - решающее задачи пользователей</li>
+          <li>Пользователь устанавливает/запускает приложения унифицированным образом</li>
+          <li>Он подает входные данные и забирает выходные данные приложений через вспомогательные сущности - файлы</li>
+          <li>Аппаратура сама по себе ничего не знает про файлы или приложения</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="24000" data-y="-1500">
+        <h1>Как работает аппаратура</h1>
+        <ul>
+          <li>При подаче питания на системную плату процессор пытается начать работу</li>
+          <li>Первым делом он исполняет инструкцию по определенному адресу памяти</li>
+          <li>Теоретически по этому адресу может находиться прикладное ПО</li>
+          <li>Но это будет неудобно - для запуска каждого отдельного приложения нужно готовить содержимое памяти</li>
+          <li>Поэтому запускается вспомогательное ПО</li>
+          <li>Которое берет на себя управление аппаратурой</li>
+          <li>И помогает запускать приложения</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="25000" data-y="-1500">
+        <h1>Роль операционной системы</h1>
+        <ul>
+          <li>Для пользователя - это приложение, которое запускается при старте</li>
+          <li>Помогает запускать другие приложения</li>
+          <li>Помогает управлять данными и общими настройками</li>
+          <li>Для разработчика - это абстракция, выполняющая общесистемные действия</li>
+          <li>И берущее на себя работу с аппаратурой</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="26000" data-y="-1500">
+        <h1>Роль операционной системы</h1>
+        <ul>
+          <li>Разработчик приложения открывает файлы на чтение и/или запись</li>
+          <li>И "просит" выполнить операции записи/чтения</li>
+          <li>Операционная система:
+            <ul>
+               <li>Определяет наличие носителей данных</li>
+               <li>Взаимодействие с ними</li>
+               <li>Организует хранение данных и метаданных на диске</li>
+               <li>Обрабатывает аппаратные сбои</li>
+               <li>Оптимизирует обмен данными через блочные операции, кеширование, префетчинг и т.п.</li>
+             </ul>
+          </li>
+        </ul>
+    </div>
+
+
+    <div class="step slide" data-x="27000" data-y="-1500">
+        <h1>Границы операционной системы</h1>
+        <ul>
+          <li>Не всегда легко провести границу - что есть ОС, а что - уже не ОС</li>
+          <li>Часто употребляют термин "ядро"</li>
+          <li>Неформально, ядро - это то, что "ну точно ОС"</li>
+          <li>Код, который выполняет начинает работу ОС</li>
+          <li>Реализация системных вызовов</li>
+          <li>Совсем базовый пользовательский интерфейс</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="28000" data-y="-1500">
+        <h1>Границы операционной системы</h1>
+        <ul>
+          <li>Остальное можно трактовать по-разному</li>
+          <li>Особенно в Unix-системах</li>
+          <li>Например, командная оболочка</li>
+          <li>Набор стандартных утилит: grep, sed, find</li>
+          <li>Графическая среда</li>
+          <li>В Windows все более монолитно - в силу "закрытости" системы</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="29000" data-y="-1500">
+        <h1>Ядро и дистрибутивы Linux</h1>
+        <ul>
+          <li>Ядро - отдельный проект</li>
+          <li>Можно собрать ядро и установить себе на ноутбук</li>
+          <li>Но его будет мало для повседненых задач</li>
+          <li>Придется установить много дополнительного</li>
+          <li>Скачивая исходники и компилируя</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="30000" data-y="-1500">
+        <h1>Ядро и дистрибутивы Linux</h1>
+        <ul>
+          <li>Дистрибутивы - это ядро + набор установленных программ</li>
+          <li>Среди которых - менеджер пакетов</li>
+          <li>Почти всегда  - графическая оболочки</li>
+          <li>Примеры дистрибутивов: Ubuntu, RedHat, CentOS, Fedora</li>
+        </ul>
+    </div>
+
+-->
+
+
+    <!--
+        
+        * `data-x`, `data-y`, `data-z` - they define the position of **the center** of step element on
+            the canvas in pixels; their default value is 0;
+        * `data-rotate-x`, `data-rotate-y`, 'data-rotate-z`, `data-rotate` - they define the rotation of
+            the element around given axis in degrees; their default value is 0; `data-rotate` and `data-rotate-z`
+            are exactly the same;
+        * `data-scale` - defines the scale of step element; default value is 1
+        
+        These values are used by impress.js in CSS transformation functions, so for more information consult
+        CSS transfrom docs: https://developer.mozilla.org/en/CSS/transform
+        
+    -->
+    <div id="overview" class="step" data-x="3000" data-y="1500" data-z="0" data-scale="10">
+    </div>
+
+</div>
+
+<!--
+    This is a UI plugin. You can read more about plugins in src/plugins/README.md.
+    For now, I'll just tell you that this adds some graphical controls to navigate the
+    presentation. In the CSS file you can style them as you want. We've put them bottom right.
+-->
+<div id="impress-toolbar"></div>
+
+<!--
+    
+    Hint is not related to impress.js in any way.
+    
+    But it can show you how to use impress.js features in creative way.
+    
+    When the presentation step is shown (selected) its element gets the class of "active" and the body element
+    gets the class based on active step id `impress-on-ID` (where ID is the step's id)... It may not be
+    so clear because of all these "ids" in previous sentence, so for example when the first step (the one with
+    the id of `bored`) is active, body element gets a class of `impress-on-bored`.
+    
+    This class is used by this hint below. Check CSS file to see how it's shown with delayed CSS animation when
+    the first step of presentation is visible for a couple of seconds.
+    
+    ...
+    
+    And when it comes to this piece of JavaScript below ... kids, don't do this at home ;)
+    It's just a quick and dirty workaround to get different hint text for touch devices.
+    In a real world it should be at least placed in separate JS file ... and the touch content should be
+    probably just hidden somewhere in HTML - not hard-coded in the script.
+    
+    Just sayin' ;)
+    
+-->
+<div class="hint">
+    <p>Use a spacebar or arrow keys to navigate. <br/>
+       Press 'P' to launch speaker console.</p>
+</div>
+<script>
+if ("ontouchstart" in document.documentElement) { 
+    document.querySelector(".hint").innerHTML = "<p>Swipe left or right to navigate</p>";
+}
+</script>
+
+<!--
+    
+    Last, but not least.
+    
+    To make all described above really work, you need to include impress.js in the page.
+    I strongly encourage to minify it first.
+    
+    In here I just include full source of the script to make it more readable.
+    
+    You also need to call a `impress().init()` function to initialize impress.js presentation.
+    And you should do it in the end of your document. Not only because it's a good practice, but also
+    because it should be done when the whole document is ready.
+    Of course you can wrap it in any kind of "DOM ready" event, but I was too lazy to do so ;)
+    
+-->
+<script src="js/impress.js"></script>
+<script>impress().init();</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<!-- Include any specific language files AFTER the main library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/python.min.js"></script>
+
+<script>hljs.highlightAll();</script>
+<!--
+    
+    The `impress()` function also gives you access to the API that controls the presentation.
+    
+    Just store the result of the call:
+    
+        var api = impress();
+    
+    and you will get three functions you can call:
+    
+        `api.init()` - initializes the presentation,
+        `api.next()` - moves to next step of the presentation,
+        `api.prev()` - moves to previous step of the presentation,
+        `api.goto( stepIndex | stepElementId | stepElement, [duration] )` - moves the presentation to the step given by its index number
+                id or the DOM element; second parameter can be used to define duration of the transition in ms,
+                but it's optional - if not provided default transition duration for the presentation will be used.
+    
+    You can also simply call `impress()` again to get the API, so `impress().next()` is also allowed.
+    Don't worry, it won't initialize the presentation again.
+    
+    For some example uses of this API check the last part of the source of impress.js where the API
+    is used in event handlers.
+    
+-->
+
+</body>
+</html>
+
+<!--
+    
+    Now you know more or less everything you need to build your first impress.js presentation, but before
+    you start...
+    
+    Oh, you've already cloned the code from GitHub?
+    
+    You have it open in text editor?
+    
+    Stop right there!
+    
+    That's not how you create awesome presentations. This is only a code. Implementation of the idea that
+    first needs to grow in your mind.
+    
+    So if you want to build great presentation take a pencil and piece of paper. And turn off the computer.
+    
+    Sketch, draw and write. Brainstorm your ideas on a paper. Try to build a mind-map of what you'd like
+    to present. It will get you closer and closer to the layout you'll build later with impress.js.
+    
+    Get back to the code only when you have your presentation ready on a paper. It doesn't make sense to do
+    it earlier, because you'll only waste your time fighting with positioning of useless points.
+    
+    If you think I'm crazy, please put your hands on a book called "Presentation Zen". It's all about 
+    creating awesome and engaging presentations.
+    
+    Think about it. 'Cause impress.js may not help you, if you have nothing interesting to say.
+    
+-->
+
+<!--
+    
+    Are you still reading this?
+    
+    For real? I'm impressed! 
+    
+    But now, take my advice and take some time off. Make yourself a cup of coffee, tea,
+    or anything you like to drink.
+    
+    Cheers!
+    
+-->
+
