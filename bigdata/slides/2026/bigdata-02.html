@@ -1,0 +1,1118 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1024" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <title>Большие данные: лекция 2</title>
+    
+    <meta name="description" content="impress.js is a presentation tool based on the power of CSS3 transforms and transitions in modern browsers and inspired by the idea behind prezi.com." />
+    <meta name="author" content="Bartek Szopka" />
+
+    <link href="//fonts.googleapis.com/css?family=Open+Sans:regular,semibold,italic,italicsemibold|PT+Sans:400,700,400italic,700italic|PT+Serif:400,700,400italic,700italic" rel="stylesheet" />
+
+    <link href="css/impress-demo.css" rel="stylesheet" />
+    <link href="css/impress-common.css" rel="stylesheet" />
+    
+    <link rel="shortcut icon" href="favicon.png" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/default.min.css">
+
+</head>
+
+<body class="impress-not-supported">
+
+<div class="fallback-message">
+    <p>Your browser <b>doesn't support the features required</b> by impress.js, so you are presented with a simplified version of this presentation.</p>
+    <p>For the best experience please use the latest <b>Chrome</b>, <b>Safari</b> or <b>Firefox</b> browser.</p>
+</div>
+
+<div id="impress"
+    data-transition-duration="1000"
+    
+    data-width="1024"
+    data-height="768"
+    data-max-scale="3"
+    data-min-scale="0"
+    data-perspective="1000"
+    >
+
+    <div class="step slide" data-x="-1000" data-y="-1500">
+        <h1>Технологии хранения и обработки больших данных. Лекция 2</h1>
+        <ul>
+        <li>Форматы хранения данных в HDFS</li>
+        </ul>
+    </div>
+
+
+    <div class="step slide" data-x="0" data-y="-1500">
+        <h1>Форматы хранения данных в HDFS</h1>
+        <ul>
+        <li>В первом приближении - никаких специальных форматов нет</li>
+        <li>Храним файл как набор байтов</li>
+        <li>Но нужна какая-то структура для удобства обработки</li>
+        <li>Первое требование к структуре - способность хранить содержимое как набор записей</li>
+        <li>Относительно небольших</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="1000" data-y="-1500">
+        <h1>Форматы хранения данных в HDFS</h1>
+        <ul>
+          <li>Нужен формат представления для таблицы в целом</li>
+          <li>И для отдельной записи</li>
+          <li>Это может быть универсальный формат — определяющий оба уровня представления</li>
+          <li>А может быть для отдельных формата</li>
+          <li>Один - позволяющий найти границы между записями как наборами байтов</li>
+          <li>Второй - интерпретирующий наборы байтов</li>
+        </ul>
+    </div>
+
+
+    <div class="step slide" data-x="2000" data-y="-1500">
+        <h1>Что нужно от форматов</h1>
+        <ul>
+          <li>От "глобального" в первую очередь - возможность легко поделить содержимое по границам</li>
+          <li>Чтобы это легко делалось "локально"</li>
+          <li>Без необходимости для этого файл от начала до конца</li>
+          <li>Важно удобство создания файла в контексте HDFS</li>
+          <li>Не хотим в начале файла хранить метаданные, значения которых могут меняться по мере дозаписывания данных"</li>
+          <li>От локального - компактности</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="3000" data-y="-1500">
+        <h1>Что не подходит для "глобального"</h1>
+        <ul>      
+          <li>Любое "глобальное" архивирование</li>
+          <li>Весь документ как JSON</li>
+          <li>Или как другой иерарихический формат</li>
+          <li>Важный вопрос: легко ли из точки внутри файла найти границу записей ?</li>
+          <li>Если нет - формат не подходит</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="4000" data-y="-1500">
+        <h1>Что подходит для глобального</h1>
+        <ul>
+          <li>Текстовый файл с выделенными разделителями строк</li>
+          <li>(Если строка разумной длины)</li>
+          <li>Выделенная константа как размер записи</li>
+          <li>(Если константа разумной величины)</li>
+          <li>Соглашения на уровне байтов</li>
+          <li>Что легко отличать последние или первые байты записи</li>
+        </ul>
+    </div>
+
+
+    <div class="step slide" data-x="5000" data-y="-1500">
+        <h1>Что c локальным</h1>
+        <ul>
+          <li>Зависит от глобального</li>
+          <li>При глобальной разметке на фиксированный размер записи - можно и запись разбить фиксированные поля</li>
+          <li>Но можно хранить произвольный байтовый кусок с паддингом</li>
+          <li>Тогда случай с текстовый разделителем мало отличается от фиксированного размера</li>
+          <li>Смешанный вариант: сначала поля фиксированного размера, потом часть переменной длины</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="6000" data-y="-1500">
+        <h1>Что c локальным</h1>
+        <ul>
+          <li>Классика - семейство CSV</li>
+          <li>На уровне записи может пригодиться JSON</li>
+          <li>Запись - JSON-документ</li>
+          <li>Может потребоваться кодирования для разделителей</li>
+          <li>Может пригодиться base32/64</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="7000" data-y="-1500">
+        <h1>Что c локальным</h1>
+        <ul>
+          <li>Приоритет - экономия размера</li>
+          <li>В контексте больших данных "микрооптимизации" значимы</li>
+          <li>Даже сокращение общего объема в 2 раза может быть полезным</li>
+          <li>В контексте MapReduce - больше локальных вычислений</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="8000" data-y="-1500">
+        <h1>protobuf</h1>
+        <ul>
+          <li>Широко применяется в разных контекстах</li>
+          <li>Уже поэтому заслуживает внимания</li>
+          <li>Как минимум на уровне записи</li>
+          <li>Встает вопрос о границах записей</li>
+        </ul>
+    </div>
+
+
+    <div class="step slide" data-x="9000" data-y="-1500">
+        <h1>protobuf: обзор</h1>
+        <ul>
+        <li>Бинарный формат сериализации данных от Google, схема описывается в .proto-файле</li>
+        <li>Схема описывается в .proto-файле</li>
+        <li>Прямая и обратная совместимость заложена в сам формат: новые поля не ломают старых читателей, и наоборот</li>
+        <li>Сообщение — это последовательность полей вида "тег + значение"</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="10000" data-y="-1500">
+        <h1>Структура сообщения на уровне байт</h1>
+        <pre><code>[тег][значение][тег][значение]...</code></pre>
+        <ul>
+        <li>Сообщение protobuf — это просто конкатенация записей "тег, затем значение", без разделителей и без имён полей</li>
+        <li>Тег кодирует одновременно номер поля (из .proto) и wire type — способ, которым закодировано само значение</li>
+        <li>Порядок полей в байтах не обязан совпадать с порядком в .proto-файле</li>
+        <li>На бинарном уровне нет схемы</li>
+        <li>Соовместимость писателя и читателя - ответственность пользователя</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="11000" data-y="-1500">
+        <h1>Varint: переменная длина</h1>
+        <pre><code>300 в varint: 10101100 00000010
+              ^        ^
+              бит      бит
+              продолж. продолж.
+              =1       =0</code></pre>
+        <ul>
+        <li>Целое число кодируется группами по 7 значащих бит на байт</li>
+        <li>Старший бит каждого байта (MSB) — флаг продолжения: 1 значит "далее ещё байт", 0 — "это последний байт"</li>
+        <li>Младшая группа из 7 бит идёт первой (little-endian по группам) — поэтому число 300 требует 2 байта, а не помещается в один (300 > 127)</li>
+        <li>Маленькие числа (0-127) кодируются одним байтом — именно на этом основана компактность protobuf для типичных данных</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="12000" data-y="-1500">
+        <h1>Тег: номер поля + wire type</h1>
+        <pre><code>tag = (номер_поля &lt;&lt; 3) | wire_type</code></pre>
+        <ul>
+        <li>Тег — это сам varint, в который упакованы сразу два значения</li>
+        <li>Младшие 3 бита тега — wire type (0-5), всё остальное — номер поля, сдвинутый влево на 3 бита</li>
+        <li>Поэтому номера полей 1-15 умещаются в тег из одного байта (рекомендуется отдавать маленькие номера полей часто используемым полям)</li>
+        <li>Пример: поле №1, wire type 0 (varint) — tag = (1 &lt;&lt; 3) | 0 = 8</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="13000" data-y="-1500">
+        <h1>Все wire types</h1>
+        <ul>
+        <li>0 — Varint: int32/int64, uint32/uint64, sint32/sint64, bool, enum</li>
+        <li>1 — I64 (64-bit): fixed64, sfixed64, double — ровно 8 байт, без varint-сжатия</li>
+        <li>2 — Len (length-delimited): string, bytes, вложенные сообщения, packed repeated-поля</li>
+        <li>5 — I32 (32-bit): fixed32, sfixed32, float — ровно 4 байта</li>
+        </ul>
+    </div>
+
+
+    <div class="step slide" data-x="14000" data-y="-1500">
+        <h1>Целочисленные типы: int32/uint32/sint32</h1>
+        <ul>
+        <li>Все три используют wire type 0 (varint) — разница только в том, как именно число превращается в биты перед varint-кодированием</li>
+        <li>uint32/uint64 — прямое кодирование беззнакового значения</li>
+        <li>int32/int64 — отрицательное число сначала расширяется знаком до 64 бит (обычное дополнение до двух), а затем кодируется как varint</li>
+        <li>Следствие: любое отрицательное число, закодированное как int32, всегда занимает 10 байт — все верхние биты 64-битного представления единичные</li>
+        <li>Именно поэтому для полей, где ожидаются отрицательные значения, protobuf рекомендует не int32, а sint32</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="15000" data-y="-1500">
+        <h1>ZigZag: эффективное кодирование отрицательных чисел</h1>
+        <pre><code>zigzag(n) = (n &lt;&lt; 1) ^ (n &gt;&gt; 31)   // для 32-битных значений
+
+0  -&gt; 0
+-1 -&gt; 1
+1  -&gt; 2
+-2 -&gt; 3</code></pre>
+        <ul>
+        <li>sint32/sint64 используют ZigZag-преобразование перед обычным varint-кодированием</li>
+        <li>Идея: положительное n превращается в 2n, отрицательное n — в 2|n|-1 — числа чередуются: 0, -1, 1, -2, 2, ...</li>
+        <li>В результате маленькие по модулю отрицательные числа получают такой же компактный varint, как и маленькие положительные — в отличие от обычного int32</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="16000" data-y="-1500">
+        <h1>fixed32/fixed64: альтернатива varint</h1>
+        <ul>
+        <li>wire type 5 (fixed32) и wire type 1 (fixed64) — значение записывается ровно 4 или 8 байтами, без варьируемой длины</li>
+        <li>Используются для double/float (там varint неприменим — это не целые числа) и для fixed32/fixed64/sfixed32/sfixed64</li>
+        <li>Имеет смысл для полей, где значения обычно большие: varint для большого числа занял бы 5 байт (32-битный кейс) — столько же или больше, чем фиксированные 4 байта, но без выигрыша</li>
+        <li>Выбор между varint-based (int32) и fixed32 — компромисс, зависящий от типичного диапазона значений конкретного поля</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="17000" data-y="-1500">
+        <h1>Length-delimited поля (wire type 2)</h1>
+        <pre><code>[тег][varint длина][сырые байты длиной ровно "длина"]</code></pre>
+        <ul>
+        <li>Единый механизм для string, bytes, вложенных сообщений — и, отдельно, для packed repeated-полей (следующий слайд)</li>
+        <li>После тега идёт varint с точной длиной данных, а затем сами данные — ровно столько байт, сколько указано</li>
+        <li>Вложенное сообщение кодируется точно так же: как последовательность байт, которая сама по себе является валидным protobuf-сообщением</li>
+        <li>Именно длина-префикс позволяет парсеру пропустить целиком неизвестное/незначимое поле, не разбирая его содержимое</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="18000" data-y="-1500">
+        <h1>Как представлены массивы (repeated-поля)</h1>
+        <pre><code>// unpacked: тег повторяется для каждого элемента
+[тег][val1][тег][val2][тег][val3]
+
+// packed: один тег, суммарная длина, значения подряд без отдельных тегов
+[тег][varint длина][val1][val2][val3]</code></pre>
+        <ul>
+        <li>Unpacked-представление — каждый элемент массива записывается как отдельное поле с одним и тем же номером, идущее несколько раз подряд (или не подряд)</li>
+        <li>Packed-представление — для скалярных числовых типов (varint/fixed) все элементы упаковываются в одно length-delimited поле (wire type 2), без повторения тега на каждый элемент</li>
+        <li>В proto3 packed-кодирование — поведение по умолчанию для repeated-полей скалярных числовых типов, что даёт заметную экономию на больших массивах</li>
+        <li>string/bytes/вложенные сообщения принципиально нельзя упаковать в packed-виде — они и так уже length-delimited и требуют собственного тега на каждый элемент</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="19000" data-y="-1500">
+        <h1>Байтовая раскладка типичного сообщения</h1>
+        <a href="protobuf_message_layout.png" target="_blank">
+            <img src="protobuf_message_layout.png" alt="Байтовая раскладка типичного protobuf-сообщения: поле id (varint), поле name (length-delimited), поле scores (packed repeated)" style="max-width: 100%; height: auto;">
+        </a>
+    </div>
+
+    <div class="step slide" data-x="20000" data-y="-1500">
+        <h1>Protobuf для одной записи в HDFS: преимущества</h1>
+        <ul>
+        <li>Компактность за счёт varint и packed repeated-полей</li>
+        <li>Эволюция схемы: важно, когда данные в HDFS живут годами, а пишущих и читающих сервисов много и они эволюционируют независимо</li>
+        <li>Быстрый разбор по сравнению с текстовыми форматами (JSON/XML) — при сканировании огромных объёмов в MapReduce/Spark разница в CPU на па
+рсинг становится ощутимой</li>
+        <li>Межъязыковая генерация кода</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="21000" data-y="-1500">
+        <h1>Проблема: сообщения сами по себе не ограничены</h1>
+        <pre><code>// без длины — читатель не поймёт, где кончается одна запись и начинается следующая
+[байты записи 1][байты записи 2][байты записи 3]...
+
+// с явным префиксом длины — writeDelimitedTo() в Java API
+[varint длина][запись 1][varint длина][запись 2]...</code></pre>
+        <ul>
+        <li>Формат protobuf сам по себе не самоограничен: если просто склеить много сообщений подряд в один файл, нет способа узнать, где заканчивается одна запись — ровно та же проблема, что решает length-delimited wire type внутри одного сообщения (см. предыдущие слайды), только теперь на уровне всего файла</li>
+        <li>Решение — вручную добавлять префикс длины перед каждой записью (в Java API это writeDelimitedTo()/parseDelimitedFrom())</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="22000" data-y="-1500">
+        <h1>Проблема: разбиение</h1>
+        <ul>
+        <li>Не найти начало ближайшей записи, не читая файл с самого начала</li>
+        <li>Даже с префиксами длины поток protobuf-сообщений не даёт такой возможности "с середины" — нет маркеров синхронизации</li>
+        <li>Вариант решения: оборачивать в контейнерный формат</li>
+        <li>Простейший способ - base64 + переводы строк</li>
+        </ul>
+    </div>
+<div class="step slide" data-x="23000" data-y="-1500">
+    <h1>Avro</h1>
+    <ul>
+        <li><strong>Разбиваемость</strong> — файлы можно делить на части для параллельной обработки.</li>
+        <li><strong>Компактность</strong> — сопоставимо с protobuf.</li>
+        <li><strong>Схема в файле</strong> — самодостаточность данных.</li>
+        <li><strong>Поддержка MapReduce</strong> — нативная интеграция.</li>
+    </ul>
+</div>
+<div class="step slide" data-x="24000" data-y="-1500">
+    <h1>Схема (Schema)</h1>
+    <ul>
+        <li>Схема — это JSON-документ, описывающий структуру данных.</li>
+        <li>Пример схемы:
+            <pre><code>{
+  "type": "record",
+  "name": "User",
+  "fields": [
+    {"name": "id", "type": "int"},
+    {"name": "name", "type": "string"},
+    {"name": "email", "type": ["null", "string"], "default": null}
+  ]
+}</code></pre>
+        </li>
+        <li>Схема хранится <strong>внутри файла</strong></li>
+    </ul>
+</div>
+
+<div class="step slide" data-x="25000" data-y="-1500">
+    <h1>Примитивные типы</h1>
+    <ul>
+        <li><strong>null</strong> — отсутствие значения</li>
+        <li><strong>boolean</strong> — true/false</li>
+        <li><strong>int</strong> — 32-битное целое</li>
+        <li><strong>long</strong> — 64-битное целое</li>
+        <li><strong>float</strong> — 32-битное с плавающей точкой</li>
+        <li><strong>double</strong> — 64-битное с плавающей точкой</li>
+        <li><strong>bytes</strong> — последовательность байтов</li>
+        <li><strong>string</strong> — текст (UTF-8)</li>
+    </ul>
+</div>
+<div class="step slide" data-x="26000" data-y="-1500">
+    <h1>Представление примитивных типов: Avro</h1>
+    <ul>
+        <li><strong>Пример: запись User { id: 123, name: "Alice" }</strong></li>
+        <li>Схема известна заранее (хранится в заголовке файла)</li>
+        <li>Данные (только значения):
+            <pre><code>0xF6 0x01  // id = 123 (varint)
+0x05       // длина строки = 5
+0x41 0x6C 0x69 0x63 0x65
+           // "Alice" (UTF-8)
+// Итого: 8 байт</code></pre>
+        </li>
+    </ul>
+</div>
+<div class="step slide" data-x="27000" data-y="-1500">
+    <h1>Представление примитивных типов: Protobuf</h1>
+    <ul>
+        <li><strong>Пример: запись User { id: 123, name: "Alice" }</strong></li>
+        <li>Схема в .proto файле, компилируется в классы</li>
+        <li>Данные (тег + значение):
+            <pre><code>0x08 0x7B  // tag=0x08 (field 1,
+            // varint) + id=123
+0x0A 0x05  // tag=0x0A (field 2,
+            // length-delimited)
+            // + длина = 5
+0x41 0x6C 0x69 0x63 0x65
+           // "Alice" (UTF-8)
+// Итого: 10 байт</code></pre>
+        </li>
+    </ul>
+</div>
+<div class="step slide" data-x="28000" data-y="-1500">
+    <h1>Почему Avro не хранит теги полей?</h1>
+    <ul>
+        <li><strong>Avro: схема отдельно от данных</strong></li>
+        <li>Схема хранится в <strong>заголовке файла</strong> или в <strong>реестре схем</strong></li>
+        <li>Читатель знает <strong>порядок</strong> и <strong>типы</strong> полей заранее</li>
+        <li>В данных — <strong>только значения</strong> в строгом порядке</li>
+        <li>Нет необходимости в тегах — позиция определяет поле</li>
+        <li>Пример: если схема говорит <code>{"id": int, "name": string}</code>, то читатель знает: первый varint — id, следующая строка — name.</li>
+    </ul>
+</div>
+<div class="step slide" data-x="29000" data-y="-1500">
+    <h1>Protobuf: теги обязательны</h1>
+    <ul>
+        <li>Каждое поле помечается <strong>тегом</strong> (номер поля + тип)</li>
+        <li>Тег — это <strong>1-2 байта</strong> перед каждым значением</li>
+        <li>Обеспечивает <strong>гибкость</strong>:
+            <ul>
+                <li>Пропуск неизвестных полей</li>
+                <li>Изменение порядка полей</li>
+                <li>Добавление новых полей</li>
+            </ul>
+        </li>
+        <li>Теги — это <strong>цена за самодостаточность</strong> сообщения.</li>
+    </ul>
+</div>
+<div class="step slide" data-x="30000" data-y="-1500">
+    <h1>Сравнение размеров</h1>
+    <ul>
+        <li><strong>int = 1</strong>: Avro — 1 байт, Protobuf — 2 байта (tag + value), разница -50%</li>
+        <li><strong>string = "A"</strong>: Avro — 2 байта (len + char), Protobuf — 3 байта (tag + len + char), разница -33%</li>
+        <li><strong>record с 3 полями</strong>: Avro — ~10 байт, Protobuf — ~16 байт, разница -37%</li>
+        <li><strong>массив из 100 int</strong>: Avro — ~100 байт, Protobuf — ~200 байт, разница -50%</li>
+        <li><strong>Вывод:</strong>
+            <ul>
+                <li>Avro экономит 20-50% места за счёт отказа от тегов</li>
+                <li>Protobuf платит 1-2 байта за поле ради самодостаточности</li>
+                <li>Для HDFS, где схема уже в файле, подход Avro эффективнее</li>
+                <li>Для сетевых протоколов, где сообщения читаются независимо, Protobuf удобнее</li>
+            </ul>
+        </li>
+    </ul>
+</div>
+<div class="step slide" data-x="31000" data-y="-1500">
+    <h1>Опциональные поля в Avro</h1>
+    <ul>
+        <li>Объявление в схеме:
+            <pre><code>{
+  "type": "record",
+  "name": "User",
+  "fields": [
+    {"name": "id", "type": "int"},
+    {"name": "name", "type": "string"},
+    {"name": "email", "type": ["null", "string"], "default": null}
+  ]
+}</code></pre>
+        </li>
+        <li>Поле <code>email</code> — это union из двух типов: <code>null</code> и <code>string</code>.</li>
+        <li>Порядок важен: <code>["null", "string"]</code> означает, что <code>null</code> — это индекс 0, <code>string</code> — индекс 1.</li>
+    </ul>
+</div>
+<div class="step slide" data-x="32000" data-y="-1500">
+    <h1>Представление опциональных полей</h1>
+    <ul>
+        <li><code>email = null</code>:
+            <pre><code>0x00  // индекс union = 0 (null)
+// Всего 1 байт</code></pre>
+        </li>
+        <li><code>email = "a@b.com"</code>:
+            <pre><code>0x01       // индекс union = 1 (string)
+0x07       // длина строки = 7
+0x61 0x40 0x62 0x2E 0x63 0x6F 0x6D
+           // "a@b.com"
+// Всего 9 байт</code></pre>
+        </li>
+        <li>Ключевое: перед значением union всегда пишется 1 байт — индекс типа в union.</li>
+    </ul>
+</div>
+
+
+
+
+<div class="step slide" data-x="33000" data-y="-1500">
+    <h1>Опциональные поля: Avro vs Protobuf</h1>
+    <ul>
+        <li><strong>Объявление</strong>: Avro — <code>["null", "string"]</code>, Protobuf — <code>optional string email = 3;</code></li>
+        <li><strong>null представление</strong>: Avro — 1 байт (индекс 0), Protobuf — 0 байт (поле отсутствует)</li>
+        <li><strong>значение представление</strong>: Avro — 1 байт (индекс) + данные, Protobuf — тег + данные</li>
+        <li><strong>Размер null</strong>: Avro — 1 байт, Protobuf — 0 байт</li>
+        <li><strong>Размер значения</strong>: Avro — 1 + data, Protobuf — tag + data</li>
+        <li><strong>Особенность Avro</strong>: даже null занимает 1 байт (индекс union). Protobuf экономит на отсутствующих полях — они просто не пишутся.</li>
+        <li><strong>Компенсация</strong>: для заполненных полей Avro может быть компактнее, так как не хранит теги.</li>
+    </ul>
+</div>
+<div class="step slide" data-x="34000" data-y="-1500">
+    <h1>Union — не только для null</h1>
+    <ul>
+        <li>Union в Avro может содержать любые типы, не только null:
+            <pre><code>// Поле может быть строкой ИЛИ числом
+{"name": "value", "type": ["string", "int"]}
+
+// Поле может быть записью ИЛИ массивом
+{"name": "data", "type": ["Record", "array"]}
+
+// Несколько опциональных типов
+{"name": "result", "type": ["null", "int", "string", "Error"]}</code></pre>
+        </li>
+    </ul>
+</div>
+<div class="step slide" data-x="35000" data-y="-1500">
+    <h1>Union — представление и ограничения</h1>
+    <ul>
+        <li>Индекс типа в union всегда пишется перед значением:
+            <pre><code>// ["null", "int", "string"]
+0x00  // null
+0x01 0x7B  // int = 123
+0x02 0x03 0x66 0x6F 0x6F  // string = "foo"</code></pre>
+        </li>
+        <li>Ограничение: union не может содержать два одинаковых типа (например, <code>["string", "string"]</code> — ошибка). Также нельзя использовать union внутри union.</li>
+    </ul>
+</div>
+<div class="step slide" data-x="36000" data-y="-1500">
+    <h1>Default значения для опциональных полей</h1>
+    <ul>
+        <li>Пример схемы:
+            <pre><code>{
+  "type": "record",
+  "name": "User",
+  "fields": [
+    {"name": "id", "type": "int"},
+    {"name": "name", "type": "string"},
+    {"name": "email",
+     "type": ["null", "string"],
+     "default": null},  // ← default обязателен для union
+    {"name": "age",
+     "type": ["null", "int"],
+     "default": null}
+  ]
+}</code></pre>
+        </li>
+    </ul>
+</div>
+<div class="step slide" data-x="37000" data-y="-1500">
+    <h1>Default значения: правила и эволюция</h1>
+    <ul>
+        <li>Правила default:
+            <ul>
+                <li>Для union с null, default должен быть null</li>
+                <li>Default используется при чтении старых данных с новой схемой</li>
+                <li>Если поле отсутствует в данных, читатель подставляет default</li>
+            </ul>
+        </li>
+        <li>Пример эволюции:
+            <pre><code>// Старая схема (данные без email)
+{"id": 1, "name": "Alice"}
+
+// Новая схема (email добавлен)
+// Читатель видит: email отсутствует → default = null
+// Результат: {"id": 1, "name": "Alice", "email": null}</code></pre>
+        </li>
+    </ul>
+</div>
+
+
+<div class="step slide" data-x="38000" data-y="-1500">
+    <h1>Default значения для опциональных полей</h1>
+    <ul>
+        <li>Пример схемы:
+            <pre><code>{
+  "type": "record",
+  "name": "User",
+  "fields": [
+    {"name": "id", "type": "int"},
+    {"name": "name", "type": "string"},
+    {"name": "email",
+     "type": ["null", "string"],
+     "default": null},  // ← default обязателен для union
+    {"name": "age",
+     "type": ["null", "int"],
+     "default": null}
+  ]
+}</code></pre>
+        </li>
+    </ul>
+</div>
+<div class="step slide" data-x="39000" data-y="-1500">
+    <h1>Default значения: правила и эволюция</h1>
+    <ul>
+        <li>Правила default:
+            <ul>
+                <li>Для union с null, default должен быть null</li>
+                <li>Default используется при чтении старых данных с новой схемой</li>
+                <li>Если поле отсутствует в данных, читатель подставляет default</li>
+            </ul>
+        </li>
+        <li>Пример эволюции:
+            <pre><code>// Старая схема (данные без email)
+{"id": 1, "name": "Alice"}
+
+// Новая схема (email добавлен)
+// Читатель видит: email отсутствует → default = null
+// Результат: {"id": 1, "name": "Alice", "email": null}</code></pre>
+        </li>
+    </ul>
+</div>
+<div class="step slide" data-x="40000" data-y="-1500">
+    <h1>Сложные типы</h1>
+    <ul>
+        <li>record — структура с полями (как класс).</li>
+        <li>enum — перечисление.</li>
+        <li>array — список однотипных элементов.</li>
+        <li>map — словарь ключ-значение.</li>
+        <li>union — объединение типов (например, <code>["null", "string"]</code>).</li>
+        <li>fixed — фиксированный набор байтов.</li>
+        <li>Это позволяет моделировать различные структуры данных.</li>
+    </ul>
+</div>
+<div class="step slide" data-x="41000" data-y="-1500">
+    <h1>Record: Avro</h1>
+    <ul>
+        <li>Схема (JSON):
+            <pre><code>{
+  "type": "record",
+  "name": "User",
+  "fields": [
+    {"name": "id", "type": "int"},
+    {"name": "name", "type": "string"}
+  ]
+}</code></pre>
+        </li>
+        <li>Данные (только значения):
+            <pre><code>0xF6 0x01  // id = 123
+0x05       // len = 5
+0x41 0x6C 0x69 0x63 0x65
+           // "Alice"</code></pre>
+        </li>
+        <li>Поля в строгом порядке, без тегов</li>
+    </ul>
+</div>
+
+
+
+<div class="step slide" data-x="42000" data-y="-1500">
+    <h1>Record: Protobuf и сравнение</h1>
+    <ul>
+        <li>Схема (.proto):
+            <pre><code>message User {
+  int32 id = 1;
+  string name = 2;
+}</code></pre>
+        </li>
+        <li>Данные (тег + значение):
+            <pre><code>0x08 0x7B  // tag(1,varint) + 123
+0x0A 0x05  // tag(2,length) + len=5
+0x41 0x6C 0x69 0x63 0x65
+           // "Alice"</code></pre>
+        </li>
+        <li>Каждое поле с тегом</li>
+        <li>Разница: Avro — 8 байт, Protobuf — 10 байт. Avro компактнее на 20%.</li>
+    </ul>
+</div>
+<div class="step slide" data-x="43000" data-y="-1500">
+    <h1>Enum: Avro</h1>
+    <ul>
+        <li>Схема (JSON):
+            <pre><code>{
+  "type": "enum",
+  "name": "Status",
+  "symbols": ["ACTIVE", "INACTIVE", "BANNED"]
+}</code></pre>
+        </li>
+        <li>Данные:
+            <pre><code>0x01  // индекс = 1 (INACTIVE)
+// Размер: 1 байт</code></pre>
+        </li>
+        <li>Хранится индекс символа</li>
+    </ul>
+</div>
+<div class="step slide" data-x="44000" data-y="-1500">
+    <h1>Enum: Protobuf и сравнение</h1>
+    <ul>
+        <li>Схема (.proto):
+            <pre><code>enum Status {
+  ACTIVE = 0;
+  INACTIVE = 1;
+  BANNED = 2;
+}</code></pre>
+        </li>
+        <li>Данные (как int32):
+            <pre><code>0x08 0x01  // tag(1,varint) + 1
+// Размер: 2 байта</code></pre>
+        </li>
+        <li>Хранится как число с тегом</li>
+        <li>Разница: Avro — 1 байт, Protobuf — 2 байта. Avro компактнее на 50%.</li>
+    </ul>
+</div>
+
+
+<div class="step slide" data-x="45000" data-y="-1500">
+    <h1>Array: Avro</h1>
+    <ul>
+        <li>Схема (JSON):
+            <pre><code>{
+  "type": "array",
+  "items": "int"
+}</code></pre>
+        </li>
+        <li>Данные: [1, 2, 3]
+            <pre><code>0x06       // блок: 3 элемента (count*2)
+0x01       // 1
+0x02       // 2
+0x03       // 3
+0x00       // конец массива
+// Размер: 5 байт</code></pre>
+        </li>
+        <li>Блоки по N элементов + маркер конца</li>
+    </ul>
+</div>
+<div class="step slide" data-x="46000" data-y="-1500">
+    <h1>Array: Protobuf и сравнение</h1>
+    <ul>
+        <li>Схема (.proto):
+            <pre><code>message List {
+  repeated int32 items = 1;
+}</code></pre>
+        </li>
+        <li>Данные: [1, 2, 3]
+            <pre><code>0x08 0x01  // tag(1,varint) + 1
+0x08 0x02  // tag(1,varint) + 2
+0x08 0x03  // tag(1,varint) + 3
+// Размер: 6 байт</code></pre>
+        </li>
+        <li>Каждый элемент с тегом</li>
+        <li>Разница: Avro — 5 байт, Protobuf — 6 байт. Для больших массивов разница растёт.</li>
+    </ul>
+</div>
+
+<div class="step slide" data-x="47000" data-y="-1500">
+    <h1>Map: схема</h1>
+    <ul>
+        <li>Схема (JSON):
+            <pre><code>{
+  "type": "map",
+  "values": "int"
+}</code></pre>
+        </li>
+        <li>Ключ всегда строка, пары в блоках</li>
+    </ul>
+</div>
+<div class="step slide" data-x="48000" data-y="-1500">
+    <h1>Map: данные</h1>
+    <ul>
+        <li>Данные: {"a": 1, "b": 2}
+            <pre><code>0x04       // блок: 2 пары (count*2)
+0x01       // len("a") = 1
+0x61       // "a"
+0x01       // value = 1
+0x01       // len("b") = 1
+0x62       // "b"
+0x02       // value = 2
+0x00       // конец map
+// Размер: 8 байт</code></pre>
+        </li>
+    </ul>
+</div>
+
+
+
+<div class="step slide" data-x="49000" data-y="-1500">
+    <h1>Union: схема и null</h1>
+    <ul>
+        <li>Схема (JSON):
+            <pre><code>{
+  "type": ["null", "int", "string"]
+}</code></pre>
+        </li>
+        <li>null:
+            <pre><code>0x00              // 1 байт</code></pre>
+        </li>
+        <li>Индекс типа + значение</li>
+    </ul>
+</div>
+<div class="step slide" data-x="50000" data-y="-1500">
+    <h1>Union: int и string</h1>
+    <ul>
+        <li>int = 123:
+            <pre><code>0x01 0x7B         // 2 байта</code></pre>
+        </li>
+        <li>string = "foo":
+            <pre><code>0x02 0x03 0x66 0x6F 0x6F
+// 5 байт</code></pre>
+        </li>
+    </ul>
+</div>
+
+
+<div class="step slide" data-x="51000" data-y="-1500">
+    <h1>Union: Protobuf и сравнение</h1>
+    <ul>
+        <li>Схема (.proto):
+            <pre><code>message Value {
+  oneof value {
+    int32 int_val = 1;
+    string str_val = 2;
+  }
+}</code></pre>
+        </li>
+        <li>null: (пусто, поле отсутствует) — 0 байт</li>
+        <li>int = 123:
+            <pre><code>0x08 0x7B         // 2 байта</code></pre>
+        </li>
+        <li>string = "foo":
+            <pre><code>0x12 0x03 0x66 0x6F 0x6F
+// 5 байт</code></pre>
+        </li>
+        <li>oneof — только одно поле активно</li>
+        <li>Особенность: Avro всегда хранит индекс (1 байт), даже для null. Protobuf экономит на null (0 байт).</li>
+    </ul>
+</div>
+
+
+<div class="step slide" data-x="52000" data-y="-1500">
+    <h1>Union: Protobuf схема и null</h1>
+    <ul>
+        <li>Схема (.proto):
+            <pre><code>message Value {
+  oneof value {
+    int32 int_val = 1;
+    string str_val = 2;
+  }
+}</code></pre>
+        </li>
+        <li>null: (пусто, поле отсутствует) — 0 байт</li>
+        <li>oneof — только одно поле активно</li>
+    </ul>
+</div>
+
+<div class="step slide" data-x="53000" data-y="-1500">
+    <h1>Union: Protobuf int, string и сравнение</h1>
+    <ul>
+        <li>int = 123:
+            <pre><code>0x08 0x7B         // 2 байта</code></pre>
+        </li>
+        <li>string = "foo":
+            <pre><code>0x12 0x03 0x66 0x6F 0x6F
+// 5 байт</code></pre>
+        </li>
+        <li>Особенность: Avro всегда хранит индекс (1 байт), даже для null. Protobuf экономит на null (0 байт).</li>
+    </ul>
+</div>
+
+
+<div class="step slide" data-x="54000" data-y="-1500">
+    <h1>Fixed: Avro</h1>
+    <ul>
+        <li>Fixed (фиксированный размер):
+            <pre><code>{
+  "type": "fixed",
+  "name": "UUID",
+  "size": 16
+}
+// Данные: 16 байт (без длины)</code></pre>
+        </li>
+        <li>Fixed — без длины</li>
+    </ul>
+</div>
+<div class="step slide" data-x="55000" data-y="-1500">
+    <h1>Bytes: Avro</h1>
+    <ul>
+        <li>Bytes (переменный размер):
+            <pre><code>{
+  "type": "bytes"
+}
+// Данные: длина + байты
+0x05 0x48 0x65 0x6C 0x6C 0x6F
+// len=5 + "Hello"</code></pre>
+        </li>
+        <li>Bytes — с длиной</li>
+    </ul>
+</div>
+<div class="step slide" data-x="56000" data-y="-1500">
+    <h1>Fixed и Bytes: Protobuf</h1>
+    <ul>
+        <li>Нет прямого аналога Fixed. Используется bytes с проверкой размера</li>
+        <li>Bytes (переменный размер):
+            <pre><code>message Data {
+  bytes payload = 1;
+}
+// Данные: тег + длина + байты
+0x0A 0x05 0x48 0x65 0x6C 0x6C 0x6F
+// tag + len=5 + "Hello"</code></pre>
+        </li>
+        <li>Только bytes, нет fixed</li>
+    </ul>
+</div>
+<div class="step slide" data-x="57000" data-y="-1500">
+    <h1>Fixed и Bytes: сравнение</h1>
+    <ul>
+        <li>Разница: Avro имеет отдельный тип fixed для фиксированных размеров.</li>
+        <li>Protobuf использует bytes для обоих случаев.</li>
+    </ul>
+</div>
+
+<div class="step slide" data-x="58000" data-y="-1500">
+    <h1>Сводная таблица: record, enum, array</h1>
+    <ul>
+        <li>record: Avro — поля по порядку без тегов, Protobuf — каждое поле с тегом, размер -20%</li>
+        <li>enum: Avro — индекс (1 байт), Protobuf — число с тегом (2 байта), размер -50%</li>
+        <li>array: Avro — блоки + маркер конца, Protobuf — repeated с тегами, размер -20-50%</li>
+    </ul>
+</div>
+<div class="step slide" data-x="59000" data-y="-1500">
+    <h1>Сводная таблица: map, union, fixed, bytes</h1>
+    <ul>
+        <li>map: Avro — блоки пар ключ-значение, Protobuf — repeated message, размер -40%</li>
+        <li>union: Avro — индекс + значение, Protobuf — oneof (без индекса), размер зависит от случая</li>
+        <li>fixed: Avro — есть без длины, Protobuf — нет только bytes, Avro компактнее</li>
+        <li>bytes: Avro — длина + данные, Protobuf — тег + длина + данные, -1 байт на поле</li>
+    </ul>
+</div>
+<div class="step slide" data-x="60000" data-y="-1500">
+    <h1>Сводная таблица: итог</h1>
+    <ul>
+        <li>Итог: Avro в среднем на 20-50% компактнее Protobuf для сложных типов, так как не хранит теги полей.</li>
+        <li>Protobuf выигрывает только в случае union с null (0 байт против 1 байта).</li>
+    </ul>
+</div>
+<div class="step slide" data-x="61000" data-y="-1500">
+    <h1>Разбиваемость (Splittability)</h1>
+    <ul>
+        <li>Что это: способность формата быть разделённым на части для параллельной обработки без потери целостности данных.</li>
+        <li>В HDFS файлы хранятся как блоки (обычно 128 МБ). MapReduce обрабатывает каждый блок независимо на разных узлах кластера.</li>
+        <li>Почему это важно:
+            <ul>
+                <li>Большой файл (1 ГБ) разбивается на 8 блоков по 128 МБ</li>
+                <li>Каждый блок обрабатывается отдельным маппером</li>
+                <li>Без разбиваемости — весь файл обрабатывается одним маппером (медленно)</li>
+            </ul>
+        </li>
+    </ul>
+</div>
+
+
+<div class="step slide" data-x="62000" data-y="-1500">
+    <h1>Структура файла Avro</h1>
+    <ul>
+        <li>Заголовок (Header):
+            <ul>
+                <li>Схема (JSON)</li>
+                <li>Метаданные</li>
+                <li>Синхромаркер (16 байт)</li>
+            </ul>
+        </li>
+        <li>Блок данных 1:
+            <ul>
+                <li>count (varint)</li>
+                <li>Записи (binary)</li>
+                <li>Синхромаркер (16 байт)</li>
+            </ul>
+        </li>
+        <li>Блок данных 2:
+            <ul>
+                <li>count (varint)</li>
+                <li>Записи (binary)</li>
+                <li>Синхромаркер (16 байт)</li>
+            </ul>
+        </li>
+    </ul>
+</div>
+<div class="step slide" data-x="63000" data-y="-1500">
+    <h1>Ключевые элементы для разбиваемости</h1>
+    <ul>
+        <li>Синхромаркер — уникальная 16-байтовая последовательность в конце каждого блока</li>
+        <li>count — количество записей в блоке (varint)</li>
+        <li>Самодостаточность блоков — каждый блок можно читать независимо</li>
+    </ul>
+</div>
+
+<div class="step slide" data-x="64000" data-y="-1500">
+    <h1>Исходный файл (300 МБ)</h1>
+    <ul>
+        <li>Header (схема, 5 КБ)</li>
+        <li>Block 1 (100 МБ) с sync marker</li>
+        <li>Block 2 (100 МБ) с sync marker</li>
+        <li>Block 3 (100 МБ) с sync marker</li>
+    </ul>
+</div>
+<div class="step slide" data-x="65000" data-y="-1500">
+    <h1>Разбиение на блоки HDFS (128 МБ)</h1>
+    <ul>
+        <li>HDFS Block 1 (128 МБ): Header + Block 1 (начало) + sync marker</li>
+        <li>HDFS Block 2 (128 МБ): Block 1 (продолжение) + Block 2 (начало) + sync marker</li>
+        <li>HDFS Block 3 (44 МБ): Block 2 (продолжение) + Block 3 (начало) + sync marker</li>
+    </ul>
+</div>
+<div class="step slide" data-x="66000" data-y="-1500">
+    <h1>Как это работает</h1>
+    <ul>
+        <li>Каждый HDFS-блок содержит целые блоки Avro (или их части)</li>
+        <li>Маппер ищет синхромаркер в начале блока</li>
+        <li>Находит count — сколько записей в блоке</li>
+        <li>Читает записи до следующего синхромаркера</li>
+        <li>Если блок начинается с середины Avro-блока, маппер пропускает до синхромаркера</li>
+    </ul>
+</div>
+
+<div class="step slide" data-x="67000" data-y="-1500">
+    <h1>Формат Protobuf: описание</h1>
+    <ul>
+        <li>Каждое сообщение — это просто последовательность полей</li>
+        <li>Нет заголовка, нет блоков, нет синхромаркеров</li>
+        <li>Файл с Protobuf-сообщениями — это просто конкатенация сообщений без разделителей.</li>
+    </ul>
+</div>
+
+<div class="step slide" data-x="68000" data-y="-1500">
+    <h1>Формат Protobuf: пример</h1>
+    <ul>
+        <li>Пример:
+            <pre><code>message User {
+  int32 id = 1;
+  string name = 2;
+}
+
+// Сообщение 1:
+0x08 0x7B 0x0A 0x05 0x41 0x6C 0x69 0x63 0x65
+// Сообщение 2:
+0x08 0x01 0x0A 0x03 0x42 0x6F 0x62
+// Сообщение 3:
+0x08 0x02 0x0A 0x05 0x43 0x68 0x61 0x72 0x6C 0x69 0x65</code></pre>
+        </li>
+    </ul>
+</div>
+
+<div class="step slide" data-x="69000" data-y="-1500">
+    <h1>Проблемы при разбиении</h1>
+    <ul>
+        <li>Нет границ — невозможно определить, где заканчивается одно сообщение и начинается другое</li>
+        <li>Нет заголовка — схема не хранится в файле, нужна внешняя схема</li>
+        <li>Нет синхромаркеров — нельзя найти начало блока</li>
+        <li>Переменная длина — varint и length-delimited поля имеют разную длину</li>
+    </ul>
+</div>
+
+
+<div class="step slide" data-x="70000" data-y="-1500">
+    <h1>Файл и разбиение на блоки HDFS</h1>
+    <ul>
+        <li>Файл: users.pb (300 МБ) — сообщения идут подряд без разделителей</li>
+        <li>Разбиение на блоки HDFS (128 МБ):
+            <ul>
+                <li>HDFS Block 1 (128 МБ): [msg1][msg2]...[msgK]</li>
+                <li>HDFS Block 2 (128 МБ): [msgK+1]...[msgL]</li>
+                <li>HDFS Block 3 (44 МБ): [msgL+1]...[msgN]</li>
+            </ul>
+        </li>
+    </ul>
+</div>
+
+<div class="step slide" data-x="71000" data-y="-1500">
+    <h1>Проблема</h1>
+    <ul>
+        <li>Маппер для Block 2 начинает читать с середины сообщения msgK+1</li>
+        <li>Он не знает, где начинается msgK+1 — нет маркеров границ</li>
+        <li>Он может прочитать мусорные данные как начало сообщения</li>
+        <li>Результат: ошибка десериализации или потеря данных</li>
+    </ul>
+</div>
+
+<div class="step slide" data-x="72000" data-y="-1500">
+    <h1>Как решают проблему: Вариант 1</h1>
+    <ul>
+        <li>Добавить длину перед каждым сообщением:
+            <pre><code>[длина][msg1][длина][msg2][длина][msg3]...</code></pre>
+        </li>
+        <li>Но это уже не стандартный Protobuf, а кастомный формат поверх него</li>
+    </ul>
+</div>
+<div class="step slide" data-x="73000" data-y="-1500">
+    <h1>Как решают проблему: Вариант 2</h1>
+    <ul>
+        <li>Каждый файл содержит одно Protobuf-сообщение</li>
+        <li>Тогда файл можно разбить (если внутри есть структура)</li>
+        <li>Но это неэффективно для HDFS: слишком много маленьких файлов</li>
+    </ul>
+</div>
+
+<div class="step slide" data-x="74000" data-y="-1500">
+    <h1>Как решают проблему: Вариант 3 и вывод</h1>
+    <ul>
+        <li>Использовать SequenceFile:
+            <ul>
+                <li>Hadoop SequenceFile — обёртка</li>
+                <li>Хранит ключ-значение пары</li>
+                <li>Protobuf-сообщения как значения</li>
+                <li>SequenceFile поддерживает разбиение, но добавляет накладные расходы</li>
+            </ul>
+        </li>
+        <li>Вывод: Protobuf не поддерживает разбиваемость "из коробки". Требуются дополнительные механизмы (длина, обёртки), которые добавляют сложность и накладные расходы.</li>
+    </ul>
+</div>
+
+<div class="step slide" data-x="75000" data-y="-1500">
+    <h1>Сравнение: Разбиваемость Avro vs Protobuf</h1>
+    <ul>
+        <li>Синхромаркеры: Avro — есть (16 байт в конце блока), Protobuf — нет</li>
+        <li>Границы сообщений: Avro — count + sync marker, Protobuf — нет разделителей</li>
+        <li>Схема в файле: Avro — в заголовке, Protobuf — внешняя (.proto)</li>
+    </ul>
+</div>
+
+<div class="step slide" data-x="76000" data-y="-1500">
+    <h1>Сравнение: итог</h1>
+    <ul>
+        <li>Чтение с середины: Avro — можно (найти sync marker), Protobuf — нельзя (нет маркеров)</li>
+        <li>Параллельная обработка: Avro — нативная, Protobuf — требует доп. механизмов</li>
+        <li>Интеграция с MapReduce: Avro — AvroInputFormat, Protobuf — нет стандартного</li>
+        <li>Итог: Avro спроектирован для HDFS и поддерживает разбиваемость "из коробки". Protobuf требует дополнительных механизмов, что делает его менее подходящим для хранения больших файлов в HDFS.</li>
+    </ul>
+</div>
+
+    <div id="overview" class="step" data-x="3000" data-y="1500" data-z="0" data-scale="10">
+    </div>
+
+</div>
+
+<div id="impress-toolbar"></div>
+
+<div class="hint">
+    <p>Use a spacebar or arrow keys to navigate. <br/>
+       Press 'P' to launch speaker console.</p>
+</div>
+<script>
+if ("ontouchstart" in document.documentElement) { 
+    document.querySelector(".hint").innerHTML = "<p>Swipe left or right to navigate</p>";
+}
+</script>
+
+<script src="js/impress.js"></script>
+<script>impress().init();</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<!-- Include any specific language files AFTER the main library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/python.min.js"></script>
+
+<script>hljs.highlightAll();</script>
+
+</body>
+</html>
