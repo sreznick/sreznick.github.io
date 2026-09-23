@@ -1,0 +1,2349 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1024" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <title>impress.js | presentation tool based on the power of CSS3 transforms and transitions in modern browsers | by Bartek Szopka @bartaz</title>
+    
+    <meta name="description" content="impress.js is a presentation tool based on the power of CSS3 transforms and transitions in modern browsers and inspired by the idea behind prezi.com." />
+    <meta name="author" content="Bartek Szopka" />
+
+    <link href="//fonts.googleapis.com/css?family=Open+Sans:regular,semibold,italic,italicsemibold|PT+Sans:400,700,400italic,700italic|PT+Serif:400,700,400italic,700italic" rel="stylesheet" />
+
+    <link href="css/impress-demo.css" rel="stylesheet" />
+    <link href="css/impress-common.css" rel="stylesheet" />
+    
+    <link rel="shortcut icon" href="favicon.png" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/default.min.css">
+
+</head>
+
+<body class="impress-not-supported">
+
+<div class="fallback-message">
+    <p>Your browser <b>doesn't support the features required</b> by impress.js, so you are presented with a simplified version of this presentation.</p>
+    <p>For the best experience please use the latest <b>Chrome</b>, <b>Safari</b> or <b>Firefox</b> browser.</p>
+</div>
+
+<div id="impress"
+    data-transition-duration="1000"
+    
+    data-width="1024"
+    data-height="768"
+    data-max-scale="3"
+    data-min-scale="0"
+    data-perspective="1000"
+    >
+
+    <div class="step slide" data-x="-1000" data-y="-1500">
+        <h1>Архитектура Intel x86-64</h1>
+
+	<div>
+            <ol>
+                <li><b>Часть 1:</b> Мотивация, регистры, адресация</li>
+                <li><b>Часть 2:</b> Стек, вызовы, соглашения</li>
+                <li><b>Часть 3:</b> Арифметика C → asm</li>
+            </ol>
+        </div>
+    </div>
+
+    <div class="step slide" data-x="0000" data-y="-1500" data-scale="1">
+        <h1>Зачем нам ассемблер?</h1>
+                <ul>
+                    <li>Понимание базовых вычислений</li>
+                    <li>Понимание векторизации вычислений</li>
+                    <li>Понимание механизмов работы NumPy/Pandas</li>
+                    <li>Понимание к распараллеливанию вычислений</li>
+                </ul>
+    </div>
+    <div class="step slide" data-x="1000" data-y="-1500">
+        <h1>Регистры x86-64</h1>
+        <div class="table">
+            <div class="table-row table-header">
+                <div class="table-cell">64-бит</div>
+                <div class="table-cell">32-бит</div>
+                <div class="table-cell">16-бит</div>
+                <div class="table-cell">8-бит</div>
+                <div class="table-cell">Назначение</div>
+            </div>
+            <div class="table-row">
+                <div class="table-cell">RAX</div>
+                <div class="table-cell">EAX</div>
+                <div class="table-cell">AX</div>
+                <div class="table-cell">AL</div>
+                <div class="table-cell">Аккумулятор</div>
+            </div>
+            <div class="table-row">
+                <div class="table-cell">RBX</div>
+                <div class="table-cell">EBX</div>
+                <div class="table-cell">BX</div>
+                <div class="table-cell">BL</div>
+                <div class="table-cell">База</div>
+            </div>
+            <div class="table-row">
+                <div class="table-cell">RCX</div>
+                <div class="table-cell">ECX</div>
+                <div class="table-cell">CX</div>
+                <div class="table-cell">CL</div>
+                <div class="table-cell">Счётчик</div>
+            </div>
+            <div class="table-row">
+                <div class="table-cell">RDX</div>
+                <div class="table-cell">EDX</div>
+                <div class="table-cell">DX</div>
+                <div class="table-cell">DL</div>
+                <div class="table-cell">Данные</div>
+            </div>
+            <div class="table-row">
+                <div class="table-cell">RSI</div>
+                <div class="table-cell">ESI</div>
+                <div class="table-cell">SI</div>
+                <div class="table-cell">SIL</div>
+                <div class="table-cell">Источник</div>
+            </div>
+            <div class="table-row">
+                <div class="table-cell">RDI</div>
+                <div class="table-cell">EDI</div>
+                <div class="table-cell">DI</div>
+                <div class="table-cell">DIL</div>
+                <div class="table-cell">Назначение</div>
+            </div>
+            <div class="table-row">
+                <div class="table-cell">RSP</div>
+                <div class="table-cell">ESP</div>
+                <div class="table-cell">SP</div>
+                <div class="table-cell">SPL</div>
+                <div class="table-cell">Вершина стека</div>
+            </div>
+            <div class="table-row">
+                <div class="table-cell">RBP</div>
+                <div class="table-cell">EBP</div>
+                <div class="table-cell">BP</div>
+                <div class="table-cell">BPL</div>
+                <div class="table-cell">База кадра</div>
+            </div>
+        </div>
+        <div class="note">
+            <p><b>Важно:</b> запись в 32-битный регистр обнуляет старшие 32 бита!</p>
+        </div>
+    </div>
+    <div class="step slide" data-x="2000" data-y="-1500">
+        <h1>Дополнительные регистры R8-R15</h1>
+        <p>Добавлены в 64-битном режиме (AMD64)</p>
+        <div class="table">
+            <div class="table-row table-header">
+                <div class="table-cell">64-бит</div>
+                <div class="table-cell">32-бит</div>
+                <div class="table-cell">16-бит</div>
+                <div class="table-cell">8-бит</div>
+            </div>
+            <div class="table-row">
+                <div class="table-cell">R8</div>
+                <div class="table-cell">R8D</div>
+                <div class="table-cell">R8W</div>
+                <div class="table-cell">R8B</div>
+            </div>
+            <div class="table-row">
+                <div class="table-cell">R9</div>
+                <div class="table-cell">R9D</div>
+                <div class="table-cell">R9W</div>
+                <div class="table-cell">R9B</div>
+            </div>
+            <div class="table-row">
+                <div class="table-cell">R10</div>
+                <div class="table-cell">R10D</div>
+                <div class="table-cell">R10W</div>
+                <div class="table-cell">R10B</div>
+            </div>
+            <div class="table-row">
+                <div class="table-cell">R11</div>
+                <div class="table-cell">R11D</div>
+                <div class="table-cell">R11W</div>
+                <div class="table-cell">R11B</div>
+            </div>
+            <div class="table-row">
+                <div class="table-cell">R12</div>
+                <div class="table-cell">R12D</div>
+                <div class="table-cell">R12W</div>
+                <div class="table-cell">R12B</div>
+            </div>
+            <div class="table-row">
+                <div class="table-cell">R13</div>
+                <div class="table-cell">R13D</div>
+                <div class="table-cell">R13W</div>
+                <div class="table-cell">R13B</div>
+            </div>
+            <div class="table-row">
+                <div class="table-cell">R14</div>
+                <div class="table-cell">R14D</div>
+                <div class="table-cell">R14W</div>
+                <div class="table-cell">R14B</div>
+            </div>
+            <div class="table-row">
+                <div class="table-cell">R15</div>
+                <div class="table-cell">R15D</div>
+                <div class="table-cell">R15W</div>
+                <div class="table-cell">R15B</div>
+            </div>
+        </div>
+        <div class="note">
+            <p><b>Использование:</b> R8-R11 — caller-saved, R12-R15 — callee-saved</p>
+        </div>
+    </div>
+
+
+    <!-- СЛАЙД 3: Размеры регистров -->
+    <div class="step slide" data-x="3000" data-y="-1500">
+        <h1>Зачем нужны разные размеры?</h1>
+        <div class="grid">
+            <div>
+                <h3>Экономия памяти</h3>
+                <pre><code>; Если данные 0-255:
+mov al, 200  ; 1 байт</code></pre>
+            </div>
+            <div>
+                <h3>Типы данных</h3>
+                <pre><code>; int8: 1 байт
+; int16: 2 байта
+; int32: 4 байта
+; int64: 8 байт
+
+; Загрузка int16:
+mov ax, [rdi]</code></pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- СЛАЙД 4: Упаковка данных -->
+    <div class="step slide" data-x="4000" data-y="-1500">
+        <h1>Упаковка данных</h1>
+        <div class="example-box">
+            <h4>Упаковка 4 байтов в одно число</h4>
+            <pre><code>; data = [0x12, 0x34, 0x56, 0x78]
+mov eax, 0x12345678
+
+; Извлечение байтов
+mov al, 0x12  ; первый байт
+mov ah, 0x34  ; второй байт
+shr eax, 16   ; сдвиг</code></pre>
+        </div>
+        <div class="note">
+            <p><b>Применение:</b> работа с бинарными форматами данных</p>
+        </div>
+    </div>
+
+    <!-- СЛАЙД 5: Обзор инструкций -->
+    <div class="step slide" data-x="5000" data-y="-1500">
+        <h1>Группы машинных инструкций</h1>
+        <div class="grid-3">
+            <div class="example-box">
+                <h4>Пересылка</h4>
+                <ul>
+                    <li>mov</li>
+                    <li>push/pop</li>
+                    <li>lea</li>
+                </ul>
+            </div>
+            <div class="example-box">
+                <h4>Арифметика</h4>
+                <ul>
+                    <li>add/sub</li>
+                    <li>mul/imul</li>
+                    <li>div/idiv</li>
+                    <li>inc/dec</li>
+                </ul>
+            </div>
+            <div class="example-box">
+                <h4>Логика</h4>
+                <ul>
+                    <li>and/or/xor</li>
+                    <li>not</li>
+                    <li>shl/shr/sar</li>
+                </ul>
+            </div>
+        </div>
+        <div class="grid-3">
+            <div class="example-box">
+                <h4>Переходы</h4>
+                <ul>
+                    <li>jmp</li>
+                    <li>je/jne/jg/...</li>
+                    <li>call/ret</li>
+                    <li>loop</li>
+                </ul>
+            </div>
+            <div class="example-box">
+                <h4>Сравнение</h4>
+                <ul>
+                    <li>cmp</li>
+                    <li>test</li>
+                </ul>
+            </div>
+            <div class="example-box">
+                <h4>Условные</h4>
+                <ul>
+                    <li>cmov</li>
+                    <li>setcc</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- СЛАЙД 6: Адресация прямая -->
+    <div class="step slide" data-x="6000" data-y="-1500">
+        <h1>Адресация: прямая</h1>
+        <div class="comparison">
+            <div class="c-code">
+                <h4>C-код</h4>
+                <pre><code>// Глобальная переменная
+int global_var = 42;
+
+void func() {
+    global_var = 100;
+}</code></pre>
+            </div>
+            <div class="asm-code">
+                <h4>Ассемблер</h4>
+                <pre><code>; Обращение к глобальной
+; переменной
+mov [global_var], 100
+
+; Чтение
+mov eax, [global_var]</code></pre>
+            </div>
+        </div>
+        <div class="note">
+            <p><b>Используется для:</b> глобальных переменных, статических данных</p>
+        </div>
+    </div>
+
+    <!-- СЛАЙД 7: Адресация косвенная -->
+    <div class="step slide" data-x="7000" data-y="-1500">
+        <h1>Адресация: косвенная</h1>
+        <div class="comparison">
+            <div class="c-code">
+                <h4>C-код</h4>
+                <pre><code>void func(int *ptr) {
+    *ptr = 42;
+}</code></pre>
+            </div>
+            <div class="asm-code">
+                <h4>Ассемблер</h4>
+                <pre><code>; ptr в RDI
+mov [rdi], 42
+
+; Чтение по указателю
+mov eax, [rdi]</code></pre>
+            </div>
+        </div>
+        <div class="note">
+            <p><b>Используется для:</b> работы с указателями</p>
+        </div>
+    </div>
+
+    <!-- СЛАЙД 8: Адресация база+смещение -->
+    <div class="step slide" data-x="8000" data-y="-1500">
+        <h1>Адресация: база + смещение</h1>
+        <div class="comparison">
+            <div class="c-code">
+                <h4>C-код</h4>
+                <pre><code>struct Point {
+    int x;
+    int y;
+};
+
+void set_y(struct Point *p) {
+    p->y = 42;
+}</code></pre>
+            </div>
+            <div class="asm-code">
+                <h4>Ассемблер</h4>
+                <pre><code>; p в RDI
+; y на смещении 4
+mov [rdi + 4], 42
+
+; Чтение x
+mov eax, [rdi]</code></pre>
+            </div>
+        </div>
+        <div class="note">
+            <p><b>Используется для:</b> полей структур, элементов массива с известным индексом</p>
+        </div>
+    </div>
+
+    <!-- СЛАЙД 9: Адресация база+индекс -->
+    <div class="step slide" data-x="9000" data-y="-1500">
+        <h1>Адресация: база + индекс * масштаб</h1>
+        <div class="comparison">
+            <div class="c-code">
+                <h4>C-код</h4>
+                <pre><code>int arr[10];
+
+void set_element(int i) {
+    arr[i] = 42;
+}</code></pre>
+            </div>
+            <div class="asm-code">
+                <h4>Ассемблер</h4>
+                <pre><code>; arr в RDI, i в RSI
+mov [rdi + rsi*4], 42
+
+; Чтение
+mov eax, [rdi + rsi*4]</code></pre>
+            </div>
+        </div>
+        <div class="note">
+            <p><b>Масштаб:</b> 1, 2, 4, 8 (размер элемента)</p>
+        </div>
+    </div>
+
+    <!-- СЛАЙД 10: Адресация база+индекс+смещение -->
+    <div class="step slide" data-x="10000" data-y="-1500">
+        <h1>Адресация: база + индекс + смещение</h1>
+        <div class="comparison">
+            <div class="c-code">
+                <h4>C-код</h4>
+                <pre><code>struct Record {
+    int id;
+    int value;
+};
+
+struct Record records[10];
+
+void set_value(int i) {
+    records[i].value = 42;
+}</code></pre>
+            </div>
+            <div class="asm-code">
+                <h4>Ассемблер</h4>
+                <pre><code>; records в RDI, i в RSI
+; value на смещении 4
+mov [rdi + rsi*8 + 4], 42
+
+; Чтение
+mov eax, [rdi + rsi*8 + 4]</code></pre>
+            </div>
+        </div>
+        <div class="note">
+            <p><b>Используется для:</b> массивов структур</p>
+        </div>
+    </div>
+
+    <!-- СЛАЙД 11: LEA часть 1 -->
+    <div class="step slide" data-x="11000" data-y="-1500">
+        <h1>LEA: что это?</h1>
+        <p><b>LEA</b> (Load Effective Address) — вычисляет адрес без обращения к памяти</p>
+        <div class="comparison">
+            <div>
+                <h4>Обычный способ</h4>
+                <pre><code>; rax = rbx + rcx*4 + 8
+mov rax, rcx
+shl rax, 2
+add rax, rbx
+add rax, 8
+; 4 инструкции</code></pre>
+            </div>
+            <div>
+                <h4>Через LEA</h4>
+                <pre><code>; rax = rbx + rcx*4 + 8
+lea rax, [rbx + rcx*4 + 8]
+; 1 инструкция!</code></pre>
+            </div>
+        </div>
+        <div class="note">
+            <p><b>Ключевое:</b> LEA не обращается к памяти, только вычисляет адрес</p>
+        </div>
+    </div>
+
+
+    <!-- СЛАЙД 12: LEA часть 2 -->
+    <div class="step slide" data-x="12000" data-y="-1500">
+        <h1>LEA: примеры использования</h1>
+        <h3>Арифметика через LEA:</h3>
+        <pre><code>; x = a + b*2
+lea rax, [rdi + rsi*2]
+
+; x = a*8 + b
+lea rax, [rdi*8 + rsi]
+
+; x = a + b*4 + 16
+lea rax, [rdi + rsi*4 + 16]
+
+; x = a*5 (a + a*4)
+lea rax, [rdi + rdi*4]</code></pre>
+        <div class="note">
+            <p><b>Ограничение:</b> масштаб только 1, 2, 4, 8</p>
+        </div>
+        <div class="warning">
+            <p><b>LEA не изменяет флаги!</b> В отличие от add/sub</p>
+        </div>
+    </div>
+    <!-- СЛАЙД 12: Арифметика сложение -->
+    <div class="step slide" data-x="13000" data-y="-1500">
+        <h1>Арифметика: сложение</h1>
+        <div class="grid">
+            <div>
+                <h3>Инструкции</h3>
+                <pre><code>add rax, rbx    ; rax += rbx
+adc rax, rbx    ; + перенос
+inc rax         ; rax++</code></pre>
+            </div>
+            <div>
+                <h3>Пример</h3>
+                <pre><code>; 128-битное сложение
+; RDX:RAX += RCX:RBX
+add rax, rbx
+adc rdx, rcx</code></pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- СЛАЙД 13: Арифметика умножение -->
+    <div class="step slide" data-x="14000" data-y="-1500">
+        <h1>Арифметика: умножение</h1>
+        <div class="grid">
+            <div>
+                <h3>Формы</h3>
+                <pre><code>mul rbx         ; RDX:RAX = RAX * RBX
+imul rax, rbx   ; RAX = RAX * RBX
+imul rax, rbx, 10 ; RAX = RBX * 10</code></pre>
+            </div>
+            <div>
+                <h3>Пример</h3>
+                <pre><code>; c = a * b
+mov eax, 10
+imul eax, ebx   ; EAX = 200</code></pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- СЛАЙД 14: Арифметика деление -->
+    <div class="step slide" data-x="15000" data-y="-1500">
+        <h1>Арифметика: деление</h1>
+        <div class="grid">
+            <div>
+                <h3>Беззнаковое</h3>
+                <pre><code>; ВАЖНО: обнулить RDX!
+xor edx, edx
+div rbx
+; RAX = RDX:RAX / RBX
+; RDX = остаток</code></pre>
+            </div>
+            <div>
+                <h3>Знаковое</h3>
+                <pre><code>; Расширить EAX в EDX:EAX
+cdq
+idiv rbx</code></pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- СЛАЙД 15: Сдвиги -->
+    <div class="step slide" data-x="16000" data-y="-1500">
+        <h1>Сдвиги: умножение/деление на 2^n</h1>
+        <div class="comparison">
+            <div>
+                <h4>Умножение</h4>
+                <pre><code>; x *= 8
+shl rax, 3
+
+; x *= 10
+mov rbx, rax
+shl rax, 3  ; *8
+shl rbx, 1  ; *2
+add rax, rbx</code></pre>
+            </div>
+            <div>
+                <h4>Деление</h4>
+                <pre><code>; x /= 4 (unsigned)
+shr rax, 2
+
+; x /= 4 (signed)
+sar rax, 2
+
+; x /= 8 (signed)
+mov rdx, rax
+sar rdx, 63
+add rax, rdx
+sar rax, 3</code></pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- СЛАЙД 17: Сравнение cmp vs sub -->
+    <div class="step slide" data-x="17000" data-y="-1500">
+        <h1>Сравнение: cmp vs sub</h1>
+        <div class="comparison">
+            <div>
+                <h4>sub</h4>
+                <pre><code>sub rax, rbx
+; rax изменён!</code></pre>
+            </div>
+            <div>
+                <h4>cmp</h4>
+                <pre><code>cmp rax, rbx
+; только флаги!
+; rax не изменён</code></pre>
+            </div>
+        </div>
+        <div class="note">
+            <p><b>cmp</b> вычисляет rax - rbx, но не сохраняет результат</p>
+            <p><b>test</b> вычисляет rax & rbx, но не сохраняет результат</p>
+        </div>
+    </div>
+    <!-- СЛАЙД 18: Условные переходы -->
+    <div class="step slide" data-x="18000" data-y="-1500">
+        <h1>Условные переходы</h1>
+        <div class="table">
+            <div class="table-row table-header">
+                <div class="table-cell">Инструкция</div>
+                <div class="table-cell">Условие</div>
+                <div class="table-cell">C-эквивалент</div>
+                <div class="table-cell">Описание</div>
+            </div>
+            <div class="table-row">
+                <div class="table-cell">je / jz</div>
+                <div class="table-cell">ZF=1</div>
+                <div class="table-cell">a == b</div>
+                <div class="table-cell">Равно / ноль</div>
+            </div>
+            <div class="table-row">
+                <div class="table-cell">jne / jnz</div>
+                <div class="table-cell">ZF=0</div>
+                <div class="table-cell">a != b</div>
+                <div class="table-cell">Не равно</div>
+            </div>
+            <div class="table-row">
+                <div class="table-cell">jg / jnle</div>
+                <div class="table-cell">SF=OF, ZF=0</div>
+                <div class="table-cell">a > b (signed)</div>
+                <div class="table-cell">Больше</div>
+            </div>
+            <div class="table-row">
+                <div class="table-cell">jl / jnge</div>
+                <div class="table-cell">SF≠OF</div>
+                <div class="table-cell">a < b (signed)</div>
+                <div class="table-cell">Меньше</div>
+            </div>
+            <div class="table-row">
+                <div class="table-cell">jge / jnl</div>
+                <div class="table-cell">SF=OF</div>
+                <div class="table-cell">a >= b (signed)</div>
+                <div class="table-cell">Больше или равно</div>
+            </div>
+            <div class="table-row">
+                <div class="table-cell">jle / jng</div>
+                <div class="table-cell">ZF=1 или SF≠OF</div>
+                <div class="table-cell">a <= b (signed)</div>
+                <div class="table-cell">Меньше или равно</div>
+            </div>
+            <div class="table-row">
+                <div class="table-cell">ja / jnbe</div>
+                <div class="table-cell">CF=0, ZF=0</div>
+                <div class="table-cell">a > b (unsigned)</div>
+                <div class="table-cell">Выше</div>
+            </div>
+            <div class="table-row">
+                <div class="table-cell">jb / jnae</div>
+                <div class="table-cell">CF=1</div>
+                <div class="table-cell">a < b (unsigned)</div>
+                <div class="table-cell">Ниже</div>
+            </div>
+            <div class="table-row">
+                <div class="table-cell">jae / jnb</div>
+                <div class="table-cell">CF=0</div>
+                <div class="table-cell">a >= b (unsigned)</div>
+                <div class="table-cell">Выше или равно</div>
+            </div>
+            <div class="table-row">
+                <div class="table-cell">jbe / jna</div>
+                <div class="table-cell">CF=1 или ZF=1</div>
+                <div class="table-cell">a <= b (unsigned)</div>
+                <div class="table-cell">Ниже или равно</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- СЛАЙД 17: CMOV -->
+    <div class="step slide" data-x="19000" data-y="-1500">
+        <h1>CMOV: условное перемещение</h1>
+        <div class="comparison">
+            <div>
+                <h4>Через jmp</h4>
+                <pre><code>cmp rax, rbx
+jle .else
+mov rcx, rax
+jmp .done
+.else:
+mov rcx, rbx
+.done:</code></pre>
+            </div>
+            <div>
+                <h4>Через CMOV</h4>
+                <pre><code>mov rcx, rbx
+cmp rax, rbx
+cmovg rcx, rax
+; 3 инструкции!</code></pre>
+            </div>
+        </div>
+        <div class="note">
+            <p><b>Когда использовать:</b> случайные данные, трудно предсказать переход</p>
+        </div>
+    </div>
+
+
+
+    <!-- СЛАЙД 18: Циклы -->
+    <div class="step slide" data-x="20000" data-y="-1500">
+        <h1>Циклы</h1>
+        <div class="grid">
+            <div>
+                <h3>Счётчик вверх</h3>
+                <pre><code>; for (i = 0; i < n; i++)
+xor rcx, rcx
+.loop:
+    cmp rcx, rsi
+    jge .done
+    ; тело
+    inc rcx
+    jmp .loop
+.done:</code></pre>
+            </div>
+            <div>
+                <h3>Счётчик вниз</h3>
+                <pre><code>; for (i = n; i > 0; i--)
+mov rcx, rsi
+.loop:
+    ; тело
+    dec rcx
+    jnz .loop
+; быстрее!</code></pre>
+            </div>
+        </div>
+    </div>
+<!-- ========== ВВЕДЕНИЕ В СТЕК (10 СЛАЙДОВ) ========== -->
+
+<!-- СЛАЙД 21: Проблема вызова функций (часть 1) -->
+<div class="step slide" data-x="21000" data-y="-1500">
+    <h1>Проблема: вызов функций (1/2)</h1>
+    <div class="c-code">
+        <h4>Пример на C:</h4>
+        <pre><code>int add(int a, int b) {
+    return a + b;
+}
+
+int main() {
+    int x = 10;
+    int y = 20;
+    int z = add(x, y);
+    // z = 30
+    return 0;
+}</code></pre>
+    </div>
+    <h3>Что нужно для вызова:</h3>
+    <ul>
+        <li>Передать аргументы <b>a</b> и <b>b</b></li>
+        <li>Передать управление в функцию</li>
+        <li>Вернуть результат в main</li>
+    </ul>
+</div>
+
+<!-- СЛАЙД 22: Проблема вызова функций (часть 2) -->
+<div class="step slide" data-x="22000" data-y="-1500">
+    <h1>Проблема: вызов функций (2/2)</h1>
+    <h3>Вопросы:</h3>
+    <ul>
+        <li>Как передать <b>a</b> и <b>b</b> в функцию?</li>
+        <li>Как вернуть результат?</li>
+        <li>Что если аргументов больше 6?</li>
+        <li>Как сохранить регистры вызывающей функции?</li>
+    </ul>
+    <div class="note">
+        <p><b>Решение:</b> стек и соглашения о вызовах!</p>
+    </div>
+    <div class="warning">
+        <p><b>Проблема:</b> регистров всего 16, а аргументов может быть много</p>
+    </div>
+</div>
+
+<!-- СЛАЙД 23: Вложенные вызовы (часть 1) -->
+<div class="step slide" data-x="23000" data-y="-1500">
+    <h1>Вложенные вызовы функций (1/2)</h1>
+    <div class="c-code">
+        <h4>Пример: функция вызывает другую функцию</h4>
+        <pre><code>int square(int x) {
+    return x * x;
+}
+
+int sum_of_squares(int a, int b) {
+    return square(a) + square(b);
+}
+
+int main() {
+    int result = sum_of_squares(3, 4);
+    // result = 9 + 16 = 25
+    return 0;
+}</code></pre>
+    </div>
+</div>
+
+<!-- СЛАЙД 24: Вложенные вызовы (часть 2) -->
+<div class="step slide" data-x="24000" data-y="-1500">
+    <h1>Вложенные вызовы функций (2/2)</h1>
+    <h3>Проблема:</h3>
+    <ul>
+        <li>Пока <b>square</b> выполняется, <b>sum_of_squares</b> ещё не завершена</li>
+        <li>Нужно сохранить состояние <b>sum_of_squares</b></li>
+        <li>Где хранить адрес возврата?</li>
+        <li>Где хранить локальные переменные?</li>
+    </ul>
+    <div class="warning">
+        <p><b>Регистров не хватает!</b> Нужна память для хранения контекста</p>
+    </div>
+    <div class="note">
+        <p>Каждый вызов создаёт свой "рабочий стол"</p>
+    </div>
+</div>
+
+<!-- СЛАЙД 25: Рекурсия (часть 1) -->
+<div class="step slide" data-x="25000" data-y="-1500">
+    <h1>Рекурсия: функция вызывает саму себя (1/2)</h1>
+    <div class="c-code">
+        <h4>Пример: факториал</h4>
+        <pre><code>int factorial(int n) {
+    if (n <= 1) return 1;
+    return n * factorial(n - 1);
+}
+
+int main() {
+    int result = factorial(5);
+    // result = 120
+    return 0;
+}</code></pre>
+    </div>
+</div>
+
+<!-- СЛАЙД 26: Рекурсия (часть 2) -->
+<div class="step slide" data-x="26000" data-y="-1500">
+    <h1>Рекурсия: функция вызывает саму себя (2/2)</h1>
+    <h3>Что происходит при вызове factorial(5):</h3>
+    <pre><code>factorial(5)
+  └─ factorial(4)
+       └─ factorial(3)
+            └─ factorial(2)
+                 └─ factorial(1)  → база, возврат 1
+            ← 2 * 1 = 2
+       ← 3 * 2 = 6
+  ← 4 * 6 = 24
+← 5 * 24 = 120</code></pre>
+    <div class="note">
+        <p>Каждый вызов хранит своё <b>n</b> и <b>адрес возврата</b></p>
+    </div>
+    <div class="warning">
+        <p>Глубина рекурсии может быть очень большой!</p>
+    </div>
+</div>
+
+
+
+
+
+
+<!-- СЛАЙД 27: Идея аппаратного стека (часть 1) -->
+<div class="step slide" data-x="27000" data-y="-1500">
+    <h1>Идея аппаратного стека (1/2)</h1>
+    <h3>Проблема:</h3>
+    <ul>
+        <li>Нужно хранить много данных (адреса, аргументы, локальные переменные)</li>
+        <li>Данные вкладываются друг в друга (вложенные вызовы)</li>
+        <li>Доступ нужен в обратном порядке (LIFO)</li>
+    </ul>
+    <h3>Решение: стек в памяти</h3>
+    <ul>
+        <li>Специальная область памяти для временных данных</li>
+        <li>Растёт <b>вниз</b> (от старших адресов к младшим)</li>
+        <li>Регистр <b>RSP</b> (Stack Pointer) указывает на вершину</li>
+    </ul>
+</div>
+<!-- СЛАЙД 28: Идея аппаратного стека (часть 2) -->
+<div class="step slide" data-x="28000" data-y="-1500">
+    <h1>Идея аппаратного стека (2/2)</h1>
+    <div class="example-box">
+        <h4>Аналогия: стопка тарелок</h4>
+        <ul>
+            <li>Кладём тарелку — push</li>
+            <li>Берём тарелку — pop</li>
+            <li>Последняя положенная — первая взятая</li>
+        </ul>
+    </div>
+    <pre><code>; push: кладём на вершину
+push rax    ; RSP -= 8; [RSP] = rax
+
+; pop: берём с вершины
+pop rax     ; rax = [RSP]; RSP += 8</code></pre>
+    <div class="note">
+        <p><b>LIFO</b> — Last In, First Out (последним пришёл — первым ушёл)</p>
+    </div>
+</div>
+<!-- СЛАЙД 29: Почему нужен RBP (часть 1) -->
+<div class="step slide" data-x="29000" data-y="-1500">
+    <h1>Почему недостаточно RSP? (1/2)</h1>
+    <h3>Проблема с RSP:</h3>
+    <ul>
+        <li>RSP постоянно меняется (push/pop, call/ret)</li>
+        <li>Доступ к локальным переменным через RSP нестабилен</li>
+    </ul>
+    <div class="comparison">
+        <div>
+            <h4>Без RBP (плохо)</h4>
+            <pre><code>func:
+    sub rsp, 16     ; выделить 16 байт
+    mov [rsp], rdi  ; сохранить аргумент
+    call other_func ; RSP изменился!
+    ; [rsp] теперь НЕ наш аргумент!
+    mov rax, [rsp]  ; НЕПРАВИЛЬНО!
+    add rsp, 16
+    ret</code></pre>
+        </div>
+    </div>
+</div>
+<!-- СЛАЙД 30: Почему нужен RBP (часть 2) -->
+<div class="step slide" data-x="30000" data-y="-1500">
+    <h1>Почему нужен RBP? (2/2)</h1>
+    <div class="comparison">
+        <div>
+            <h4>С RBP (хорошо)</h4>
+            <pre><code>func:
+    push rbp        ; сохранить старый RBP
+    mov  rbp, rsp   ; RBP = текущий RSP
+    sub  rsp, 16    ; выделить 16 байт
+    mov  [rbp-8], rdi ; сохранить аргумент
+    call other_func ; RSP изменился, но RBP нет!
+    mov  rax, [rbp-8] ; ПРАВИЛЬНО!
+    mov  rsp, rbp   ; восстановить RSP
+    pop  rbp        ; восстановить RBP
+    ret</code></pre>
+        </div>
+    </div>
+    <div class="note">
+        <p><b>RBP</b> — база кадра стека, фиксированная точка отсчёта</p>
+        <p>Все локальные переменные и аргументы доступны через RBP</p>
+    </div>
+    <div class="warning">
+        <p>Без RBP невозможно надёжно обращаться к локальным переменным после вызовов других функций!</p>
+    </div>
+</div>
+
+
+
+    <!-- СЛАЙД 19: Стек -->
+    <div class="step slide" data-x="31000" data-y="-1500">
+        <h1>Стек</h1>
+        <div class="grid">
+            <div>
+                <h3>push</h3>
+                <pre><code>; RSP -= 8
+; [RSP] = rax
+push rax</code></pre>
+            </div>
+            <div>
+                <h3>pop</h3>
+                <pre><code>; rax = [RSP]
+; RSP += 8
+pop rax</code></pre>
+            </div>
+        </div>
+        <div class="note">
+            <p>Стек растёт <b>вниз</b> (к меньшим адресам)</p>
+        </div>
+    </div>
+
+<!-- СЛАЙД: Кадр стека функции (часть 1) -->
+<div class="step slide" data-x="32000" data-y="-1500">
+    <h1>Кадр стека функции (1/2)</h1>
+    <h3>Структура кадра:</h3>
+    <pre><code>Высшие адреса
++------------------+
+| Аргументы        | [rbp+16], [rbp+24]
++------------------+
+| Адрес возврата   | [rbp+8]
++------------------+
+| Сохранённый RBP  | [rbp]
++------------------+
+| Локальные        | [rbp-8], [rbp-16]
++------------------+
+Низшие адреса (RSP)</code></pre>
+    <div class="note">
+        <p><b>RBP</b> — фиксированная точка отсчёта</p>
+        <p>Аргументы — выше RBP (положительные смещения)</p>
+        <p>Локальные — ниже RBP (отрицательные смещения)</p>
+    </div>
+</div>
+
+<!-- СЛАЙД: Кадр стека функции (часть 2a) -->
+<div class="step slide" data-x="33000" data-y="-1500">
+    <h1>Кадр стека функции: пролог (2a/3)</h1>
+    <h3>Стандартный пролог функции:</h3>
+    <pre><code>func:
+    push rbp        ; 1. сохранить старый RBP
+    mov  rbp, rsp   ; 2. RBP = текущий RSP
+    sub  rsp, 16    ; 3. выделить место для локальных
+    ; ... тело функции ...</code></pre>
+    <h3>Что делает каждая инструкция:</h3>
+    <ul>
+        <li><b>push rbp</b> — сохраняет RBP вызывающей функции</li>
+        <li><b>mov rbp, rsp</b> — устанавливает базу нового кадра</li>
+        <li><b>sub rsp, 16</b> — выделяет место для локальных переменных</li>
+    </ul>
+    <div class="note">
+        <p>После пролога RBP указывает на начало кадра, RSP — на конец</p>
+    </div>
+</div>
+
+<!-- СЛАЙД: Кадр стека функции: эпилог (часть 2b) -->
+<div class="step slide" data-x="34000" data-y="-1500">
+    <h1>Кадр стека функции: эпилог (2b/3)</h1>
+    <h3>Эпилог функции:</h3>
+    <pre><code>    mov  rsp, rbp   ; 1. RSP = RBP (убрать локальные)
+    pop  rbp        ; 2. восстановить RBP
+    ret             ; 3. вернуться</code></pre>
+    <h3>Что делает каждая инструкция:</h3>
+    <ul>
+        <li><b>mov rsp, rbp</b> — возвращает RSP на начало кадра</li>
+        <li><b>pop rbp</b> — восстанавливает RBP вызывающей функции</li>
+        <li><b>ret</b> — берёт адрес возврата из стека и переходит</li>
+    </ul>
+    <div class="warning">
+        <p><b>Важно:</b> пролог и эпилог должны быть симметричны!</p>
+    </div>
+</div>
+
+    <!-- СЛАЙД 21: call/ret -->
+    <div class="step slide" data-x="35000" data-y="-1500">
+        <h1>call/ret</h1>
+        <div class="grid">
+            <div>
+                <h3>call func</h3>
+                <pre><code>; 1. push адрес возврата
+; 2. jmp func
+push rip_next
+jmp func
+rip_next:</code></pre>
+            </div>
+            <div>
+                <h3>ret</h3>
+                <pre><code>; 1. pop адрес
+; 2. jmp по адресу
+pop rip
+jmp rip</code></pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- СЛАЙД 22: System V -->
+    <div class="step slide" data-x="36000" data-y="-1500">
+        <h1>Соглашение System V AMD64</h1>
+        <div class="table">
+            <div class="table-row table-header">
+                <div class="table-cell">Аргумент</div>
+                <div class="table-cell">Регистр</div>
+            </div>
+            <div class="table-row">
+                <div class="table-cell">1-й</div>
+                <div class="table-cell">RDI</div>
+            </div>
+            <div class="table-row">
+                <div class="table-cell">2-й</div>
+                <div class="table-cell">RSI</div>
+            </div>
+            <div class="table-row">
+                <div class="table-cell">3-й</div>
+                <div class="table-cell">RDX</div>
+            </div>
+            <div class="table-row">
+                <div class="table-cell">4-й</div>
+                <div class="table-cell">RCX</div>
+            </div>
+            <div class="table-row">
+                <div class="table-cell">5-й</div>
+                <div class="table-cell">R8</div>
+            </div>
+            <div class="table-row">
+                <div class="table-cell">6-й</div>
+                <div class="table-cell">R9</div>
+            </div>
+            <div class="table-row">
+                <div class="table-cell">7+</div>
+                <div class="table-cell">Стек</div>
+            </div>
+        </div>
+        <p><b>Возврат:</b> RAX</p>
+    </div>
+
+    <!-- СЛАЙД 23: Сохраняемые регистры -->
+    <div class="step slide" data-x="37000" data-y="-1500">
+        <h1>Классификация регистров</h1>
+        <div class="grid">
+            <div>
+                <h3 class="success">Callee-saved</h3>
+                <ul>
+                    <li>RBX</li>
+                    <li>RBP</li>
+                    <li>R12-R15</li>
+                </ul>
+                <p>Функция обязана сохранить</p>
+            </div>
+            <div>
+                <h3 class="warning-text">Caller-saved</h3>
+                <ul>
+                    <li>RAX</li>
+                    <li>RCX</li>
+                    <li>RDX</li>
+                    <li>RSI, RDI</li>
+                    <li>R8-R11</li>
+                </ul>
+                <p>Может испортить</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- СЛАЙД 24: Выравнивание стека -->
+    <div class="step slide" data-x="38000" data-y="-1500">
+        <h1>Выравнивание стека</h1>
+        <p><b>RSP % 16 == 0</b> перед call</p>
+        <pre><code>main:
+    push rbp        ; RSP % 16 == 0
+    mov  rbp, rsp
+    call func       ; OK!
+    
+    ; Если нет push:
+    ; RSP % 16 == 8
+    ; call func     ; ОШИБКА!</code></pre>
+        <div class="warning">
+            <p>SSE инструкции требуют 16-байтного выравнивания!</p>
+        </div>
+    </div>
+
+<!-- ========== СКВОЗНОЙ ПРИМЕР: СТЕК-ФРЕЙМ И ВЫЗОВЫ (7 СЛАЙДОВ) ========== -->
+
+<!-- СЛАЙД 1: C-код примера -->
+<div class="step slide" data-x="39000" data-y="-1500">
+    <h1>Сквозной пример: C-код</h1>
+    <div class="c-code">
+        <h4>Исходный код на C:</h4>
+        <pre><code>int multiply(int a, int b) {
+    int result = a * b;
+    return result;
+}
+
+int calculate(int x, int y) {
+    int temp = x + y;
+    int prod = multiply(temp, 2);
+    return prod + x;
+}
+
+int main() {
+    int val = calculate(5, 3);
+    // val = (5+3)*2 + 5 = 21
+    return 0;
+}</code></pre>
+    </div>
+    <div class="note">
+        <p><b>Стек вызовов:</b> main → calculate → multiply</p>
+    </div>
+</div>
+
+
+<!-- СЛАЙД: Анализ вызовов (часть 1) -->
+<div class="step slide" data-x="40000" data-y="-1500">
+    <h1>Анализ вызовов (1/2)</h1>
+    <h3>Что происходит:</h3>
+    <pre><code>main()
+  └─ calculate(5, 3)
+       ├─ temp = 5 + 3 = 8
+       ├─ multiply(temp, 2)
+       │    ├─ result = 8 * 2 = 16
+       │    └─ return 16
+       ├─ prod = 16
+       ├─ return 16 + 5 = 21
+  └─ val = 21</code></pre>
+    <div class="note">
+        <p><b>Порядок выполнения:</b> main → calculate → multiply → calculate → main</p>
+    </div>
+</div>
+
+<!-- СЛАЙД: Анализ вызовов (часть 2) -->
+<div class="step slide" data-x="41000" data-y="-1500">
+    <h1>Анализ вызовов (2/2)</h1>
+    <h3>Локальные переменные:</h3>
+    <div class="table">
+        <div class="table-row table-header">
+            <div class="table-cell">Функция</div>
+            <div class="table-cell">Локальные</div>
+            <div class="table-cell">Аргументы</div>
+            <div class="table-cell">Возврат</div>
+        </div>
+        <div class="table-row">
+            <div class="table-cell">main</div>
+            <div class="table-cell">val</div>
+            <div class="table-cell">—</div>
+            <div class="table-cell">0</div>
+        </div>
+        <div class="table-row">
+            <div class="table-cell">calculate</div>
+            <div class="table-cell">temp, prod</div>
+            <div class="table-cell">x=5, y=3</div>
+            <div class="table-cell">21</div>
+        </div>
+        <div class="table-row">
+            <div class="table-cell">multiply</div>
+            <div class="table-cell">result</div>
+            <div class="table-cell">a=8, b=2</div>
+            <div class="table-cell">16</div>
+        </div>
+    </div>
+    <div class="warning">
+        <p><b>Каждая функция имеет свои локальные переменные!</b></p>
+        <p>Они не видны другим функциям</p>
+    </div>
+</div>
+
+
+<!-- СЛАЙД 3: Передача аргументов -->
+<div class="step slide" data-x="42000" data-y="-1500">
+    <h1>Передача аргументов (System V)</h1>
+    <h3>Регистры для аргументов:</h3>
+    <div class="table">
+        <div class="table-row table-header">
+            <div class="table-cell">Аргумент</div>
+            <div class="table-cell">Регистр</div>
+            <div class="table-cell">Значение</div>
+        </div>
+        <div class="table-row">
+            <div class="table-cell">1-й</div>
+            <div class="table-cell">RDI</div>
+            <div class="table-cell">x = 5</div>
+        </div>
+        <div class="table-row">
+            <div class="table-cell">2-й</div>
+            <div class="table-cell">RSI</div>
+            <div class="table-cell">y = 3</div>
+        </div>
+    </div>
+    <h3>Вызов calculate(5, 3):</h3>
+    <pre><code>; main:
+mov rdi, 5      ; 1-й аргумент
+mov rsi, 3      ; 2-й аргумент
+call calculate</code></pre>
+    <div class="note">
+        <p>Аргументы передаются в регистрах, не в стеке!</p>
+    </div>
+</div>
+
+<!-- СЛАЙД: Фрейм main (часть 1) -->
+<div class="step slide" data-x="43000" data-y="-1500">
+    <h1>Фрейм main (1/2)</h1>
+    <h3>После входа в main:</h3>
+    <pre><code>Высшие адреса
++------------------+
+| Адрес возврата   | [rbp+8]  (в ОС)
++------------------+
+| Сохранённый RBP  | [rbp]    ← RBP main
++------------------+
+| val (локальная)  | [rbp-8]  ← RSP main
++------------------+
+Низшие адреса</code></pre>
+    <div class="note">
+        <p><b>main</b> имеет одну локальную переменную — <b>val</b></p>
+        <p>Она хранится по адресу <b>[rbp-8]</b></p>
+    </div>
+</div>
+
+<!-- СЛАЙД: Фрейм main (часть 2) -->
+<div class="step slide" data-x="44000" data-y="-1500">
+    <h1>Фрейм main (2/2)</h1>
+    <h3>Код main:</h3>
+    <pre><code>main:
+    push rbp
+    mov  rbp, rsp
+    sub  rsp, 8      ; для val
+    
+    ; val = calculate(5, 3)
+    mov  rdi, 5
+    mov  rsi, 3
+    call calculate   ; ← переход!
+    
+    mov  [rbp-8], eax ; val = результат
+    xor  eax, eax
+    mov  rsp, rbp
+    pop  rbp
+    ret</code></pre>
+    <div class="warning">
+        <p><b>Важно:</b> после call RSP изменится, но RBP останется!</p>
+    </div>
+</div>
+
+<!-- СЛАЙД: Фрейм calculate (часть 1) -->
+<div class="step slide" data-x="45000" data-y="-1500">
+    <h1>Фрейм calculate (1/2)</h1>
+    <h3>После входа в calculate:</h3>
+    <pre><code>Высшие адреса
++------------------+
+| Адрес возврата   | [rbp+8]  (в main)
++------------------+
+| Сохранённый RBP  | [rbp]    ← RBP calculate
++------------------+
+| temp (локальная) | [rbp-8]
++------------------+
+| prod (локальная) | [rbp-16] ← RSP calculate
++------------------+
+Низшие адреса</code></pre>
+    <div class="note">
+        <p><b>calculate</b> имеет две локальные переменные</p>
+        <p><b>temp</b> — [rbp-8], <b>prod</b> — [rbp-16]</p>
+    </div>
+</div>
+
+<!-- СЛАЙД: Фрейм calculate (часть 2) -->
+<div class="step slide" data-x="46000" data-y="-1500">
+    <h1>Фрейм calculate (2/2)</h1>
+    <h3>Код calculate:</h3>
+    <pre><code>calculate:
+    push rbp
+    mov  rbp, rsp
+    sub  rsp, 16     ; temp и prod
+    
+    ; temp = x + y
+    mov  eax, edi    ; x
+    add  eax, esi    ; + y
+    mov  [rbp-8], eax ; temp
+    
+    ; prod = multiply(temp, 2)
+    mov  edi, [rbp-8] ; temp
+    mov  esi, 2       ; 2
+    call multiply     ; ← вложенный вызов!
+    
+    ; return prod + x
+    mov  eax, [rbp-16] ; prod
+    add  eax, edi      ; + x (edi сохранился!)
+    mov  rsp, rbp
+    pop  rbp
+    ret</code></pre>
+    <div class="warning">
+        <p><b>Обратите внимание:</b> после call multiply, регистры могут измениться!</p>
+    </div>
+</div>
+
+<!-- СЛАЙД: Фрейм multiply (часть 1) -->
+<div class="step slide" data-x="47000" data-y="-1500">
+    <h1>Фрейм multiply (1/2)</h1>
+    <h3>После входа в multiply:</h3>
+    <pre><code>Высшие адреса
++------------------+
+| Адрес возврата   | [rbp+8]  (в calculate)
++------------------+
+| Сохранённый RBP  | [rbp]    ← RBP multiply
++------------------+
+| result (локальн.)| [rbp-8]  ← RSP multiply
++------------------+
+Низшие адреса</code></pre>
+    <div class="note">
+        <p><b>multiply</b> имеет одну локальную переменную — <b>result</b></p>
+        <p>Она хранится по адресу <b>[rbp-8]</b></p>
+    </div>
+</div>
+
+<!-- СЛАЙД: Фрейм multiply (часть 2) -->
+<div class="step slide" data-x="48000" data-y="-1500">
+    <h1>Фрейм multiply (2/2)</h1>
+    <h3>Код multiply:</h3>
+    <pre><code>multiply:
+    push rbp
+    mov  rbp, rsp
+    sub  rsp, 8      ; result
+    
+    ; result = a * b
+    mov  eax, edi    ; a
+    imul eax, esi    ; * b
+    mov  [rbp-8], eax ; result
+    
+    ; return result
+    mov  eax, [rbp-8]
+    mov  rsp, rbp
+    pop  rbp
+    ret              ; ← возврат в calculate!</code></pre>
+    <div class="note">
+        <p><b>Возврат:</b> результат в EAX, затем эпилог</p>
+    </div>
+</div>
+
+
+<!-- СЛАЙД 7: Все фреймы вместе -->
+<div class="step slide" data-x="49000" data-y="-1500">
+    <h1>Все фреймы вместе</h1>
+    <h3>Момент выполнения multiply:</h3>
+    <pre><code>Высшие адреса
++------------------+
+| Адрес возврата   | [rbp+8]  (в ОС)
++------------------+
+| Сохранённый RBP  | [rbp]    ← RBP main
++------------------+
+| val              | [rbp-8]  (main)
++------------------+
+| Адрес возврата   | [rbp+8]  (в main)
++------------------+
+| Сохранённый RBP  | [rbp]    ← RBP calculate
++------------------+
+| temp             | [rbp-8]  (calculate)
++------------------+
+| prod             | [rbp-16] (calculate)
++------------------+
+| Адрес возврата   | [rbp+8]  (в calculate)
++------------------+
+| Сохранённый RBP  | [rbp]    ← RBP multiply
++------------------+
+| result           | [rbp-8]  (multiply) ← RSP
++------------------+
+Низшие адреса</code></pre>
+    <div class="note">
+        <p><b>Стек растёт вниз:</b> каждый вызов добавляет новый фрейм</p>
+        <p><b>RSP</b> указывает на вершину (самый нижний фрейм)</p>
+        <p><b>RBP</b> каждого фрейма — фиксированная точка отсчёта</p>
+    </div>
+</div>
+
+
+    <!-- СЛАЙД 25: printf -->
+    <div class="step slide" data-x="50000" data-y="-1500">
+        <h1>Вызов printf</h1>
+        <pre><code>extern printf
+extern exit
+
+section .data
+fmt: db "x = %d", 10, 0
+
+section .text
+global main
+main:
+    push rbp
+    mov  rbp, rsp
+    
+    mov  rdi, fmt   ; 1-й аргумент
+    mov  rsi, 42    ; 2-й аргумент
+    xor  eax, eax   ; 0 векторных
+    call printf
+    
+    xor  edi, edi
+    call exit</code></pre>
+        <div class="warning">
+            <p>EAX = 0 перед varargs!</p>
+        </div>
+    </div>
+
+    <!-- СЛАЙД 26: Рекурсия -->
+    <div class="step slide" data-x="51000" data-y="-1500">
+        <h1>Рекурсия: факториал</h1>
+        <pre><code>; unsigned long fact(unsigned int n)
+fact:
+    push rbp
+    mov  rbp, rsp
+    push rbx
+    
+    mov  rbx, rdi   ; n
+    cmp  rbx, 1
+    jle  .base
+    
+    lea  rdi, [rbx-1]
+    call fact
+    imul rax, rbx
+    jmp  .done
+    
+.base:
+    mov  rax, 1
+    
+.done:
+    pop  rbx
+    pop  rbp
+    ret</code></pre>
+        <div class="warning">
+            <p>Глубокая рекурсия = переполнение стека!</p>
+        </div>
+    </div>
+
+    <!-- СЛАЙД 27: Системные вызовы -->
+    <div class="step slide" data-x="52000" data-y="-1500">
+        <h1>Системные вызовы Linux</h1>
+        <pre><code>; write(1, "Hello", 6)
+section .data
+msg: db "Hello", 10
+
+section .text
+global _start
+_start:
+    mov rax, 1      ; sys_write
+    mov rdi, 1      ; fd = stdout
+    mov rsi, msg    ; буфер
+    mov rdx, 6      ; длина
+    syscall
+    
+    mov rax, 60     ; sys_exit
+    xor rdi, rdi
+    syscall</code></pre>
+    </div>
+
+    <!-- СЛАЙД 28: C → asm базовые -->
+    <div class="step slide" data-x="53000" data-y="-1500">
+        <h1>C → asm: базовые операции</h1>
+        <div class="comparison">
+            <div class="c-code">
+                <h4>C-код</h4>
+                <pre><code>int a = 10, b = 20;
+int c;
+
+c = a + b;
+c = a - b;
+c = a * b;
+c = a / b;
+c = a % b;</code></pre>
+            </div>
+            <div class="asm-code">
+                <h4>Ассемблер</h4>
+                <pre><code>; a в EAX, b в EBX
+mov eax, 10
+mov ebx, 20
+
+add eax, ebx    ; c = 30
+
+mov eax, 10
+sub eax, ebx    ; c = -10
+
+mov eax, 10
+imul eax, ebx   ; c = 200
+
+mov eax, 10
+xor edx, edx
+div ebx         ; c = 0
+
+mov eax, 10
+xor edx, edx
+div ebx
+mov ecx, edx    ; c = 10</code></pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- СЛАЙД 29: C → asm составные -->
+    <div class="step slide" data-x="54000" data-y="-1500">
+        <h1>C → asm: составные выражения</h1>
+        <div class="comparison">
+            <div class="c-code">
+                <h4>C-код</h4>
+                <pre><code>int x = 5, y = 3, z = 2;
+
+// (x + y) * z - x / y
+result = (x + y) * z - x / y;
+
+// x * y + z * x - y
+result = x * y + z * x - y;</code></pre>
+            </div>
+            <div class="asm-code">
+                <h4>Ассемблер</h4>
+                <pre><code>; x в EAX, y в EBX, z в ECX
+mov eax, 5
+mov ebx, 3
+mov ecx, 2
+
+; (x + y) * z - x / y
+mov edx, eax
+add edx, ebx
+imul edx, ecx
+mov esi, eax
+xor edi, edi
+div ebx
+sub edx, eax
+mov [result], edx
+
+; x * y + z * x - y
+mov edx, eax
+imul edx, ebx
+mov esi, ecx
+imul esi, eax
+add edx, esi
+sub edx, ebx
+mov [result], edx</code></pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- СЛАЙД 30: Умножение оптимизация -->
+    <div class="step slide" data-x="55000" data-y="-1500">
+        <h1>Оптимизация умножения</h1>
+        <div class="grid">
+            <div>
+                <h3>На степень 2</h3>
+                <pre><code>; x *= 8
+shl eax, 3
+
+; x *= 16
+shl eax, 4</code></pre>
+            </div>
+            <div>
+                <h3>На константу</h3>
+                <pre><code>; x *= 10 (10 = 8 + 2)
+mov ebx, eax
+shl eax, 3
+shl ebx, 1
+add eax, ebx</code></pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- СЛАЙД 31: Деление оптимизация -->
+    <div class="step slide" data-x="56000" data-y="-1500">
+        <h1>Оптимизация деления</h1>
+        <div class="grid">
+            <div>
+                <h3>Unsigned / 4</h3>
+                <pre><code>shr eax, 2</code></pre>
+            </div>
+            <div>
+                <h3>Signed / 4</h3>
+                <pre><code>mov edx, eax
+sar edx, 31
+add eax, edx
+sar eax, 2</code></pre>
+            </div>
+        </div>
+        <div class="note">
+            <p>Деление на константу → умножение на "магическое" число</p>
+        </div>
+    </div>
+
+    <!-- СЛАЙД 32: Тернарный оператор -->
+    <div class="step slide" data-x="57000" data-y="-1500">
+        <h1>Тернарный оператор</h1>
+        <div class="comparison">
+            <div class="c-code">
+                <h4>C-код</h4>
+                <pre><code>int a = 10, b = 20;
+int max;
+
+max = (a > b) ? a : b;</code></pre>
+            </div>
+            <div class="asm-code">
+                <h4>Ассемблер</h4>
+                <pre><code>; Через CMOV (лучший!)
+mov ecx, ebx    ; max = b
+cmp eax, ebx
+cmovg ecx, eax  ; if (a > b) max = a
+
+; Через jmp
+cmp eax, ebx
+jle .else
+mov ecx, eax
+jmp .done
+.else:
+mov ecx, ebx
+.done:</code></pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- СЛАЙД 33: Логические операторы -->
+    <div class="step slide" data-x="58000" data-y="-1500">
+        <h1>Логические && и ||</h1>
+        <div class="comparison">
+            <div class="c-code">
+                <h4>C-код</h4>
+                <pre><code>if (a > 0 && b > 0) {
+    // оба > 0
+}
+
+if (a > 0 || b > 0) {
+    // хотя бы одно
+}</code></pre>
+            </div>
+            <div class="asm-code">
+                <h4>Ассемблер</h4>
+                <pre><code>; a > 0 && b > 0
+test eax, eax
+jle .false
+test ebx, ebx
+jle .false
+; true
+jmp .done
+.false:
+; false
+.done:
+
+; a > 0 || b > 0
+test eax, eax
+jg  .true
+test ebx, ebx
+jg  .true
+; false
+jmp .done
+.true:
+; true
+.done:</code></pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- СЛАЙД 34: Полный пример -->
+    <div class="step slide" data-x="59000" data-y="-1500">
+        <h1>Полный пример</h1>
+        <div class="comparison">
+            <div class="c-code">
+                <h4>C-код</h4>
+                <pre><code>int calculate(int x, int y, int z) {
+    return (x + y) * (z - x) / (y + z)
+           + (x << 2) - (y >> 1);
+}</code></pre>
+            </div>
+            <div class="asm-code">
+                <h4>Ассемблер</h4>
+                <pre><code>; RDI=x, RSI=y, RDX=z
+calculate:
+    push rbp
+    mov  rbp, rsp
+    push rbx
+    
+    mov eax, edi
+    add eax, esi    ; x + y
+    mov ebx, edx
+    sub ebx, edi    ; z - x
+    imul eax, ebx   ; (x+y)*(z-x)
+    
+    mov ecx, esi
+    add ecx, edx    ; y + z
+    xor edx, edx
+    div ecx         ; / (y+z)
+    mov ebx, eax
+    
+    mov eax, edi
+    shl eax, 2      ; x << 2
+    mov ecx, esi
+    sar ecx, 1      ; y >> 1
+    sub eax, ecx
+    add ebx, eax
+    
+    mov eax, ebx
+    pop rbx
+    pop rbp
+    ret</code></pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- СЛАЙД 35: Ошибки -->
+    <div class="step slide" data-x="60000" data-y="-1500">
+        <h1>Типичные ошибки</h1>
+        <div class="grid">
+            <div>
+                <h3 class="warning-text">Не выровнен стек</h3>
+                <pre><code>; Неправильно:
+mov rdi, fmt
+call printf  ; segfault!
+
+; Правильно:
+push rbp
+mov rbp, rsp
+mov rdi, fmt
+call printf</code></pre>
+            </div>
+            <div>
+                <h3 class="warning-text">Не сохранил RBX</h3>
+                <pre><code>; Неправильно:
+mov rbx, 42
+call func
+; RBX испорчен!
+
+; Правильно:
+push rbx
+mov rbx, 42
+call func
+pop rbx</code></pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- СЛАЙД 36: Ошибки 2 -->
+    <div class="step slide" data-x="61000" data-y="-1500">
+        <h1>Типичные ошибки (2)</h1>
+        <div class="grid">
+            <div>
+                <h3 class="warning-text">32-бит адресация</h3>
+                <pre><code>; Неправильно:
+mov eax, [ebx]
+
+; Правильно:
+mov rax, [rbx]</code></pre>
+            </div>
+            <div>
+                <h3 class="warning-text">RSP не сбалансирован</h3>
+                <pre><code>push rax
+push rbx
+call func
+pop rax  ; это RBX!
+; Нужно:
+add rsp, 16</code></pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- СЛАЙД 37: Отладка -->
+    <div class="step slide" data-x="62000" data-y="-1500">
+        <h1>Отладка с gdb</h1>
+        <pre><code>nasm -f elf64 -g -F dwarf prog.asm
+gcc -g -o prog prog.o</code></pre>
+        <div class="grid">
+            <div>
+                <h4>Управление:</h4>
+                <ul>
+                    <li><code>break *0x401000</code></li>
+                    <li><code>stepi</code> — шаг</li>
+                    <li><code>nexti</code> — шаг</li>
+                    <li><code>continue</code></li>
+                </ul>
+            </div>
+            <div>
+                <h4>Просмотр:</h4>
+                <ul>
+                    <li><code>info registers</code></li>
+                    <li><code>x/10gx $rsp</code></li>
+                    <li><code>x/10i $rip</code></li>
+                    <li><code>display $rax</code></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- СЛАЙД 38: Итоги -->
+    <div class="step slide" data-x="64000" data-y="-1500" data-scale="2">
+        <h1>Итоги</h1>
+        <div class="grid">
+            <div>
+                <h3>Изучили:</h3>
+                <ul>
+                    <li>Регистры и адресацию</li>
+                    <li>Арифметику и сдвиги</li>
+                    <li>CMOV и переходы</li>
+                    <li>Стек и вызовы</li>
+                    <li>Соглашение System V</li>
+                    <li>Оптимизации</li>
+                </ul>
+            </div>
+            <div>
+                <h3>Умеем:</h3>
+                <ul>
+                    <li>Читать asm-код</li>
+                    <li>Писать функции</li>
+                    <li>Отлаживать</li>
+                    <li>Оптимизировать</li>
+                </ul>
+            </div>
+        </div>
+        <p style="text-align: center; font-size: 1.3em; margin-top: 30px; color: #e94560;">
+            Спасибо!
+        </p>
+    </div>
+
+<!--
+        <li>Исключение — регистры FS и GS: их базовый адрес всё ещё используется, например, для потоково-локального хранилища (TLS)</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="17000" data-y="-1500">
+        <h1>Почему страничная организация актуальна и сегодня</h1>
+        <ul>
+        <li>Основа виртуальной памяти: изоляция адресных пространств процессов друг от друга</li>
+        <li>Подкачка (swapping) и отображение файлов в память (memory-mapped files) построены прямо на страничном механизме</li>
+        <li>Copy-on-write — эффективное клонирование процессов (fork) за счёт разделения страниц до первой записи</li>
+        <li>Большие страницы (huge pages) — снижение давления на TLB для приложений с большим объёмом памяти</li>
+        <li>Вложенная страничная адресация (EPT/NPT) — основа аппаратной виртуализации и изоляции контейнеров</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="18000" data-y="-1500">
+        <h1>Intel 80486 (1989)</h1>
+        <ul>
+        <li>Впервые сопроцессор для чисел с плавающей точкой (x87 FPU) интегрирован прямо в кристалл</li>
+        <li>Введён конвейер выполнения инструкций (pipelining) — рост производительности без роста частоты</li>
+        <li>Встроенная кэш-память первого уровня (8 КБ)</li>
+        <li>Первый процессор Intel, достигший частоты 100 МГц (486DX4)</li>
+        <li>Последнее поколение, где ещё продавались версии без FPU (486SX)</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="19000" data-y="-1500">
+        <h1>Зачем процессору нужен кеш</h1>
+        <ul>
+        <li>Скорость процессора растёт быстрее скорости оперативной памяти — разрыв называют «memory wall»</li>
+        <li>Обращение напрямую к RAM занимает на порядки больше тактов, чем одна арифметическая операция</li>
+        <li>Принцип локальности: программы обычно повторно используют одни и те же данные (временная локальность) и данные, расположенные рядом (пространственная локальность)</li>
+        <li>Кеш — это небольшая, но очень быстрая память, физически расположенная ближе к ядру процессора, куда попадают недавно и часто используемые данные</li>
+        <li>Цель — сократить среднее время обращения к памяти, не обращаясь к медленной RAM при каждом чтении</li>
+        </ul>
+    </div>
+
+
+
+
+
+
+    <div class="step slide" data-x="20000" data-y="-1500">
+        <h1>Иерархия L1, L2, L3</h1>
+        <ul>
+        <li>L1 — самый маленький и быстрый уровень, свой у каждого ядра; обычно разделён на L1i (инструкции) и L1d (данные), десятки КБ, задержка около нескольких тактов</li>
+        <li>L2 — крупнее и медленнее L1, также обычно принадлежит отдельному ядру, от сотен КБ до нескольких МБ</li>
+        <li>L3 — общий для всех ядер процессора, от нескольких до десятков МБ, самый медленный из трёх уровней, но всё равно значительно быстрее RAM</li>
+        <li>При обращении к памяти процессор сначала проверяет L1, затем L2, затем L3, и только при промахе на всех уровнях идёт в оперативную память</li>
+        <li>Компромисс на каждом уровне один и тот же: чем больше объём кеша, тем он медленнее и дороже в производстве — отсюда и многоуровневая структура</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="21000" data-y="-1500">
+        <h1>Кеш не управляется явно машинными инструкциями</h1>
+        <ul>
+        <li>Регистры адресуются явно и напрямую: mov eax, ebx — программа точно знает, что и куда кладёт</li>
+        <li>Для кеша такого нет: не существует обычной инструкции "положи вот этот байт в L1 и держи его там"</li>
+        <li>Что реально решает, какие данные окажутся в кеше — аппаратная логика: политика вытеснения, отслеживание недавних и частых обращений, автоматический prefetch по шаблону доступа</li>
+        <li>Есть инструкции-подсказки (например, PREFETCHT0 в x86) — но это именно подсказки процессору, а не гарантия и не прямая адресация конкретной кеш-линии</li>
+        <li>Следствие: производительность кода зависит от кеша, но управлять им напрямую из программы нельзя — можно только писать код так, чтобы он "соответствовал" аппаратной политике кеширования</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="22000" data-y="-1500">
+        <h1>Размер кеша и размер кеш-линии</h1>
+        <ul>
+        <li>Размер кеша (M) — общая ёмкость конкретного уровня кеша: у L1 обычно десятки КБ, у L2 — сотни КБ - единицы МБ, у L3 — единицы-десятки МБ (см. слайды про L1/L2/L3 ранее)</li>
+        <li>Размер кеш-линии (B) — минимальный блок, которым данные вообще перемещаются между памятью и кешем; на большинстве современных x86-процессоров это 64 байта</li>
+        <li>Даже обращение к одному байту приводит к загрузке всей кеш-линии целиком — это и есть аппаратная эксплуатация пространственной локальности</li>
+        <li>Число линий в кеше = M / B — например, L1 в 32 КБ с линией 64 байта содержит 512 линий</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="23000" data-y="-1500">
+        <h1>Cache-aware и cache-oblivious алгоритмы</h1>
+        <ul>
+        <li>Управлять кешем напрямую нельзя — остаётся косвенно проектировать алгоритм под характер обращений к памяти</li>
+        <li>Cache-aware подход: алгоритм явно использует параметры кеша — размер кеш-линии B, размер кеша M — например, блочное перемножение матриц с размером блока, подобранным под конкретный L1/L2</li>
+        <li>Проблема cache-aware подхода: параметры B и M зависят от конкретного процессора — тот же код придётся перенастраивать под другое железо</li>
+        <li>Cache-oblivious подход: алгоритм вообще не знает про B и M, но всё равно асимптотически оптимально использует кеш — на любом железе, без подстройки</li>
+        <li>Достигается это обычно через рекурсивное разбиение задачи пополам (divide and conquer): на каком-то уровне рекурсии подзадача сама, естественным образом, помещается в кеш — какого бы размера он ни был</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="24000" data-y="-1500">
+        <h1>Cache-aware умножение матриц: общий подход</h1>
+        <pre><code>for (bi in 0 until n step B)
+  for (bj in 0 until n step B)
+    for (bk in 0 until n step B)
+      // перемножение блоков B×B — они помещаются в кеш целиком
+      for (i in bi until bi+B)
+        for (j in bj until bj+B)
+          for (k in bk until bk+B)
+            c[i][j] += a[i][k] * b[k][j]</code></pre>
+    </div>
+    <div class="step slide" data-x="25000" data-y="-1500">
+        <h1>Cache-aware умножение матриц: общий подход</h1>
+        <ul>
+        <li>Наивный тройной цикл для больших матриц даёт плохую локальность — к моменту повторного обращения к данным они уже вытеснены из кеша</li>
+        <li>Идея блочного (tiled) умножения: разбить матрицы на блоки размера B×B и явно переставить порядок циклов так, чтобы вся работа с одним блоком шла, пока он ещё резидентен в кеше</li>
+        <li>Размер блока B выбирается сознательно, исходя из известного размера кеша — например, чтобы блоки A, B и C одновременно уместились в L1 или L2 (грубая оценка: B ≈ √(M / 3), где M — размер кеша в элементах)</li>
+        <li>Параметры кеша конкретного процессора явно зашиты в выбор B, и для другого железа код нужно перенастраивать</li>
+        <li>Так устроены промышленные библиотеки линейной алгебры (OpenBLAS, Intel MKL) — обычно с несколькими уровнями блокировки сразу: под регистры, L1, L2 и L3</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="26000" data-y="-1500">
+        <h1>Идея cache-oblivious умножения матриц</h1>
+        <ul>
+        <li>Cache-oblivious вариант: каждую матрицу рекурсивно делят на четыре четверти, произведение исходных матриц сводится к 8 рекурсивным произведениям четвертей вдвое меньшего размера плюс их сложение</li>
+        <li>Рекурсия продолжается до тех пор, пока подматрицы не станут совсем маленькими</li>
+        <li>Ключевой эффект: на некоторой глубине рекурсии рабочие подматрицы целиком помещаются в кеш — какого бы размера кеш ни был у конкретного процессора — и вся дальнейшая работа с ними идёт без промахов</li>
+        <li>Доказанный результат: такая схема даёт асимптотически оптимальное количество промахов кеша (порядка n³/(B·√M)) — то же самое, что и у тщательно настроенного cache-aware алгоритма, но без единого параметра железа в коде</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="27000" data-y="-1500">
+        <h1>Pentium (1993)</h1>
+        <ul>
+        <li>Впервые вместо номера (напр. «80586») используется торговая марка — Pentium</li>
+        <li>Суперскалярная архитектура: две конвейерные линии, выполнение до двух инструкций за такт</li>
+        <li>Улучшенный предсказатель переходов (branch prediction)</li>
+        <li>Широко известен из-за аппаратной ошибки в делении с плавающей точкой (баг FDIV, 1994)</li>
+        <li>Тактовые частоты от 60 МГц до 300 МГц (Pentium MMX)</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="28000" data-y="-1500">
+        <h1>Branch prediction</h1>
+        <ul>
+        <li>Современные процессоры работают на глубоком конвейере: пока одна инструкция выполняется, следующие уже загружаются и декодируются заран
+ее</li>
+        <li>Условный переход (if) создаёт неопределённость: реальное направление известно только после вычисления условия, а конвейер к этому момен
+ту уже должен быть чем-то заполнен</li>
+        <li>Предсказатель переходов угадывает направление по истории предыдущих переходов и спекулятивно исполняет предсказанную ветку заранее</li>
+        <li>Угадал — конвейер остаётся полным, почти бесплатно; ошибся — весь спекулятивно выполненный путь сбрасывается, штраф порядка 10-20 такто
+в и больше в зависимости от глубины конвейера</li>
+        <li>Для циклов с непредсказуемой, зависящей от данных веткой (близкой к случайной) штраф проявляется на каждой второй итерации</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="29000" data-y="-1500">
+        <h1>Пример: наивный и предсказуемый код на C</h1>
+        <pre><code>
+// наивный:
+// ветка зависит от неотсортированных данных —
+// предсказать её сложно
+int sum = 0;
+for (int i = 0; i &lt; n; i++) {
+    if (data[i] &gt;= threshold) {
+        sum += data[i];
+    }
+}
+    </div>
+    <div class="step slide" data-x="30000" data-y="-1500">
+        <h1>Пример: наивный и предсказуемый код на C</h1>
+        <pre><code>
+// альтернатива:
+// убрать ветвление совсем, через битовую маску
+int mask = -(data[i] &gt;= threshold);  // 0 или все единицы (-1)
+sum += data[i] &amp; mask;</code></pre>
+        <ul>
+        <li>Альтернативный приём — branchless-код через битовую маску: условие переводится в арифметику, а не в переход, поэтому промахивать вовсе нечему</li>
+        <li>Компиляторы иногда сами делают похожую оптимизацию для простых case — заменяют if на инструкцию условного перемещения (cmov), которая тоже не требует ветвления</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="31000" data-y="-1500">
+        <h1>Pentium Pro / II / III (1995–1999)</h1>
+        <ul>
+        <li>Микроархитектура P6: внеочередное исполнение инструкций (out-of-order execution)</li>
+        <li>Pentium MMX (1997) — набор инструкций MMX для мультимедиа-задач</li>
+        <li>Pentium II (1997) — P6 + MMX в одном корпусе, картридж Slot 1</li>
+        <li>Pentium III (1999) — добавлен набор инструкций SSE (потоковые SIMD-расширения)</li>
+        <li>Архитектура P6 оказалась настолько удачной, что легла в основу будущих Pentium M и Core</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="32000" data-y="-1500">
+        <h1>SIMD: общая идея</h1>
+        <ul>
+        <li>SIMD — Single Instruction, Multiple Data: одна инструкция обрабатывает сразу несколько значений одновременно, а не одно за раз</li>
+        <li>Реализуется через широкие регистры, в которые упаковано сразу несколько значений: XMM (128 бит) — это 4 float, или 2 double, или 16 байт одновременно</li>
+        <li>Типичный кандидат — цикл, где одна и та же операция применяется поэлементно к массиву без зависимостей между итерациями (сложение массивов, обработка изображений/звука)</li>
+        <li>Это форма параллелизма данных, в отличие от параллелизма на уровне инструкций (конвейер, предсказание переходов) — обсуждались отдельно на предыдущих слайдах</li>
+        <li>Эволюция в x86: MMX (1997, только целые) → SSE (1999, float) → SSE2 (2000, double) → AVX/AVX2 (256 бит) → AVX-512</li>
+        </ul>
+    </div>
+
+
+    <div class="step slide" data-x="33000" data-y="-1500">
+        <h1>Задача и код без SSE</h1>
+        <pre><code>
+; c[i] = a[i] + b[i] для 4 int,
+; без SIMD — 4 отдельных сложения одно за другим
+
+mov eax, [a]
+add eax, [b]
+mov [c], eax
+
+mov eax, [a+4]
+add eax, [b+4]
+mov [c+4], eax
+
+; для +8
+
+; для +12
+</code></pre>
+    </div>
+    <div class="step slide" data-x="34000" data-y="-1500">
+        <h1>Задача и код без SSE</h1>
+        <ul>
+        <li>Задача: поэлементно сложить два массива из 4 целых чисел</li>
+        <li>Без SIMD — 4 полностью независимых блока по 3 инструкции, процессор обрабатывает элементы строго по одному</li>
+        <li>Даже при идеальном конвейере и предсказании переходов — это 12 отдельных инструкций для 4 сложений</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="35000" data-y="-1500">
+        <h1>Тот же результат с SSE</h1>
+        <pre><code>; с SSE2: одна инструкция складывает все 4 int сразу
+movdqu xmm0, [a]      ; загрузить 4 int из a в xmm0
+movdqu xmm1, [b]      ; загрузить 4 int из b в xmm1
+paddd  xmm0, xmm1     ; сложить все 4 пары параллельно за одну инструкцию
+movdqu [c], xmm0      ; сохранить все 4 результата разом</code></pre>
+        <ul>
+        <li>movdqu загружает сразу 128 бит (4 int) в один XMM-регистр за одну инструкцию</li>
+        <li>paddd (Packed Add Doubleword) складывает все 4 пары значений параллельно, одной инструкцией вместо четырёх add</li>
+        <li>Итого 4 инструкции вместо 12 — и, что важнее, само сложение выполняется как одна параллельная операция, а не 4 последовательных</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="36000" data-y="-1500">
+        <h1>Итоги: выигрыш и ограничения</h1>
+        <ul>
+        <li>Теоретический выигрыш для этой операции — до 4x по числу параллельно обрабатываемых элементов (128 бит / 32 бита на int)</li>
+        <li>На практике ускорение обычно меньше: узким местом часто становится пропускная способность памяти, а не сама арифметика</li>
+        <li>movdqu работает и с невыровненными адресами, но movdqa (выровненная загрузка) быстрее — выравнивание данных в памяти имеет значение</li>
+        <li>Компиляторы умеют автоматически векторизовать простые циклы, но гарантированный контроль даёт только явный ассемблер или intrinsics-функции</li>
+        <li>Векторизуется не любой код — нужны независимые, однородные операции без сложного ветвления и зависимостей между итерациями</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="37000" data-y="-1500">
+        <h1>Pentium 4 и NetBurst (2000–2006)</h1>
+        <ul>
+        <li>Новая микроархитектура NetBurst, ставка на очень высокие тактовые частоты</li>
+        <li>Длинный конвейер (до 31 стадии) ради роста частоты — но снижение эффективности на такт</li>
+        <li>Технология Hyper-Threading — один физический процессор выглядит как два логических</li>
+        <li>Достигнуты частоты выше 3.8 ГГц, но упёрлись в проблему тепловыделения</li>
+        <li>Кризис стратегии «частота любой ценой» подтолкнул Intel к развороту в сторону энергоэффективности</li>
+        </ul>
+    </div>
+
+
+
+
+
+
+    <div class="step slide" data-x="38000" data-y="-1500">
+        <h1>Core и Core i-серия (2006 — настоящее время)</h1>
+        <ul>
+        <li>Core 2 Duo (2006) — возврат к энергоэффективной архитектуре P6-линии (через Pentium M), отказ от NetBurst</li>
+        <li>Nehalem (2008) — представлена линейка Core i3/i5/i7, встроенный контроллер памяти</li>
+        <li>Массовый переход на многоядерность — рост производительности за счёт параллелизма, а не частоты</li>
+        <li>Постепенное развитие техпроцесса: 45 нм → 14 нм → 10 нм → Intel 7 и далее</li>
+        <li>Alder Lake (2021) — гибридная архитектура из производительных (P-core) и энергоэффективных (E-core) ядер</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="39000" data-y="-1500">
+        <h1>Программы в машинных инструкциях</h1>
+        <ul>
+        <li>Хотим потрогать руками инструкции Intel</li>
+        <li>Конечная цель - не программирование в машинных инструкциях как таковое</li>
+        <li>Скорее понимание механизмов аппаратного уровня</li>
+        <li>Которые используются в numpy, blas-библиотеках и т.п.</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="40000" data-y="-1500">
+        <h1>Машинные инструкции и что такое ассемблер</h1>
+        <ul>
+        <li>Машинная инструкция — закодированная в двоичном виде команда, которую процессор способен исполнить напрямую: код операции (opcode) + операнды</li>
+        <li>Любая программа в конечном счёте — это последовательность таких двоичных инструкций; всё остальное (языки высокого уровня) существует лишь до этапа компиляции</li>
+        <li>Ассемблерный код — не отдельный "язык" в привычном смысле, а человекочитаемая мнемоническая запись машинных инструкций: mov, add — читаемые имена конкретных opcode'ов</li>
+    </div>
+    <div class="step slide" data-x="41000" data-y="-1500">
+        <h1>Машинные инструкции и что такое ассемблер</h1>
+        <ul>
+        <li>Почти всегда одна строка ассемблера соответствует ровно одной машинной инструкции — в отличие от языков высокого уровня, где одна строка кода может разворачиваться в десятки инструкций</li>
+        <li>Ассемблер (как программа) — транслятор, превращающий этот текст в реальные байты машинного кода; ассемблерный код всегда привязан к конкретной архитектуре — x86-ассемблер и ARM-ассемблер совершенно разные, потому что разные сами машинные инструкции</li>
+        </ul>
+    </div>
+    <div class="step slide" data-x="42000" data-y="-1500">
+        <h1>Пример</h1>
+        <pre><code>section .data
+    msg db "Hello, world!", 0xA
+    len equ $ - msg
+section .text
+    global _start
+_start:
+    mov rax, 1        ; номер syscall: write
+    mov rdi, 1        ; fd = 1 (stdout)
+    mov rsi, msg      ; адрес буфера
+    mov rdx, len      ; длина буфера
+    syscall
+
+    mov rax, 60       ; номер syscall: exit
+    mov rdi, 0        ; код завершения 0
+    syscall</code></pre>
+        <ul>
+        <li>Сохранить этот код в файл hello.asm</li>
+        <li>section .data — место для данных программы (сама строка сообщения)</li>
+        <li>section .text — место для кода, _start — точка входа программы (аналог main, но на уровне линковщика, без рантайма C)</li>
+        </ul>
+-->
+    </div>
+
+    <!--
+        
+        * `data-x`, `data-y`, `data-z` - they define the position of **the center** of step element on
+            the canvas in pixels; their default value is 0;
+        * `data-rotate-x`, `data-rotate-y`, 'data-rotate-z`, `data-rotate` - they define the rotation of
+            the element around given axis in degrees; their default value is 0; `data-rotate` and `data-rotate-z`
+            are exactly the same;
+        * `data-scale` - defines the scale of step element; default value is 1
+        
+        These values are used by impress.js in CSS transformation functions, so for more information consult
+        CSS transfrom docs: https://developer.mozilla.org/en/CSS/transform
+        
+    -->
+    <div id="overview" class="step" data-x="3000" data-y="1500" data-z="0" data-scale="10">
+    </div>
+
+</div>
+
+<div id="impress-toolbar"></div>
+
+<div class="hint">
+    <p>Use a spacebar or arrow keys to navigate. <br/>
+       Press 'P' to launch speaker console.</p>
+</div>
+<script>
+if ("ontouchstart" in document.documentElement) { 
+    document.querySelector(".hint").innerHTML = "<p>Swipe left or right to navigate</p>";
+}
+</script>
+
+<script src="js/impress.js"></script>
+<script>impress().init();</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<!-- Include any specific language files AFTER the main library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/python.min.js"></script>
+
+<script>hljs.highlightAll();</script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #1a1a2e;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            overflow: hidden;
+        }
+        .step {
+            width: 1000px;
+            height: 600px;
+            padding: 40px 50px;
+            font-size: 20px;
+            line-height: 1.5;
+            background: #16213e;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+            overflow-y: auto;
+        }
+        h1 {
+            color: #ffffff;
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e94560;
+            padding-bottom: 8px;
+        }
+        h3 {
+            color: #00d4ff;
+            font-size: 1.1em;
+            margin: 12px 0 8px 0;
+        }
+        h4 {
+            color: #ffd93d;
+            font-size: 1em;
+            margin-bottom: 5px;
+        }
+        ul { list-style: none; padding-left: 0; }
+        li {
+            margin: 6px 0;
+            padding-left: 20px;
+            position: relative;
+            font-size: 0.9em;
+        }
+        li::before {
+            content: "▸";
+            color: #e94560;
+            position: absolute;
+            left: 0;
+        }
+        pre {
+            background: #0f3460;
+            padding: 12px;
+            border-left: 3px solid #e94560;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 20px;
+            line-height: 1.4;
+            margin: 8px 0;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        code {
+            font-family: 'Consolas', monospace;
+            color: #7bed9f;
+        }
+        .table {
+            display: table;
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            margin: 8px 0;
+        }
+        .table-row { display: table-row; }
+        .table-cell {
+            display: table-cell;
+            padding: 6px 8px;
+            border: 1px solid #444;
+            vertical-align: top;
+        }
+        .table-header {
+            background: #e94560;
+            font-weight: bold;
+            color: white;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 8px 0;
+        }
+        .grid-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+            margin: 8px 0;
+        }
+        .note {
+            background: #0f3460;
+            padding: 10px 15px;
+            border-radius: 6px;
+            margin: 10px 0;
+            border-left: 3px solid #ffd93d;
+            font-size: 0.85em;
+        }
+        .warning {
+            background: #2d1a1a;
+            padding: 10px 15px;
+            border-radius: 6px;
+            margin: 10px 0;
+            border-left: 3px solid #ff6b6b;
+            font-size: 0.85em;
+        }
+        .example-box {
+            background: #0f3460;
+            border: 1px solid #e94560;
+            border-radius: 6px;
+            padding: 10px;
+            margin: 8px 0;
+        }
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 8px 0;
+        }
+        .c-code {
+            background: #1a1a3e;
+            border-left: 3px solid #ffd93d;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .asm-code {
+            background: #1a1a3e;
+            border-left: 3px solid #e94560;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .highlight { color: #e94560; font-weight: bold; }
+        .info { color: #00d4ff; }
+        .success { color: #7bed9f; }
+        .warning-text { color: #ff6b6b; }
+        .small { font-size: 0.8em; color: #888; }
+        .step { opacity: 0.3; transition: opacity 0.8s; }
+        .step.active { opacity: 1; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0f3460; }
+        ::-webkit-scrollbar-thumb { background: #e94560; border-radius: 3px; }
+    </style>
+
+
+  </body>
+</html>
