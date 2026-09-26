@@ -1,0 +1,1061 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1024" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <title>Большие данные: лекция 3. Parquet и ORC</title>
+
+    <link href="//fonts.googleapis.com/css?family=Open+Sans:regular,semibold,italic,italicsemibold|PT+Sans:400,700,400italic,700italic|PT+Serif:400,700,400italic,700italic" rel="stylesheet" />
+
+    <link href="css/impress-demo.css" rel="stylesheet" />
+    <link href="css/impress-common.css" rel="stylesheet" />
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/default.min.css">
+
+    <style>
+        /* Дополнения к impress-demo.css: только то, чего нет в образце (код, таблицы, разделы). Можно удалить/подправить. */
+
+        .slide {
+            font-size: 27px;
+            line-height: 1.3;
+            letter-spacing: -.5px;
+        }
+
+        .slide h1 {
+            font-size: 40px;
+            line-height: 1.15;
+            margin: 0 0 .5em;
+            text-align: left;
+        }
+
+        .slide ul,
+        .slide ol {
+            margin: 0;
+            padding-left: 1.1em;
+        }
+
+        .slide li {
+            margin: .25em 0;
+        }
+
+        .slide p {
+            margin: .6em 0 0;
+        }
+
+        .slide pre {
+            margin: 0 0 12px;
+            letter-spacing: 0;
+            text-shadow: none;
+        }
+
+        .slide pre code.hljs {
+            padding: 12px 16px;
+            font-size: 17px;
+            line-height: 1.35;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .slide pre.small code.hljs {
+            font-size: 15.5px;
+        }
+
+        .slide code:not(.hljs) {
+            background: #e2e8f0;
+            color: #1e293b;
+            padding: 0 .3em;
+            border-radius: 4px;
+            font-size: .85em;
+            letter-spacing: 0;
+        }
+
+        .slide.section code:not(.hljs),
+        .slide.title code:not(.hljs) {
+            background: rgba(255,255,255,.28);
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .slide table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 22px;
+            line-height: 1.25;
+        }
+
+        .slide th,
+        .slide td {
+            border-bottom: 1px solid #ccc;
+            padding: 6px 10px;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .slide th {
+            background: #e2e8f0;
+            color: #1e293b;
+        }
+
+        .slide .hl {
+            color: #b91c1c;
+        }
+
+        .slide.section {
+            background: linear-gradient(135deg,#0f766e,#1d4ed8);
+            color: #fff;
+            text-shadow: none;
+        }
+
+        .slide.section h1 {
+            color: #fff;
+            font-size: 50px;
+        }
+
+        .slide.section .num {
+            position: absolute;
+            right: 40px;
+            top: 0;
+            font-size: 200px;
+            font-weight: 700;
+            opacity: .18;
+            line-height: 1;
+        }
+
+        .slide.title .hint {
+            font-size: 20px;
+            color: #999;
+            margin-top: 40px;
+        }
+
+        .notes {
+            display: none;
+        }
+
+        .ov {
+            position: fixed;
+            left: 14px;
+            bottom: 12px;
+            color: #93c5fd;
+            font-size: 14px;
+            text-decoration: none;
+            z-index: 10;
+        }
+
+        #overview {
+            background: none!important;
+            border: 0!important;
+            box-shadow: none!important;
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body class="impress-not-supported">
+
+<div class="fallback-message">
+    <p>Ваш браузер <b>не поддерживает возможности, необходимые для impress.js</b>, поэтому показана упрощённая версия презентации.</p>
+    <p>Лучше всего использовать свежие <b>Chrome</b>, <b>Safari</b> или <b>Firefox</b>.</p>
+</div>
+
+<div id="impress"
+    data-transition-duration="1000"
+    data-width="1024"
+    data-height="768"
+    data-max-scale="3"
+    data-min-scale="0"
+    data-perspective="1000"
+    >
+
+    <!-- ===================== ряд 0 ===================== -->
+    <!-- [0.0] Parquet и ORC -->
+    <div class="step slide title" data-x="0" data-y="0">
+        <h1>Parquet и ORC</h1>
+        <ul>
+            <li>Зачем нужен специальный формат хранения</li>
+            <li>Колоночное хранение: идея и компромиссы</li>
+            <li>Parquet изнутри</li>
+            <li>ORC изнутри</li>
+            <li>Как выбирать между ними</li>
+            <li>Инструменты и настройка производительности</li>
+        </ul>
+        <p class="hint">← → или пробел · P — заметки докладчика · «Обзор» — карта лекции</p>
+        <div class="notes">~195 минут: 25+30+45+перерыв 10+30+25+25+итоги 5.</div>
+    </div>
+
+    <!-- [0.1] Цели лекции -->
+    <div class="step slide" data-x="1100" data-y="0">
+        <h1>Цели лекции</h1>
+        <ul>
+            <li>Понимать, почему колоночное хранение выигрывает для аналитики</li>
+            <li>Знать внутреннее устройство файла Parquet и ORC</li>
+            <li>Понимать конкретные схемы кодирования и почему они так сжимают</li>
+            <li>Уметь объяснить predicate pushdown на уровне конкретных структур</li>
+            <li>Ориентироваться, чем форматы отличаются и когда что выбрать</li>
+            <li>Уметь посмотреть на реальный файл инструментами</li>
+        </ul>
+    </div>
+
+    <!-- [0.2] План -->
+    <div class="step slide" data-x="2200" data-y="0">
+        <h1>План</h1>
+        <table>
+            <tr>
+                <th>Блок</th>
+                <th>О чём</th>
+            </tr>
+            <tr>
+                <td><a href="#/b0">0. Контекст</a></td>
+                <td>зачем вообще специальный формат</td>
+            </tr>
+            <tr>
+                <td><a href="#/b1">1. Колоночное хранение</a></td>
+                <td>идея и компромиссы</td>
+            </tr>
+            <tr>
+                <td><a href="#/b2">2. Parquet изнутри</a></td>
+                <td>структура, кодирование, pushdown</td>
+            </tr>
+            <tr>
+                <td><a href="#/b3">3. ORC изнутри</a></td>
+                <td>структура, кодирование, Hive ACID</td>
+            </tr>
+            <tr>
+                <td><a href="#/b4">4. Parquet vs ORC</a></td>
+                <td>сравнение и выбор</td>
+            </tr>
+            <tr>
+                <td><a href="#/b5">5. Практика</a></td>
+                <td>инструменты, настройка</td>
+            </tr>
+            <tr>
+                <td><a href="#/b6">Итоги</a></td>
+                <td></td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- ===================== ряд 1 ===================== -->
+    <!-- [1.0] Контекст: зачем вообще специальный формат -->
+    <div id="b0" class="step slide section" data-x="0" data-y="900">
+        <div class="num">0</div>
+        <h1>Контекст: зачем вообще специальный формат</h1>
+        <ul>
+            <li>Что за задачу мы решаем</li>
+            <li>Почему одна большая таблица не подходит</li>
+            <li>Термины, которые ещё встретятся</li>
+        </ul>
+        <div class="notes">
+            Аудитория не знает Spark/Hive и не писала ETL на Python - вводим термины по ходу.
+        </div>
+    </div>
+
+    <!-- [1.1] Что за задачу мы решаем -->
+    <div class="step slide" data-x="1100" data-y="900">
+        <h1>Что за задачу мы решаем</h1>
+        <ul>
+            <li>
+                Миллиарды строк логов: <code>event_id, user_id, event_type, country, payload,
+                ts</code>
+            </li>
+            <li>Данные слишком большие для одной обычной базы на одной машине</li>
+            <li>
+                Хранятся как <b>файлы</b> в распределённом хранилище (кластер дисков или облако
+                вроде S3)
+            </li>
+            <li>
+                Читает и считает по ним агрегаты специальная программа — <b>движок обработки
+                данных</b> (Spark, Trino, Hive и другие — сегодня не важно, какой именно)
+            </li>
+            <li>
+                Движок параллельно читает файл с разных машин и умеет выполнять SQL-подобные запросы
+                поверх файлов
+            </li>
+        </ul>
+    </div>
+
+    <!-- [1.2] Ключевая мысль лекции -->
+    <div class="step slide" data-x="2200" data-y="900">
+        <h1>Ключевая мысль</h1>
+        <ul>
+            <li>
+                От того, <b>как именно</b> данные лежат в файле на диске, критически зависит
+                скорость и стоимость ответа на запрос
+            </li>
+            <li>
+                Сегодня разбираем два формата файлов, спроектированных именно для этого:
+                <b>Parquet</b> и <b>ORC</b>
+            </li>
+        </ul>
+    </div>
+
+    <!-- [1.3] Почему одна большая таблица не подходит -->
+    <div class="step slide" data-x="3300" data-y="900">
+        <h1>Почему одна большая таблица плохо подходит</h1>
+        <pre><code class="language-sql">SELECT country, COUNT(*)
+FROM events
+WHERE event_type = &#x27;purchase&#x27;
+  AND ts BETWEEN &#x27;2026-01-01&#x27; AND &#x27;2026-01-31&#x27;
+GROUP BY country;</code></pre>
+        <p>
+            Запрос трогает 3 столбца из 6. <code>payload</code> (тяжёлый JSON) и
+            <code>user_id</code> вообще не нужны.
+        </p>
+    </div>
+
+    <!-- [1.4] Строка за строкой — почему это плохо -->
+    <div class="step slide" data-x="4400" data-y="900">
+        <h1>Строка за строкой — почему это плохо</h1>
+        <ul>
+            <li>
+                Если файл хранит данные <b>строка за строкой</b> (как CSV), нельзя прочитать только
+                нужные столбцы — они физически перемешаны с остальными
+            </li>
+            <li>
+                Чтобы добраться до <code>country</code> во второй строке, нужно пройти мимо всех
+                полей первой
+            </li>
+            <li>
+                Сжатие тоже работает не очень: в одной строке вперемешку число, строка, JSON — мало
+                похожих байт подряд
+            </li>
+        </ul>
+        <div class="notes">
+            Подводка к идее: хранить по столбцам, а не по строкам - разберём подробно в блоке 1.
+        </div>
+    </div>
+
+    <!-- [1.5] Термины, которые ещё встретятся -->
+    <div class="step slide" data-x="5500" data-y="900">
+        <h1>Термины, которые ещё встретятся</h1>
+        <ul>
+            <li>
+                <b>HDFS / S3</b> — распределённые хранилища файлов (кластер / облако). Доступ к ним
+                — сетевой, не такой быстрый, как к локальному диску
+            </li>
+            <li>
+                <b>Spark</b> — популярный движок распределённой обработки; читает Parquet «из
+                коробки» как формат по умолчанию
+            </li>
+            <li>
+                <b>Hive</b> — более старая система, одной из первых принесла в Hadoop идею «пишите
+                SQL, а он превратится в задачи над файлами»; плотно связана с ORC
+            </li>
+            <li>Сегодня смотрим именно на <b>файлы</b>, движки упоминаются только для контекста</li>
+        </ul>
+    </div>
+
+    <!-- ===================== ряд 2 ===================== -->
+    <!-- [2.0] Колоночное хранение -->
+    <div id="b1" class="step slide section" data-x="0" data-y="1800">
+        <div class="num">1</div>
+        <h1>Колоночное хранение</h1>
+        <ul>
+            <li>Row-oriented vs column-oriented</li>
+            <li>Что даёт колоночность</li>
+            <li>Цена вопроса</li>
+            <li>Кто ещё есть рядом</li>
+        </ul>
+    </div>
+
+    <!-- [2.1] Row-oriented vs column-oriented -->
+    <div class="step slide" data-x="1100" data-y="1800">
+        <h1>Row-oriented vs column-oriented</h1>
+        <pre class="small"><code class="language-plaintext">Строки (row-oriented):           Столбцы (column-oriented):
++---+--------+--------+          +---+---+---+  +--------+--------+
+| 1 | Ann    | RU     |          | 1 | 2 | 3 |  | Ann    | Bob    |
++---+--------+--------+          +---+---+---+  | Cid    |
+| 2 | Bob    | RU     |           id-столбец      +--------+
++---+--------+--------+                            name-столбец
+| 3 | Cid    | US     |          +--------+--------+
++---+--------+--------+          | RU     | RU     | US
+                                  +--------+--------+
+                                    country-столбец</code></pre>
+        <p>Те же данные — просто иначе разложены по байтам на диске.</p>
+    </div>
+
+    <!-- [2.2] Когда что выигрывает -->
+    <div class="step slide" data-x="2200" data-y="1800">
+        <h1>Когда что выигрывает</h1>
+        <ul>
+            <li>
+                <b>Точечный доступ</b> («вся запись про пользователя X») — построчное хранение
+                выигрывает: значения строки лежат рядом
+            </li>
+            <li>
+                <b>Агрегации по немногим столбцам на многих строках</b> («покупки по странам за
+                январь») — колоночное выигрывает: читаем только нужные столбцы
+            </li>
+        </ul>
+    </div>
+
+    <!-- [2.3] Что даёт колоночность -->
+    <div class="step slide" data-x="3300" data-y="1800">
+        <h1>Что даёт колоночность</h1>
+        <ul>
+            <li>
+                <b>Column pruning</b>: запрос трогает 3 столбца из 50 — читаем с диска только их
+            </li>
+            <li>
+                <b>Лучшее сжатие</b>: однородные данные одного столбца сжимаются плотнее, чем
+                вперемешку
+            </li>
+            <li>
+                <b>Специализированные кодировки</b>: словарь для малой кардинальности, дельты для
+                почти монотонных чисел, RLE для повторов — ничего из этого не имеет смысла для
+                перемешанных строк
+            </li>
+            <li>
+                <b>Обработка пачками</b>: движок обрабатывает столбец сразу батчем одного типа —
+                быстрее для CPU
+            </li>
+        </ul>
+    </div>
+
+    <!-- [2.4] Цена вопроса -->
+    <div class="step slide" data-x="4400" data-y="1800">
+        <h1>Цена вопроса</h1>
+        <ul>
+            <li>
+                <b>Дорого менять одну запись</b>: вставить строку — значит дописать её кусочек в
+                каждый столбец отдельно. Поэтому колоночные форматы почти всегда <b>неизменяемые</b>
+            </li>
+            <li>
+                <b>Дороже писать «по одной строке»</b>: писатель должен накопить много строк в
+                памяти, прежде чем разложить по столбцам
+            </li>
+            <li>
+                <b>Плохо для «вся запись по ID»</b>: значение нужно собрать из каждого столбца
+                отдельно
+            </li>
+            <li>
+                Вывод: колоночные форматы — для батчевой аналитики, не для систем с частыми
+                точечными изменениями
+            </li>
+        </ul>
+    </div>
+
+    <!-- [2.5] Кто ещё есть рядом -->
+    <div class="step slide" data-x="5500" data-y="1800">
+        <h1>Кто ещё есть рядом</h1>
+        <ul>
+            <li>
+                <b>Avro</b> — построчный бинарный формат со схемой; хорош для потоковой передачи
+                (записи по одной) и частой смены схемы целиком
+            </li>
+            <li>
+                <b>CSV/JSON</b> — текстовые, без схемы и сжатия «из коробки»; удобны для обмена и
+                отладки, плохи для больших объёмов
+            </li>
+            <li>Parquet и ORC решают одну задачу и конкурируют напрямую — разбираем дальше</li>
+        </ul>
+    </div>
+
+    <!-- ===================== ряд 3 ===================== -->
+    <!-- [3.0] Parquet изнутри -->
+    <div id="b2" class="step slide section" data-x="0" data-y="2700">
+        <div class="num">2</div>
+        <h1>Parquet изнутри</h1>
+        <ul>
+            <li>История</li>
+            <li>Структура файла</li>
+            <li>Row Group → Column Chunk → Page</li>
+            <li>Кодирование значений</li>
+            <li>Вложенные данные</li>
+            <li>Статистика и pushdown</li>
+            <li>Схема</li>
+        </ul>
+    </div>
+
+    <!-- [3.1] История и контекст -->
+    <div class="step slide" data-x="1100" data-y="2700">
+        <h1>История и контекст</h1>
+        <ul>
+            <li>2013 год, совместная разработка Twitter и Cloudera</li>
+            <li>
+                Вдохновлён статьёй Google <b>Dremel</b> (2010) — про хранение вложенных данных в
+                колоночном виде
+            </li>
+            <li>
+                Спроектирован для <b>вложенных структур</b> (списков, полей-объектов), не только для
+                плоских таблиц
+            </li>
+        </ul>
+    </div>
+
+    <!-- [3.2] Общая структура файла -->
+    <div class="step slide" data-x="2200" data-y="2700">
+        <h1>Общая структура файла</h1>
+        <pre class="small"><code class="language-plaintext">+-----------------------------+
+| &quot;PAR1&quot;  (magic, 4 байта)     |
++-----------------------------+
+| Row Group 0                  |
+|   Column Chunk (col A)       |
+|     Page 0, Page 1, ...      |
+|   Column Chunk (col B)       |
+|     Page 0, Page 1, ...      |
++-----------------------------+
+| Row Group 1  ...             |
++-----------------------------+
+| File Metadata (Footer)       |
+|   схема, список row group&#x27;ов,|
+|   статистика по чанкам       |
++-----------------------------+
+| Footer length (4 байта)      |
++-----------------------------+
+| &quot;PAR1&quot;  (magic, 4 байта)     |
++-----------------------------+</code></pre>
+        <p>Метаданные — в <b>конце</b> файла: сначала читаем хвост, потом прыгаем к футеру.</p>
+    </div>
+
+    <!-- [3.3] Row Group → Column Chunk → Page -->
+    <div class="step slide" data-x="3300" data-y="2700">
+        <h1>Row Group → Column Chunk → Page</h1>
+        <ul>
+            <li>
+                <b>Row Group</b> — горизонтальный срез строк; внутри данные организованы по столбцам
+            </li>
+            <li>
+                <b>Column Chunk</b> — все данные ОДНОГО столбца для ОДНОГО row group, лежат
+                непрерывно — отсюда column pruning
+            </li>
+            <li>
+                <b>Page</b> (~1 МБ) — единица кодирования и сжатия: dictionary page (словарь) + data
+                page(s)
+            </li>
+            <li>
+                Три уровня: row group — параллелизм, column chunk — pruning, page — мелкий
+                сжатие/skip
+            </li>
+        </ul>
+    </div>
+
+    <!-- [3.4] Dictionary encoding -->
+    <div class="step slide" data-x="4400" data-y="2700">
+        <h1>Dictionary encoding</h1>
+        <pre><code class="language-plaintext">Словарь:      0 -&gt; &quot;RU&quot;, 1 -&gt; &quot;US&quot;, 2 -&gt; &quot;DE&quot;
+Данные:       0, 0, 1, 0, 2, 1, ...</code></pre>
+        <ul>
+            <li>Вместо строки в каждой строке — маленькое число (индекс словаря)</li>
+            <li>Текст хранится один раз, в словаре</li>
+            <li>Эффективно именно потому, что все значения столбца лежат рядом</li>
+        </ul>
+    </div>
+
+    <!-- [3.5] RLE и гибридное кодирование -->
+    <div class="step slide" data-x="5500" data-y="2700">
+        <h1>RLE и гибридное кодирование</h1>
+        <pre><code class="language-plaintext">0, 0, 0, 0, 0, 1, 1, 1  -&gt;  (0, 5 раз), (1, 3 раза)</code></pre>
+        <ul>
+            <li><b>RLE</b>: длинные повторы заменяются парой «значение + сколько раз»</li>
+            <li>
+                <b>RLE/Bit-Packing Hybrid</b>: повторы — через RLE, разбросанные значения — упаковка
+                минимальным числом бит
+            </li>
+            <li>3 уникальных значения в словаре — индексу хватит 2 бит, а не байта/int32</li>
+        </ul>
+    </div>
+
+    <!-- [3.6] Delta encoding -->
+    <div class="step slide" data-x="6600" data-y="2700">
+        <h1>Delta encoding</h1>
+        <pre><code class="language-plaintext">1000, 1002, 1005, 1009  -&gt;  база 1000, дельты: +2, +3, +4</code></pre>
+        <ul>
+            <li>Для почти монотонных целых (id, временные метки в отсортированном логе)</li>
+            <li>Дельты обычно намного меньше самих значений — меньше бит на хранение</li>
+            <li>
+                Поверх всех кодировок ещё накладывается сжатие страницы целиком (Snappy, GZIP, ZSTD,
+                LZ4) — экономия двухуровневая
+            </li>
+        </ul>
+    </div>
+
+    <!-- [3.7] Вложенные данные: зачем -->
+    <div class="step slide" data-x="7700" data-y="2700">
+        <h1>Вложенные данные: зачем</h1>
+        <pre><code class="language-python">{&quot;name&quot;: &quot;Ann&quot;, &quot;phones&quot;: [&quot;+7...&quot;, &quot;+1...&quot;]}
+{&quot;name&quot;: &quot;Bob&quot;, &quot;phones&quot;: []}
+{&quot;name&quot;: &quot;Cid&quot;, &quot;phones&quot;: null}</code></pre>
+        <p>
+            Как хранить <code>phones</code> колоночно, если число значений разное — или их нет
+            вовсе?
+        </p>
+    </div>
+
+    <!-- [3.8] Repetition и definition levels -->
+    <div class="step slide" data-x="8800" data-y="2700">
+        <h1>Repetition и definition levels</h1>
+        <ul>
+            <li>Для каждого значения хранятся два маленьких числа</li>
+            <li>
+                <b>definition level</b> — на каком уровне вложенности значение реально определено
+                (не null из-за отсутствующего родителя)
+            </li>
+            <li>
+                <b>repetition level</b> — на каком уровне вложенности началось повторение (новый
+                элемент списка / новая запись)
+            </li>
+            <li>
+                Это <b>Dremel-кодирование</b>: любая вложенность сводится к плоским столбцам + два
+                числа на значение
+            </li>
+            <li>Главная мысль: <b>вложенность не ломает колоночность</b></li>
+        </ul>
+    </div>
+
+    <!-- [3.9] Статистика и predicate pushdown -->
+    <div class="step slide" data-x="9900" data-y="2700">
+        <h1>Статистика и predicate pushdown</h1>
+        <pre><code class="language-sql">SELECT * FROM events WHERE ts &gt;= &#x27;2026-06-01&#x27;;</code></pre>
+        <ul>
+            <li>
+                В футере и в заголовке каждой page — статистика: <code>min</code>, <code>max</code>,
+                <code>null_count</code>
+            </li>
+            <li>
+                Если <code>max(ts)</code> row group'а раньше границы — движок вообще не открывает
+                этот row group
+            </li>
+            <li>
+                <b>Predicate pushdown</b>: фильтр проталкивается вниз, до физических кусков файла
+            </li>
+            <li>
+                <b>Column Index / Offset Index</b> — та же идея, но на уровне отдельной page (~1
+                МБ), не всего chunk'а
+            </li>
+        </ul>
+    </div>
+
+    <!-- [3.10] Bloom-фильтры -->
+    <div class="step slide" data-x="11000" data-y="2700">
+        <h1>Bloom-фильтры</h1>
+        <ul>
+            <li>
+                Для точных равенств (<code>WHERE user_id = 12345</code>) min/max не помогает —
+                значение может лежать в диапазоне, но отсутствовать
+            </li>
+            <li>Bloom-фильтр по column chunk отвечает: «точно нет» или «может быть, есть»</li>
+            <li>Снова позволяет пропускать чанки без чтения</li>
+        </ul>
+    </div>
+
+    <!-- [3.11] Схема и метаданные -->
+    <div class="step slide" data-x="12100" data-y="2700">
+        <h1>Схема и метаданные</h1>
+        <ul>
+            <li>Схема хранится в футере в формате Apache Thrift</li>
+            <li>
+                <b>Физические типы</b> (<code>INT32</code>, <code>BYTE_ARRAY</code>, ...) — как
+                значение лежит на диске
+            </li>
+            <li>
+                <b>Логические типы</b> (<code>STRING</code>, <code>DECIMAL</code>,
+                <code>DATE</code>, <code>LIST</code>, <code>MAP</code>) — как физический тип
+                интерпретировать
+            </li>
+            <li>
+                Разделение даёт <b>эволюцию схемы</b>: новый (nullable) столбец не требует
+                переписывать старые файлы
+            </li>
+        </ul>
+    </div>
+
+    <!-- ===================== ряд 4 ===================== -->
+    <!-- [4.0] ORC изнутри -->
+    <div id="b3" class="step slide section" data-x="0" data-y="3600">
+        <div class="num">3</div>
+        <h1>ORC изнутри</h1>
+        <ul>
+            <li>История</li>
+            <li>Структура файла</li>
+            <li>Stripe</li>
+            <li>Integer RLE v2</li>
+            <li>Индексы и SARGs</li>
+            <li>ACID в Hive</li>
+            <li>Вложенные типы</li>
+        </ul>
+    </div>
+
+    <!-- [4.1] История и контекст -->
+    <div class="step slide" data-x="1100" data-y="3600">
+        <h1>История и контекст</h1>
+        <ul>
+            <li>Тоже 2013 год, экосистема Hive (Hortonworks/Facebook)</li>
+            <li>Замена более простому формату, который использовался раньше</li>
+            <li>
+                В отличие от Parquet, спроектирован <b>конкретно под Hive</b> — отсюда глубокая
+                интеграция с транзакциями и predicate pushdown через Hive
+            </li>
+        </ul>
+    </div>
+
+    <!-- [4.2] Общая структура файла -->
+    <div class="step slide" data-x="2200" data-y="3600">
+        <h1>Общая структура файла</h1>
+        <pre class="small"><code class="language-plaintext">+-------------------------------+
+| Stripe 0                       |
+|   Index Data                   |
+|   Row Data                     |
+|   Stripe Footer                |
++-------------------------------+
+| Stripe 1  ...                  |
++-------------------------------+
+| File Footer                    |
+|   stripe&#x27;ы, схема, статистика  |
++-------------------------------+
+| Postscript                     |
+|   компрессор, длина футера,    |
+|   magic &quot;ORC&quot;                  |
++-------------------------------+</code></pre>
+        <p>
+            Как и у Parquet — метаданные в конце. Единица среза называется <b>stripe</b> (обычно
+            64–256 МБ, крупнее row group).
+        </p>
+    </div>
+
+    <!-- [4.3] Внутри stripe'а -->
+    <div class="step slide" data-x="3300" data-y="3600">
+        <h1>Внутри stripe'а</h1>
+        <ul>
+            <li>
+                <b>Index Data</b> — min/max/сумма/количество на каждые 10 000 строк, плюс позиции
+                для перехода без полной распаковки
+            </li>
+            <li>
+                <b>Row Data</b> — данные по столбцам через <b>streams</b>: <code>PRESENT</code>
+                (null-маска), <code>DATA</code> (индексы словаря), <code>LENGTH</code>,
+                <code>DICTIONARY_DATA</code>
+            </li>
+            <li><b>Stripe Footer</b> — где какой stream лежит и какая кодировка у столбца</li>
+        </ul>
+    </div>
+
+    <!-- [4.4] Integer RLE v2 -->
+    <div class="step slide" data-x="4400" data-y="3600">
+        <h1>Integer RLE v2</h1>
+        <ul>
+            <li><b>SHORT_REPEAT</b> — короткая серия одинаковых значений</li>
+            <li><b>DIRECT</b> — bit-packing без дополнительной модели</li>
+            <li><b>PATCHED_BASE</b> — база + отклонения, редкие выбросы — отдельным патчем</li>
+            <li><b>DELTA</b> — как в Parquet, с адаптивным знаком и шагом</li>
+            <li>Идея та же, что у Parquet, реализация — своя, независимая</li>
+        </ul>
+    </div>
+
+    <!-- [4.5] Индексы и predicate pushdown -->
+    <div class="step slide" data-x="5500" data-y="3600">
+        <h1>Индексы и predicate pushdown</h1>
+        <ul>
+            <li>
+                Встроенные индексы на каждые 10 000 строк — то же, что Column Index у Parquet, но с
+                первого дня формата
+            </li>
+            <li>Опциональные bloom-фильтры — по тому же принципу, что в Parquet</li>
+            <li>
+                <b>SARGs (Search Arguments)</b>: Hive переводит <code>WHERE</code> в структуру, по
+                которой читающая библиотека решает, что не читать
+            </li>
+        </ul>
+    </div>
+
+    <!-- [4.6] ACID и особая роль в Hive -->
+    <div class="step slide" data-x="6600" data-y="3600">
+        <h1>ACID и особая роль в Hive</h1>
+        <ul>
+            <li>
+                ORC — <b>родной формат транзакций Hive</b> (изменить/удалить отдельные строки, не
+                только дописать)
+            </li>
+            <li>Изменения — в отдельных <b>delta-файлах</b> рядом с основными данными</li>
+            <li>При чтении данные собираются «на лету» из base + delta (<b>merge-on-read</b>)</li>
+            <li>Фоновый процесс периодически объединяет всё обратно (<b>compaction</b>)</li>
+            <li>
+                У Parquet такого нет — транзакционность добавляют надстройки: Iceberg, Delta Lake,
+                Hudi
+            </li>
+        </ul>
+    </div>
+
+    <!-- [4.7] Вложенные типы в ORC -->
+    <div class="step slide" data-x="7700" data-y="3600">
+        <h1>Вложенные типы в ORC</h1>
+        <ul>
+            <li>
+                Поддерживает <code>STRUCT</code>, <code>LIST</code>, <code>MAP</code>,
+                <code>UNION</code>
+            </li>
+            <li>
+                Кодирует проще, чем Parquet: без Dremel-механизма, через дополнительные потоки длины
+            </li>
+            <li>
+                Менее гибко для очень глубокой вложенности, но полностью достаточно для типичных
+                Hive-схем (обычно 2–3 уровня)
+            </li>
+        </ul>
+    </div>
+
+    <!-- ===================== ряд 5 ===================== -->
+    <!-- [5.0] Parquet vs ORC -->
+    <div id="b4" class="step slide section" data-x="0" data-y="4500">
+        <div class="num">4</div>
+        <h1>Parquet vs ORC</h1>
+        <ul>
+            <li>Таблица сравнения</li>
+            <li>Что определяет выбор на практике</li>
+        </ul>
+    </div>
+
+    <!-- [5.1] Таблица сравнения -->
+    <div class="step slide" data-x="1100" data-y="4500">
+        <h1>Таблица сравнения</h1>
+        <div style="font-size:19px;line-height:1.2">
+            <table>
+                <tr>
+                    <th></th>
+                    <th>Parquet</th>
+                    <th>ORC</th>
+                </tr>
+                <tr>
+                    <td>Откуда</td>
+                    <td>Twitter/Cloudera, Dremel</td>
+                    <td>Hortonworks/Facebook, Hive</td>
+                </tr>
+                <tr>
+                    <td>Срез строк</td>
+                    <td>Row Group</td>
+                    <td>Stripe (крупнее)</td>
+                </tr>
+                <tr>
+                    <td>Метаданные</td>
+                    <td>Apache Thrift</td>
+                    <td>Свой бинарный формат</td>
+                </tr>
+                <tr>
+                    <td>Целые числа</td>
+                    <td>Словарь + RLE/bit-packing, Delta</td>
+                    <td>Integer RLE v2 (4 режима)</td>
+                </tr>
+                <tr>
+                    <td>Вложенные типы</td>
+                    <td>Dremel — гибче</td>
+                    <td>Потоки длины — проще</td>
+                </tr>
+                <tr>
+                    <td>Изменение строк</td>
+                    <td>Нет своей — Iceberg/Delta/Hudi</td>
+                    <td>Встроено в Hive ACID</td>
+                </tr>
+                <tr>
+                    <td>Сильнее всего</td>
+                    <td>Data lake общего назначения</td>
+                    <td>Hive, изменяемые таблицы</td>
+                </tr>
+                <tr>
+                    <td>Python/pandas</td>
+                    <td>Широкая, «родная»</td>
+                    <td>Есть, но менее полная</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <!-- [5.2] Что определяет выбор на практике -->
+    <div class="step slide" data-x="2200" data-y="4500">
+        <h1>Что определяет выбор на практике</h1>
+        <ul>
+            <li>
+                <b>В какую систему вы уже встроены</b>: без привязки к Hive-транзакциям — Parquet
+                почти автоматический выбор
+            </li>
+            <li>
+                <b>Инструменты за пределами Hadoop</b>: Python/ноутбуки/аналитика — Parquet
+                поддержан заметно шире
+            </li>
+            <li>
+                <b>Разница в скорости</b> при аккуратной настройке обычно не драматична (единицы,
+                изредка десятки процентов)
+            </li>
+            <li><b>Совет по умолчанию</b>: без причины опираться на Hive — начинать с Parquet</li>
+        </ul>
+    </div>
+
+    <!-- ===================== ряд 6 ===================== -->
+    <!-- [6.0] Практика: инструменты и настройка -->
+    <div id="b5" class="step slide section" data-x="0" data-y="5400">
+        <div class="num">5</div>
+        <h1>Практика: инструменты и настройка</h1>
+        <ul>
+            <li>Чтение и запись из Python</li>
+            <li>Смотрим на файл изнутри</li>
+            <li>Настройка производительности</li>
+        </ul>
+    </div>
+
+    <!-- [6.1] pandas: читаем и пишем Parquet -->
+    <div class="step slide" data-x="1100" data-y="5400">
+        <h1>pandas: читаем и пишем Parquet</h1>
+        <pre class="small"><code class="language-python">import pandas as pd
+
+# columns=... - реальный column pruning: остальные столбцы
+# вообще не читаются с диска
+df = pd.read_parquet(
+    &quot;events.parquet&quot;,
+    columns=[&quot;country&quot;, &quot;event_type&quot;, &quot;ts&quot;],
+)
+print(df.head())
+
+df.to_parquet(
+    &quot;events_out.parquet&quot;,
+    engine=&quot;pyarrow&quot;,
+    compression=&quot;zstd&quot;,       # snappy | gzip | zstd
+    row_group_size=500_000,   # строк на один row group
+)</code></pre>
+    </div>
+
+    <!-- [6.2] То же самое для ORC -->
+    <div class="step slide" data-x="2200" data-y="5400">
+        <h1>То же самое для ORC</h1>
+        <pre><code class="language-python">import pyarrow.orc as orc
+
+table = orc.read_table(&quot;events.orc&quot;, columns=[&quot;country&quot;, &quot;event_type&quot;])
+orc.write_table(table, &quot;events_out.orc&quot;, compression=&quot;zstd&quot;)</code></pre>
+    </div>
+
+    <!-- [6.3] Смотрим метаданные, не читая данные -->
+    <div class="step slide" data-x="3300" data-y="5400">
+        <h1>Смотрим метаданные, не читая данные</h1>
+        @@PRE0@@@@PRE1@@
+        <div class="notes">
+            Демо: один датасет в CSV и в Parquet (Snappy/ZSTD), сравнить размер и время
+            агрегирующего запроса.
+        </div>
+    </div>
+
+    <!-- [6.4] Размер row group / stripe -->
+    <div class="step slide" data-x="4400" data-y="5400">
+        <h1>Размер row group / stripe</h1>
+        <ul>
+            <li>
+                Слишком маленький — накладные расходы на метаданные перевешивают пользу, сжатие хуже
+            </li>
+            <li>Слишком большой — грубый predicate pushdown, много памяти писателю</li>
+            <li>Стартовая точка: 128 МБ – 1 ГБ на row group/stripe</li>
+        </ul>
+    </div>
+
+    <!-- [6.5] Проблема мелких файлов и выбор компрессора -->
+    <div class="step slide" data-x="5500" data-y="5400">
+        <h1>Проблема мелких файлов и выбор компрессора</h1>
+        <ul>
+            <li>
+                Тысячи файлов по 10 КБ — время уходит на открытие файлов, а не на данные; нужна
+                периодическая компактификация
+            </li>
+            <li><b>Snappy</b> — быстро, средне сжимает (частое чтение)</li>
+            <li><b>ZSTD</b> — обычно лучший баланс сегодня</li>
+            <li><b>GZIP</b> — сильнее сжимает, заметно медленнее (архив)</li>
+        </ul>
+    </div>
+
+    <!-- [6.6] Партиционирование по каталогам -->
+    <div class="step slide" data-x="6600" data-y="5400">
+        <h1>Партиционирование по каталогам</h1>
+        <pre><code class="language-plaintext">country=RU/date=2026-06-01/part-0001.parquet</code></pre>
+        <ul>
+            <li>Ещё один, более ранний уровень «обрезки» — по пути в файловой системе</li>
+            <li>
+                <code>WHERE country = 'RU'</code> — движок не заглядывает в папки других стран, ещё
+                до открытия файла
+            </li>
+        </ul>
+    </div>
+
+    <!-- ===================== ряд 7 ===================== -->
+    <!-- [7.0] Итоги -->
+    <div id="b6" class="step slide" data-x="0" data-y="6300">
+        <h1>Итоги</h1>
+        <ul>
+            <li>
+                Колоночное хранение выигрывает там, где читают немного столбцов из многих строк, и
+                проигрывает при частом точечном доступе
+            </li>
+            <li>
+                Parquet и ORC — не «таблица, повёрнутая набок»: трёхуровневая структура, статистика
+                для pushdown, продуманные кодировки, опциональные bloom-фильтры
+            </li>
+            <li>
+                Parquet вырос из Dremel/вложенных структур — сегодня самый широко поддержанный
+                формат озёр данных
+            </li>
+            <li>
+                ORC вырос из Hive — по-прежнему сильнее всего там же, особенно с изменяемыми
+                таблицами
+            </li>
+            <li>Для нового проекта без привязки к Hive — разумная точка старта: Parquet</li>
+        </ul>
+    </div>
+
+    <!-- [7.1] Вопросы для самопроверки -->
+    <div class="step slide" data-x="1100" data-y="6300">
+        <h1>Вопросы для самопроверки</h1>
+        <ol>
+            <li>
+                Почему словарное кодирование эффективно в колоночном формате, а в построчном — нет?
+            </li>
+            <li>
+                Что случится при очень большом row group и точечном условии <code>WHERE id =
+                ...</code>?
+            </li>
+            <li>Какую проблему решают repetition и definition levels?</li>
+            <li>Чем pushdown через статистику отличается от pushdown через bloom-фильтр?</li>
+            <li>Почему колоночным форматам плохо даются частые точечные изменения записи?</li>
+        </ol>
+    </div>
+
+    <!-- [7.2] Материалы -->
+    <div class="step slide" data-x="2200" data-y="6300">
+        <h1>Материалы</h1>
+        <ul>
+            <li><i>Dremel: Interactive Analysis of Web-Scale Datasets</i> (Google, 2010)</li>
+            <li>Документация: parquet.apache.org, orc.apache.org</li>
+            <li>
+                Спецификации: репозитории <code>apache/parquet-format</code> и
+                <code>apache/orc</code> на GitHub
+            </li>
+            <li>
+                Apache Arrow / <code>pyarrow</code> — практика чтения и разбора метаданных из Python
+            </li>
+            <li>
+                Продолжение темы: Apache Iceberg / Delta Lake / Apache Hudi — табличные форматы
+                поверх Parquet
+            </li>
+        </ul>
+    </div>
+
+    <!-- [7.3] Вопросы? -->
+    <div class="step slide title" data-x="3300" data-y="6300">
+        <h1>Вопросы?</h1>
+        <p><a href="#/overview">Показать карту лекции</a></p>
+    </div>
+
+    <!-- Обзор: камера отъезжает и показывает всю карту -->
+    <div id="overview" class="step" data-x="6050" data-y="3150" data-scale="15"></div>
+
+</div>
+
+<div class="impress-progressbar"><div></div></div>
+<div class="impress-progress"></div>
+<a class="ov" href="#/overview">Обзор</a>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<script>
+    if (window.hljs) {
+        hljs.highlightAll();
+    }
+</script>
+<script src="js/impress.js"></script>
+<script>
+    impress().init();
+</script>
+</body>
+</html>
