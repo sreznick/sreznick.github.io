@@ -1,0 +1,1224 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1024" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <title>Основы параллелизма в Java</title>
+
+    <link href="//fonts.googleapis.com/css?family=Open+Sans:regular,semibold,italic,italicsemibold|PT+Sans:400,700,400italic,700italic|PT+Serif:400,700,400italic,700italic" rel="stylesheet" />
+
+    <link href="css/impress-demo.css" rel="stylesheet" />
+    <link href="css/impress-common.css" rel="stylesheet" />
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/default.min.css">
+
+    <style>
+        /* Дополнения к impress-demo.css: только то, чего нет в образце (код, таблицы, разделы). Можно удалить/подправить. */
+
+        .slide {
+            font-size: 27px;
+            line-height: 1.3;
+            letter-spacing: -.5px;
+        }
+
+        .slide h1 {
+            font-size: 40px;
+            line-height: 1.15;
+            margin: 0 0 .5em;
+            text-align: left;
+        }
+
+        .slide ul,
+        .slide ol {
+            margin: 0;
+            padding-left: 1.1em;
+        }
+
+        .slide li {
+            margin: .25em 0;
+        }
+
+        .slide p {
+            margin: .6em 0 0;
+        }
+
+        .slide pre {
+            margin: 0 0 12px;
+            letter-spacing: 0;
+            text-shadow: none;
+        }
+
+        .slide pre code.hljs {
+            padding: 12px 16px;
+            font-size: 17px;
+            line-height: 1.35;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .slide pre.small code.hljs {
+            font-size: 15.5px;
+        }
+
+        .slide code:not(.hljs) {
+            background: #777;
+            padding: 0 .25em;
+            border-radius: 4px;
+            font-size: .85em;
+            letter-spacing: 0;
+        }
+
+        .slide table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 22px;
+            line-height: 1.25;
+        }
+
+        .slide th,
+        .slide td {
+            border-bottom: 1px solid #ccc;
+            padding: 6px 10px;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .slide th {
+            background: #777;
+        }
+
+        .slide .hl {
+            color: #b91c1c;
+        }
+
+        .slide.section {
+            background: linear-gradient(135deg,#0f766e,#1d4ed8);
+            color: #fff;
+            text-shadow: none;
+        }
+
+        .slide.section h1 {
+            color: #fff;
+            font-size: 50px;
+        }
+
+        .slide.section .num {
+            position: absolute;
+            right: 40px;
+            top: 0;
+            font-size: 200px;
+            font-weight: 700;
+            opacity: .18;
+            line-height: 1;
+        }
+
+        .slide.section .min {
+            font-size: 24px;
+            opacity: .85;
+            margin-bottom: 20px;
+        }
+
+        .slide.title .hint {
+            font-size: 20px;
+            color: #999;
+            margin-top: 40px;
+        }
+
+        .notes {
+            display: none;
+        }
+
+        .ov {
+            position: fixed;
+            left: 14px;
+            bottom: 12px;
+        /*    color: #93c5fd; */
+            font-size: 14px;
+            text-decoration: none;
+            z-index: 10;
+        }
+
+        #overview {
+            background: none!important;
+            border: 0!important;
+            box-shadow: none!important;
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body class="impress-not-supported">
+
+<div class="fallback-message">
+    <p>Ваш браузер <b>не поддерживает возможности, необходимые для impress.js</b>, поэтому показана упрощённая версия презентации.</p>
+    <p>Лучше всего использовать свежие <b>Chrome</b>, <b>Safari</b> или <b>Firefox</b>.</p>
+</div>
+
+<div id="impress"
+    data-transition-duration="1000"
+    data-width="1024"
+    data-height="768"
+    data-max-scale="3"
+    data-min-scale="0"
+    data-perspective="1000"
+    >
+
+    <!-- ===================== ряд 0 ===================== -->
+    <!-- [0.0] Основы параллелизма в Java -->
+    <!-- [0.1] Цели лекции -->
+    <div class="step slide" data-x="1100" data-y="0">
+        <h1>Цели лекции</h1>
+        <ul>
+            <li>Видеть, почему многопоточный код «работает у меня», а потом ломается</li>
+            <li>
+                Уверенно пользоваться <code>synchronized</code>,
+                <code>wait</code>/<code>notify</code>
+            </li>
+            <li>Понимать, что гарантирует JMM и что такое <i>happens-before</i></li>
+            <li>
+                Различать <code>volatile</code>, <code>Atomic*</code>, <code>synchronized</code>
+            </li>
+            <li>Находить и разбирать потоки Java средствами Linux</li>
+            <li>Представлять, во что всё это превращается на Intel</li>
+        </ul>
+    </div>
+
+    <!-- ===================== ряд 1 ===================== -->
+    <!-- [1.0] Вводные примеры -->
+    <div id="b1" class="step slide section" data-x="0" data-y="900">
+        <div class="num">1</div>
+        <h1>Вводные примеры</h1>
+        <ul>
+            <li>Проблема видимости</li>
+            <li>Переупорядочивание</li>
+            <li>Три оси: атомарность, видимость, порядок</li>
+        </ul>
+        <div class="notes">
+            Цель блока — показать, что код может вести себя не так, как написан. Запускаем вживую,
+            желательно с -Xint и без.
+        </div>
+    </div>
+
+    <!-- [1.1] Пример 1: флаг остановки -->
+    <div class="step slide" data-x="1100" data-y="900">
+        <h1>Пример 1: флаг остановки</h1>
+        <pre class="small"><code class="language-java">class Stopper {
+    static boolean stop = false;
+
+    public static void main(String[] args) throws Exception {
+        Thread t = new Thread(() -&gt; {
+            while (!stop) { }          // завершится ли?
+            System.out.println(&quot;stopped&quot;);
+        });
+        t.start();
+        Thread.sleep(1000);
+        stop = true;                   // останавливаем t
+    }
+}</code></pre>
+        <div class="notes">Запустить обычно и с -Xint. Спросить аудиторию, что произойдёт.</div>
+    </div>
+
+    <!-- [1.2] Что произошло? -->
+    <div class="step slide" data-x="2200" data-y="900">
+        <h1>Что произошло?</h1>
+        <ul>
+            <li>Поток <code>t</code> может <b>никогда не увидеть</b> <code>stop = true</code></li>
+            <li>
+                JIT вправе вынести чтение <code>stop</code> из цикла и превратить его в <code>while
+                (true)</code>
+            </li>
+            <li>С <code>-Xint</code> (интерпретатор) программа завершается, с JIT — зависает</li>
+            <li>
+                Поведение зависит от режима компиляции — значит, это <b>не детерминированный баг, а
+                отсутствие гарантий</b>
+            </li>
+            <li>Проверьте: что изменится, если сделать <code>stop</code> <code>volatile</code>?</li>
+        </ul>
+    </div>
+
+    <!-- [1.3] Пример 2: порядок операций -->
+    <div class="step slide" data-x="3300" data-y="900">
+        <h1>Пример 2: порядок операций</h1>
+        <pre><code class="language-java">static int x, y, r1, r2;
+
+// Поток 1                // Поток 2
+x = 1;                    y = 1;
+r1 = y;                   r2 = x;
+
+// Возможен ли исход r1 == 0 &amp;&amp; r2 == 0 ?</code></pre>
+        <p>
+            Каждая переменная сначала записывается, потом читается другой. Казалось бы, «кто-то
+            будет первым».
+        </p>
+        <div class="notes">Дать проголосовать. Правильный ответ — да, возможен.</div>
+    </div>
+
+    <!-- [1.4] Ответ: да, возможен -->
+    <div class="step slide" data-x="4400" data-y="900">
+        <h1>Ответ: да, возможен</h1>
+        <ul>
+            <li>
+                Исход <code>(0, 0)</code> наблюдается на реальном железе; проверяется тестом
+                <b>jcstress</b>
+            </li>
+            <li>Причины: буфер записи процессора, переупорядочивание JIT</li>
+            <li>
+                Наивная модель «потоки чередуют строки кода» (sequential consistency) <b>не
+                действует</b>
+            </li>
+            <li>Разберёмся, что <i>именно</i> гарантируется: блок 4 (JMM) и блок 6 (Intel)</li>
+        </ul>
+    </div>
+
+    <!-- [1.5] Три оси проблем -->
+    <div class="step slide" data-x="5500" data-y="900">
+        <h1>Три оси проблем</h1>
+        <table>
+            <tr>
+                <th>Свойство</th>
+                <th>Вопрос</th>
+                <th>Чем решается</th>
+            </tr>
+            <tr>
+                <td>Атомарность</td>
+                <td>Операция выполняется целиком или не выполняется?</td>
+                <td><code>synchronized</code>, <code>Atomic*</code></td>
+            </tr>
+            <tr>
+                <td>Видимость</td>
+                <td>Увидит ли другой поток мою запись?</td>
+                <td><code>volatile</code>, <code>Atomic*</code>, <code>synchronized</code></td>
+            </tr>
+            <tr>
+                <td>Порядок</td>
+                <td>В каком порядке записи станут видны?</td>
+                <td>happens-before (JMM)</td>
+            </tr>
+        </table>
+        <p>Примеры 1 и 2 — про видимость и порядок. Атомарность увидим в блоке 5.</p>
+    </div>
+
+    <!-- ===================== ряд 2 ===================== -->
+    <!-- [2.0] Базовое API -->
+    <div id="b2" class="step slide section" data-x="0" data-y="1800">
+        <div class="num">2</div>
+        <h1>Базовое API</h1>
+        <ul>
+            <li>Thread, состояния, interrupt</li>
+            <li>synchronized и монитор</li>
+            <li>wait / notify / notifyAll</li>
+            <li>Очередь «производитель — потребитель»</li>
+        </ul>
+        <div class="notes">
+            Программа-пример из блока (очередь) пригодится в блоке 3 как подопытная.
+        </div>
+    </div>
+
+    <!-- [2.1] Потоки: создание и запуск -->
+    <div class="step slide" data-x="1100" data-y="1800">
+        <h1>Потоки: создание и запуск</h1>
+        <pre class="small"><code class="language-java">Thread t = new Thread(() -&gt; {
+    System.out.println(&quot;hello from &quot; + Thread.currentThread().getName());
+}, &quot;worker-1&quot;);
+
+t.start();     // создаёт поток ОС и вызывает run() в нём
+// t.run();    // ОШИБКА: выполнится в текущем потоке
+t.join();      // ждём завершения t
+
+// daemon-потоки не удерживают JVM от завершения
+t.setDaemon(true);   // до start()</code></pre>
+        <p>Имя потока пригодится в блоке 3: оно видно в Linux.</p>
+    </div>
+
+    <!-- [2.2] Состояния потока -->
+    <div class="step slide" data-x="2200" data-y="1800">
+        <h1>Состояния потока</h1>
+        <pre class="small"><code class="language-plaintext">            start()                       run() завершился
+  NEW ─────────────► RUNNABLE ────────────────────────► TERMINATED
+                       │    ▲
+       монитор занят   │    │  монитор получен
+                       ▼    │
+                      BLOCKED
+
+  RUNNABLE ── wait() / join() / park() ──► WAITING
+  RUNNABLE ── sleep(t) / wait(t) ────────► TIMED_WAITING
+  WAITING, TIMED_WAITING ── notify / таймаут / interrupt ──► RUNNABLE</code></pre>
+        <div class="notes">
+            Отметить: RUNNABLE в Java включает и «выполняется», и «ждёт в нативном I/O». Вернёмся в
+            блоке 3.
+        </div>
+    </div>
+
+    <!-- [2.3] interrupt(): вежливая просьба -->
+    <div class="step slide" data-x="3300" data-y="1800">
+        <h1>interrupt(): вежливая просьба</h1>
+        <ul>
+            <li><code>interrupt()</code> выставляет флаг; сам поток не прерывается</li>
+            <li>
+                Блокирующие методы (<code>sleep</code>, <code>wait</code>, <code>take</code>)
+                бросают <code>InterruptedException</code> и <b>сбрасывают</b> флаг
+            </li>
+            <li>Нельзя «глотать» исключение молча</li>
+        </ul>
+        <pre class="small"><code class="language-java">try {
+    queue.take();
+} catch (InterruptedException e) {
+    Thread.currentThread().interrupt();   // восстановить флаг
+    return;                               // и выйти
+}</code></pre>
+        <p><code>stop()</code> объявлен устаревшим: убивает поток посреди инварианта.</p>
+    </div>
+
+    <!-- [2.4] synchronized и монитор -->
+    <div class="step slide" data-x="4400" data-y="1800">
+        <h1>synchronized и монитор</h1>
+        <pre class="small"><code class="language-java">private final Object lock = new Object();
+private int count;
+
+void inc() {
+    synchronized (lock) {        // захват монитора lock
+        count++;
+    }                            // освобождение монитора
+}
+
+synchronized void dec() { count--; }         // монитор this
+static synchronized void reset() { }         // монитор Foo.class</code></pre>
+        <ul>
+            <li>У каждого объекта есть монитор; реентерабельный</li>
+            <li>Кроме взаимного исключения даёт <b>видимость</b> (блок 4)</li>
+            <li>Лучше синхронизироваться на приватном объекте</li>
+        </ul>
+    </div>
+
+    <!-- [2.5] wait / notify: правила -->
+    <div class="step slide" data-x="5500" data-y="1800">
+        <h1>wait / notify: правила</h1>
+        <ul>
+            <li>Зачем: ждать выполнения условия, а не крутить цикл</li>
+            <li>
+                Вызывать <b>только под монитором</b> этого же объекта, иначе
+                <code>IllegalMonitorStateException</code>
+            </li>
+            <li><code>wait()</code> <b>отпускает</b> монитор и усыпляет поток</li>
+            <li>
+                <code>notify()</code> будит один поток, <code>notifyAll()</code> — все; монитор при
+                этом <b>не отпускается</b> до конца блока
+            </li>
+            <li>После пробуждения поток должен заново захватить монитор</li>
+            <li><b class="hl">wait всегда в цикле while</b></li>
+        </ul>
+    </div>
+
+    <!-- [2.6] Канонический шаблон -->
+    <div class="step slide" data-x="6600" data-y="1800">
+        <h1>Канонический шаблон</h1>
+        <pre class="small"><code class="language-java">// Ожидающий поток
+synchronized (lock) {
+    while (!condition) {          // while, а не if!
+        lock.wait();
+    }
+    // условие выполнено, монитор у нас
+}
+
+// Сигнализирующий поток
+synchronized (lock) {
+    condition = true;             // сначала меняем состояние
+    lock.notifyAll();             // потом будим
+}</code></pre>
+        <p>Причины: ложные пробуждения, «чужие» пробуждения, состояние могли изменить.</p>
+    </div>
+
+    <!-- [2.7] Пример: ограниченная очередь -->
+    <div class="step slide" data-x="7700" data-y="1800">
+        <h1>Пример: ограниченная очередь</h1>
+        <pre class="small"><code class="language-java">class BoundedQueue&lt;T&gt; {
+    private final Queue&lt;T&gt; q = new ArrayDeque&lt;&gt;();
+    private final int cap;
+    BoundedQueue(int cap) { this.cap = cap; }
+    synchronized void put(T x) throws InterruptedException {
+        while (q.size() == cap) wait();      // очередь полна
+        q.add(x);
+        notifyAll();
+    }
+
+    synchronized T take() throws InterruptedException {
+        while (q.isEmpty()) wait();          // очередь пуста
+        T x = q.remove();
+        notifyAll();
+        return x;
+    }
+}</code></pre>
+        <div class="notes">
+            Это подопытная программа для блока 3: производители и потребители будут ждать в wait().
+        </div>
+    </div>
+
+    <!-- [2.8] Типичные ошибки -->
+    <div class="step slide" data-x="8800" data-y="1800">
+        <h1>Типичные ошибки</h1>
+        <ul>
+            <li><code>if</code> вместо <code>while</code> вокруг <code>wait</code></li>
+            <li><code>notify</code> без изменения состояния (сигнал «в пустоту»)</li>
+            <li><code>wait</code>/<code>notify</code> на объекте, монитор которого не захвачен</li>
+            <li><code>notify</code> вместо <code>notifyAll</code>, когда ждут разные условия</li>
+            <li>Проглоченный <code>InterruptedException</code></li>
+            <li>
+                Реальная жизнь: <code>BlockingQueue</code>,
+                <code>Lock</code>/<code>Condition</code>, <code>CountDownLatch</code>
+            </li>
+        </ul>
+    </div>
+
+    <!-- ===================== ряд 3 ===================== -->
+    <!-- [3.0] Java-потоки глазами Linux -->
+    <div id="b3" class="step slide section" data-x="0" data-y="2700">
+        <div class="num">3</div>
+        <h1>Java-потоки глазами Linux</h1>
+        <ul>
+            <li>Поток Java = поток Linux</li>
+            <li>ps, top, pidstat, procfs</li>
+            <li>lsof, strace</li>
+            <li>Связь с jstack: nid = TID</li>
+            <li>Практикум: пять потоков</li>
+        </ul>
+        <div class="notes">
+            Блок предполагает Linux с доступом к procfs. В контейнерах stack и perf часто
+            недоступны.
+        </div>
+    </div>
+
+    <!-- [3.1] Поток Java = поток Linux -->
+    <div class="step slide" data-x="1100" data-y="2700">
+        <h1>Поток Java = поток Linux</h1>
+        <ul>
+            <li>
+                HotSpot на Linux: модель <b>1:1</b>, каждый поток Java — поток ядра
+                (<code>pthread</code>)
+            </li>
+            <li>
+                У него свой <b>TID</b> (LWP) и свой стек, общий с остальными — PID и дескрипторы
+            </li>
+            <li>
+                Служебные потоки JVM: GC, компиляторы C1/C2, <code>VM Thread</code>, <code>Signal
+                Dispatcher</code>, <code>Reference Handler</code>…
+            </li>
+            <li>
+                Имя из <code>setName</code> попадает в ядро (поле <code>comm</code>), но обрезается
+                до 15 символов
+            </li>
+            <li>Виртуальные потоки в ядре не видны: только «носители»</li>
+        </ul>
+    </div>
+
+    <!-- [3.2] ps, top, pidstat -->
+    <div class="step slide" data-x="2200" data-y="2700">
+        <h1>ps, top, pidstat</h1>
+        <pre class="small"><code class="language-bash">$ ps -L -p $PID -o pid,tid,pcpu,stat,wchan:24,comm
+$ ps -eLf | grep java          # столбец NLWP — число потоков
+$ top -H -p $PID               # режим потоков: кто «горячий»
+$ pidstat -t -p $PID 1         # CPU по потокам (sysstat)
+$ pidstat -w -t -p $PID 1      # переключения контекста
+$ taskset -cp $TID             # привязка к ядрам</code></pre>
+        <ul>
+            <li><code>Thread.setPriority</code> на Linux почти ничего не меняет</li>
+            <li>Приоритетами управляют <code>nice</code>/<code>chrt</code> уже на уровне ОС</li>
+        </ul>
+    </div>
+
+    <!-- [3.3] procfs: что смотреть -->
+    <div class="step slide" data-x="3300" data-y="2700">
+        <h1>procfs: что смотреть</h1>
+        <table>
+            <tr>
+                <th>Файл</th>
+                <th>Что даёт</th>
+            </tr>
+            <tr>
+                <td><code>/proc/PID/task/</code></td>
+                <td>каталог потоков процесса (по одному на TID)</td>
+            </tr>
+            <tr>
+                <td><code>…/TID/status</code></td>
+                <td><code>State</code>, счётчики переключений контекста</td>
+            </tr>
+            <tr>
+                <td><code>…/TID/wchan</code></td>
+                <td>в какой функции ядра «спит» поток</td>
+            </tr>
+            <tr>
+                <td><code>…/TID/stack</code></td>
+                <td>стек в ядре (нужны права root)</td>
+            </tr>
+            <tr>
+                <td><code>/proc/PID/status</code></td>
+                <td>поле <code>Threads</code></td>
+            </tr>
+            <tr>
+                <td><code>/proc/PID/limits</code></td>
+                <td><code>Max processes</code> и другие лимиты</td>
+            </tr>
+            <tr>
+                <td><code>/proc/PID/maps</code></td>
+                <td>стеки потоков как отдельные области (<code>-Xss</code>)</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- [3.4] Пример: поток в wait() -->
+    <div class="step slide" data-x="4400" data-y="2700">
+        <h1>Пример: поток в wait()</h1>
+        <pre class="small"><code class="language-bash">$ ls /proc/$PID/task | wc -l                     # сколько потоков
+$ cat /proc/$PID/task/$TID/status | egrep &#x27;Name|State|ctxt&#x27;
+Name:   producer-1
+State:  S (sleeping)
+voluntary_ctxt_switches:    1043
+nonvoluntary_ctxt_switches: 12
+$ cat /proc/$PID/task/$TID/wchan
+futex_wait_queue</code></pre>
+        <ul>
+            <li>
+                <code>S</code> (sleeping) + <code>futex_wait…</code>: поток ждёт на
+                мьютексе/условной переменной JVM
+            </li>
+            <li>Точное имя функции зависит от версии ядра</li>
+        </ul>
+        <div class="notes">Вывод показан как иллюстрация: у слушателей он будет отличаться.</div>
+    </div>
+
+    <!-- [3.5] Ограничения и контейнеры -->
+    <div class="step slide" data-x="5500" data-y="2700">
+        <h1>Ограничения и контейнеры</h1>
+        <ul>
+            <li>
+                Лимиты: <code>ulimit -u</code>, <code>/proc/sys/kernel/threads-max</code>,
+                <code>vm.max_map_count</code>
+            </li>
+            <li>
+                Стек каждого потока — отдельная область в <code>maps</code>: <code>-Xss</code> ×
+                число потоков
+            </li>
+            <li>Контейнер: <code>/proc/PID/cgroup</code>, лимиты CPU и памяти</li>
+            <li><code>Runtime.availableProcessors()</code> учитывает лимиты cgroup</li>
+            <li><code>pids.max</code> в cgroup ограничивает число потоков</li>
+        </ul>
+    </div>
+
+    <!-- [3.6] lsof и файловые дескрипторы -->
+    <div class="step slide" data-x="6600" data-y="2700">
+        <h1>lsof и файловые дескрипторы</h1>
+        <pre><code class="language-bash">$ lsof -p $PID | head            # jar-файлы, сокеты, каналы
+$ lsof -p $PID -a -i             # только сетевые
+$ ls /proc/$PID/fd | wc -l       # число дескрипторов</code></pre>
+        <ul>
+            <li>Дескрипторы <b>общие</b> для всех потоков процесса</li>
+            <li>Стек и регистры — <b>у каждого потока свои</b></li>
+            <li>
+                Утечки дескрипторов видны как рост числа <code>fd</code>; у <code>lsof</code> есть
+                режим показа задач-потоков (<code>-K</code>)
+            </li>
+        </ul>
+    </div>
+
+    <!-- [3.7] strace: futex под капотом -->
+    <div class="step slide" data-x="7700" data-y="2700">
+        <h1>strace: futex под капотом</h1>
+        <pre class="small"><code class="language-bash">$ strace -f -T -e trace=futex -p $PID
+futex(0x7f3c..., FUTEX_WAIT_PRIVATE, 0, NULL) = 0 &lt;0.500123&gt;
+futex(0x7f3c..., FUTEX_WAKE_PRIVATE, 1)       = 1 &lt;0.000021&gt;</code></pre>
+        <ul>
+            <li>
+                <code>wait</code>/<code>notify</code> и <b>конкурентный</b> монитор → системные
+                вызовы <code>futex</code>
+            </li>
+            <li><b>Неконкурентный</b> <code>synchronized</code> в ядро не заходит (см. блок 6)</li>
+            <li>Для сводки: <code>perf stat -e context-switches,cpu-migrations -p $PID</code></li>
+        </ul>
+    </div>
+
+    <!-- [3.8] Как связать с jstack -->
+    <div class="step slide" data-x="8800" data-y="2700">
+        <h1>Как связать с jstack</h1>
+        <pre class="small"><code class="language-bash">$ top -H -p $PID              # TID «горячего» потока: 12345
+$ printf &#x27;%x\n&#x27; 12345         # → 3039
+$ jcmd $PID Thread.print | grep -A 15 &#x27;nid=0x3039&#x27;</code></pre>
+        <ul>
+            <li>
+                В дампе поток указан как <code>nid=0x…</code> — это TID в шестнадцатеричном виде
+            </li>
+            <li>Дамп можно получить и так: <code>jstack PID</code>, <code>kill -3 PID</code></li>
+        </ul>
+    </div>
+
+    <!-- [3.9] Практикум: пять потоков -->
+    <div class="step slide" data-x="9900" data-y="2700">
+        <h1>Практикум: пять потоков</h1>
+        <table>
+            <tr>
+                <th>Поток</th>
+                <th>Java-состояние</th>
+                <th>Linux State</th>
+                <th>wchan</th>
+            </tr>
+            <tr>
+                <td>крутится в цикле</td>
+                <td>?</td>
+                <td>?</td>
+                <td>?</td>
+            </tr>
+            <tr>
+                <td><code>Thread.sleep</code></td>
+                <td>?</td>
+                <td>?</td>
+                <td>?</td>
+            </tr>
+            <tr>
+                <td><code>wait()</code></td>
+                <td>?</td>
+                <td>?</td>
+                <td>?</td>
+            </tr>
+            <tr>
+                <td>ждёт монитор</td>
+                <td>?</td>
+                <td>?</td>
+                <td>?</td>
+            </tr>
+            <tr>
+                <td>читает из сокета</td>
+                <td>?</td>
+                <td>?</td>
+                <td>?</td>
+            </tr>
+        </table>
+        <p>
+            Заполнить по <code>jstack</code> и <code>/proc</code>. Почему в Java поток
+            <code>RUNNABLE</code>, а в Linux — <code>S</code>?
+        </p>
+        <div class="notes">
+            Ответы: цикл — RUNNABLE/R; sleep — TIMED_WAITING/S; wait — WAITING/S (futex); монитор —
+            BLOCKED/S (futex); сокет — RUNNABLE/S (зависит от системного вызова). Обсудить, почему
+            RUNNABLE не значит «на CPU».
+        </div>
+    </div>
+
+    <!-- ===================== ряд 4 ===================== -->
+    <!-- [4.0] Java Memory Model -->
+    <div id="b4" class="step slide section" data-x="0" data-y="3600">
+        <div class="num">4</div>
+        <h1>Java Memory Model</h1>
+        <ul>
+            <li>Зачем нужна модель</li>
+            <li>Понятия: действия, гонка, DRF-SC</li>
+            <li>Happens-before</li>
+            <li>Безопасная публикация, final, DCL</li>
+            <li>Что разрешено и запрещено</li>
+        </ul>
+        <div class="notes">Центральный блок. Возвращаемся к примерам 1 и 2 из блока 1.</div>
+    </div>
+
+    <!-- [4.1] Откуда берутся «странности» -->
+    <div class="step slide" data-x="1100" data-y="3600">
+        <h1>Откуда берутся «странности»</h1>
+        <ul>
+            <li><b>Компилятор (JIT)</b>: переставляет операции, держит переменные в регистрах</li>
+            <li><b>Процессор</b>: буфер записи, внеочередное исполнение</li>
+            <li><b>Кеши</b>: у каждого ядра своя копия данных</li>
+        </ul>
+        <p>
+            JMM — договор между программистом, компилятором и процессором: какие результаты
+            допустимы.
+        </p>
+        <p>Пишем код, опираясь на гарантии языка, а не на устройство железа.</p>
+    </div>
+
+    <!-- [4.2] Основные понятия -->
+    <div class="step slide" data-x="2200" data-y="3600">
+        <h1>Основные понятия</h1>
+        <ul>
+            <li>
+                <b>Действия</b>: чтение/запись, захват/освобождение монитора, операции с
+                <code>volatile</code>, запуск и завершение потока
+            </li>
+            <li>
+                <b>Порядок программы</b> — порядок внутри одного потока; другие потоки его могут не
+                видеть
+            </li>
+            <li>
+                <b>Гонка данных</b>: два обращения к переменной, одно из них запись, между ними нет
+                happens-before
+            </li>
+            <li>
+                <b>DRF-SC</b>: программа без гонок ведёт себя так, как будто выполняется
+                последовательно
+            </li>
+        </ul>
+    </div>
+
+    <!-- [4.3] Happens-before -->
+    <div class="step slide" data-x="3300" data-y="3600">
+        <h1>Happens-before</h1>
+        <ul>
+            <li>
+                Если A <i>happens-before</i> B, то эффекты A <b>видны</b> B и A <b>упорядочено</b>
+                перед B
+            </li>
+            <li>Порядок программы внутри потока</li>
+            <li>Освобождение монитора → последующий захват <b>того же</b> монитора</li>
+            <li>Запись <code>volatile</code> → последующее чтение <b>того же</b> поля</li>
+            <li><code>Thread.start()</code> → всё в запущенном потоке</li>
+            <li>Всё в потоке → успешный <code>join()</code> этого потока</li>
+            <li><b>Транзитивность</b>: A → B и B → C дают A → C</li>
+        </ul>
+    </div>
+
+    <!-- [4.4] Пример: volatile «публикует» данные -->
+    <div class="step slide" data-x="4400" data-y="3600">
+        <h1>Пример: volatile «публикует» данные</h1>
+        <pre class="small"><code class="language-java">int data;
+volatile boolean ready;
+
+// Поток A                 // Поток B
+data = 42;                 if (ready) {
+ready = true;                  print(data);      // 42
+                           }</code></pre>
+        <ul>
+            <li><code>data = 42</code> → <code>ready = true</code>: порядок программы</li>
+            <li><code>ready = true</code> → чтение <code>ready</code>: volatile</li>
+            <li>Чтение <code>ready</code> → чтение <code>data</code>: порядок программы</li>
+            <li>Транзитивность: B <b>гарантированно</b> видит 42</li>
+        </ul>
+        <div class="notes">
+            Вернуться к примеру 1 из блока 1: с volatile флаг останова работает.
+        </div>
+    </div>
+
+    <!-- [4.5] Безопасная публикация и final -->
+    <div class="step slide" data-x="5500" data-y="3600">
+        <h1>Безопасная публикация и final</h1>
+        <ul>
+            <li>
+                <b>Утечка <code>this</code></b> из конструктора: другой поток может увидеть объект
+                недостроенным
+            </li>
+            <li>
+                Поля <code>final</code> после конструктора видны корректно (freeze) — только если
+                <code>this</code> не утёк
+            </li>
+            <li>
+                Способы безопасно опубликовать объект: <code>volatile</code>-поле,
+                <code>final</code>-поле, монитор, статический инициализатор, потокобезопасные
+                коллекции
+            </li>
+            <li>Публикация через обычное поле — <b class="hl">гонка данных</b></li>
+        </ul>
+    </div>
+
+    <!-- [4.6] Double-checked locking -->
+    <div class="step slide" data-x="6600" data-y="3600">
+        <h1>Double-checked locking</h1>
+        <pre class="small"><code class="language-java">class Singleton {
+    private static volatile Singleton inst;      // volatile обязателен
+
+    static Singleton get() {
+        Singleton s = inst;
+        if (s == null) {
+            synchronized (Singleton.class) {
+                s = inst;
+                if (s == null) inst = s = new Singleton();
+            }
+        }
+        return s;
+    }
+}</code></pre>
+        <p>Альтернатива: holder-идиома (класс-держатель со статическим полем).</p>
+    </div>
+
+    <!-- [4.7] Почему без volatile ломается -->
+    <div class="step slide" data-x="7700" data-y="3600">
+        <h1>Почему без volatile ломается</h1>
+        <ul>
+            <li>
+                <code>new Singleton()</code> = выделить память → инициализировать поля → записать
+                ссылку
+            </li>
+            <li>
+                Без happens-before запись ссылки может оказаться <b>раньше</b> инициализации полей
+            </li>
+            <li>
+                Другой поток видит <code>inst != null</code> и работает с недостроенным объектом
+            </li>
+            <li><code>volatile</code> устанавливает порядок и запрещает такую перестановку</li>
+        </ul>
+    </div>
+
+    <!-- [4.8] Что разрешено и запрещено -->
+    <div class="step slide" data-x="8800" data-y="3600">
+        <h1>Что разрешено и запрещено</h1>
+        <ul>
+            <li>
+                Исход <code>(0, 0)</code> из блока 1 <b>разрешён</b>: гонка данных, порядок не
+                определён
+            </li>
+            <li>
+                Чтение/запись <code>long</code> и <code>double</code> без <code>volatile</code>
+                может быть неатомарным (на 32-битных JVM)
+            </li>
+            <li>Значения «из воздуха» (out-of-thin-air) запрещены; формализация сложна</li>
+            <li>Спецификация: JLS §17.4; проверять гипотезы — <b>jcstress</b></li>
+        </ul>
+    </div>
+
+    <!-- ===================== ряд 5 ===================== -->
+    <!-- [5.0] volatile и Atomic* -->
+    <div id="b5" class="step slide section" data-x="0" data-y="4500">
+        <div class="num">5</div>
+        <h1>volatile и Atomic*</h1>
+        <ul>
+            <li>Что даёт volatile</li>
+            <li>Что даёт Atomic*</li>
+            <li>Сравнение и выбор</li>
+        </ul>
+    </div>
+
+    <!-- [5.1] volatile: гарантии -->
+    <div class="step slide" data-x="1100" data-y="4500">
+        <h1>volatile: гарантии</h1>
+        <ul>
+            <li><b>Видимость</b>: чтение видит последнюю запись (happens-before)</li>
+            <li><b>Упорядочивание</b>: операции до записи не «перепрыгнут» через неё</li>
+            <li><b class="hl">Нет атомарности составных операций</b></li>
+            <li>
+                Подходит: флаг остановки, публикация неизменяемого объекта, один писатель — много
+                читателей, DCL
+            </li>
+        </ul>
+    </div>
+
+    <!-- [5.2] volatile ≠ атомарность -->
+    <div class="step slide" data-x="2200" data-y="4500">
+        <h1>volatile ≠ атомарность</h1>
+        <pre><code class="language-java">volatile int counter;
+
+void inc() {
+    counter++;     // читаем, прибавляем, пишем — три действия!
+}</code></pre>
+        <ul>
+            <li>Два потока могут прочитать одно значение и записать одинаковый результат</li>
+            <li>Видимость есть, атомарности нет: итог меньше ожидаемого</li>
+            <li>Решения: <code>synchronized</code> или <code>AtomicInteger</code></li>
+        </ul>
+        <div class="notes">Короткая демонстрация: два потока по миллиону инкрементов.</div>
+    </div>
+
+    <!-- [5.3] Atomic*: API и CAS -->
+    <div class="step slide" data-x="3300" data-y="4500">
+        <h1>Atomic*: API и CAS</h1>
+        <pre class="small"><code class="language-java">AtomicInteger n = new AtomicInteger();
+
+n.incrementAndGet();
+n.compareAndSet(5, 6);          // атомарно: если 5, то 6
+n.updateAndGet(x -&gt; x * 2);
+
+// CAS-цикл вручную
+int old, next;
+do {
+    old  = n.get();
+    next = old + 1;
+} while (!n.compareAndSet(old, next));</code></pre>
+        <p>Семантика памяти — как у <code>volatile</code>, плюс атомарность одной операции.</p>
+    </div>
+
+    <!-- [5.4] Тонкости -->
+    <div class="step slide" data-x="4400" data-y="4500">
+        <h1>Тонкости</h1>
+        <ul>
+            <li>
+                <b>ABA</b>: значение изменилось A → B → A, CAS этого не заметит; помогает
+                <code>AtomicStampedReference</code>
+            </li>
+            <li>
+                <b><code>LongAdder</code></b>: при высокой конкуренции быстрее
+                <code>AtomicLong</code> для счётчиков
+            </li>
+            <li>
+                <code>VarHandle</code>: режимы доступа <code>plain</code>, <code>opaque</code>,
+                <code>acquire/release</code>, <code>volatile</code>
+            </li>
+            <li>Lock-free ≠ wait-free: CAS-цикл может «крутиться» при конкуренции</li>
+        </ul>
+    </div>
+
+    <!-- [5.5] Сравнение -->
+    <div class="step slide" data-x="5500" data-y="4500">
+        <h1>Сравнение</h1>
+        <table>
+            <tr>
+                <th></th>
+                <th>volatile</th>
+                <th>Atomic*</th>
+                <th>synchronized</th>
+            </tr>
+            <tr>
+                <td>Видимость</td>
+                <td>да</td>
+                <td>да</td>
+                <td>да</td>
+            </tr>
+            <tr>
+                <td>Упорядочивание</td>
+                <td>да</td>
+                <td>да</td>
+                <td>да</td>
+            </tr>
+            <tr>
+                <td>Атомарность составных операций</td>
+                <td>нет</td>
+                <td>одна операция</td>
+                <td>любой блок</td>
+            </tr>
+            <tr>
+                <td>Блокирует потоки</td>
+                <td>нет</td>
+                <td>нет</td>
+                <td>да</td>
+            </tr>
+            <tr>
+                <td>Несколько переменных сразу</td>
+                <td>нет</td>
+                <td>нет</td>
+                <td>да</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- [5.6] Как выбирать -->
+    <div class="step slide" data-x="6600" data-y="4500">
+        <h1>Как выбирать</h1>
+        <ul>
+            <li>Одиночный флаг → <code>volatile</code></li>
+            <li>Счётчик, накопление, один CAS → <code>Atomic*</code></li>
+            <li>Инвариант на несколько полей → <code>synchronized</code> или <code>Lock</code></li>
+            <li>
+                Вопрос: можно ли хранить <code>min</code> и <code>max</code> в двух атомиках при
+                инварианте <code>min ≤ max</code>?
+            </li>
+        </ul>
+        <div class="notes">
+            Ответ: нет — между двумя обновлениями другой поток увидит нарушенный инвариант.
+        </div>
+    </div>
+
+    <!-- ===================== ряд 6 ===================== -->
+    <!-- [6.0] JMM на Intel -->
+    <div id="b6" class="step slide section" data-x="0" data-y="5400">
+        <div class="num">6</div>
+        <h1>JMM на Intel</h1>
+        <ul>
+            <li>x86-TSO и буфер записи</li>
+            <li>Барьеры в JIT</li>
+            <li>Java → инструкции x86</li>
+            <li>Смотрим ассемблер</li>
+        </ul>
+    </div>
+
+    <!-- [6.1] Модель памяти x86: TSO -->
+    <div class="step slide" data-x="1100" data-y="5400">
+        <h1>Модель памяти x86: TSO</h1>
+        <table>
+            <tr>
+                <th>Пара операций</th>
+                <th>Может ли поменяться?</th>
+            </tr>
+            <tr>
+                <td>Load → Load</td>
+                <td>нет</td>
+            </tr>
+            <tr>
+                <td>Load → Store</td>
+                <td>нет</td>
+            </tr>
+            <tr>
+                <td>Store → Store</td>
+                <td>нет</td>
+            </tr>
+            <tr>
+                <td><b>Store → Load</b></td>
+                <td><b class="hl">да</b> (из-за буфера записи)</td>
+            </tr>
+        </table>
+        <p>Модель «сильная»: почти все порядки сохраняются. Слабее у ARM и POWER.</p>
+    </div>
+
+    <!-- [6.2] Буфер записи объясняет (0, 0) -->
+    <div class="step slide" data-x="2200" data-y="5400">
+        <h1>Буфер записи объясняет (0, 0)</h1>
+        <pre class="small"><code class="language-plaintext">Ядро 0                    Ядро 1
+x = 1  ─► [буфер записи]  y = 1  ─► [буфер записи]
+r1 = y   (читает y=0)     r2 = x   (читает x=0)
+             ▼                         ▼
+        запись x = 1 уходит в кеш позже, чем чтение y</code></pre>
+        <ul>
+            <li>Запись сначала оседает в буфере, а чтение идёт вперёд</li>
+            <li>MESI обеспечивает согласованность кешей, но буфер не отменяет</li>
+        </ul>
+    </div>
+
+    <!-- [6.3] Барьеры в JIT -->
+    <div class="step slide" data-x="3300" data-y="5400">
+        <h1>Барьеры в JIT</h1>
+        <ul>
+            <li>
+                Четыре вида: <code>LoadLoad</code>, <code>LoadStore</code>, <code>StoreStore</code>,
+                <code>StoreLoad</code>
+            </li>
+            <li>
+                «JSR-133 Cookbook»: какие барьеры компилятор ставит вокруг <code>volatile</code> и
+                мониторов
+            </li>
+            <li>
+                Барьер бывает для процессора и для самого JIT (запрет перестановок при оптимизации)
+            </li>
+            <li>На x86 из четырёх реально нужен <b>StoreLoad</b> — он самый дорогой</li>
+        </ul>
+    </div>
+
+    <!-- [6.4] Java → инструкции x86 -->
+    <div class="step slide" data-x="4400" data-y="5400">
+        <h1>Java → инструкции x86</h1>
+        <table>
+            <tr>
+                <th>Java</th>
+                <th>Типичный код x86</th>
+            </tr>
+            <tr>
+                <td>Обычное чтение/запись</td>
+                <td><code>mov</code></td>
+            </tr>
+            <tr>
+                <td>Чтение <code>volatile</code></td>
+                <td><code>mov</code> (+ запрет оптимизаций JIT)</td>
+            </tr>
+            <tr>
+                <td>Запись <code>volatile</code></td>
+                <td><code>mov</code> + <code>lock addl $0,(%rsp)</code> (или <code>xchg</code>)</td>
+            </tr>
+            <tr>
+                <td>Вход/выход <code>synchronized</code></td>
+                <td><code>lock cmpxchg</code></td>
+            </tr>
+            <tr>
+                <td><code>incrementAndGet</code></td>
+                <td><code>lock xadd</code></td>
+            </tr>
+            <tr>
+                <td><code>compareAndSet</code></td>
+                <td><code>lock cmpxchg</code></td>
+            </tr>
+        </table>
+        <p>
+            Чтение <code>volatile</code> «бесплатно», запись дороже. Префикс <code>lock</code> —
+            полный барьер.
+        </p>
+        <div class="notes">Код зависит от версии JVM и режима JIT. Опираемся на гарантии JMM.</div>
+    </div>
+
+    <!-- [6.5] Смотрим ассемблер -->
+    <div class="step slide" data-x="5500" data-y="5400">
+        <h1>Смотрим ассемблер</h1>
+        <pre class="small"><code class="language-bash">$ java -XX:+UnlockDiagnosticVMOptions -XX:+PrintAssembly \
+       -XX:CompileCommand=print,Demo::write Demo</code></pre>
+        <ul>
+            <li>Нужна библиотека <code>hsdis</code> (или JITWatch)</li>
+            <li>
+                Сравнить запись в обычное и в <code>volatile</code>-поле,
+                <code>incrementAndGet</code>
+            </li>
+            <li>Повторить тест из блока 1 в <b>jcstress</b> с <code>volatile</code> и без</li>
+        </ul>
+    </div>
+
+    <!-- [6.6] Почему это не отменяет volatile -->
+    <div class="step slide" data-x="6600" data-y="5400">
+        <h1>Почему это не отменяет volatile</h1>
+        <ul>
+            <li>JIT переставляет и кеширует независимо от процессора</li>
+            <li>На других архитектурах код другой (ARM, POWER)</li>
+            <li>Детали зависят от версии JVM</li>
+            <li>Рассуждаем о <b>гарантиях JMM</b>, а не об инструкциях</li>
+        </ul>
+    </div>
+
+    <!-- ===================== ряд 7 ===================== -->
+    <!-- [7.0] Итоги -->
+    <div id="b7" class="step slide" data-x="0" data-y="6300">
+        <h1>Итоги</h1>
+        <ul>
+            <li>Три свойства: <b>атомарность</b>, <b>видимость</b>, <b>порядок</b></li>
+            <li><i>Happens-before</i> — единственный корректный способ рассуждать о видимости</li>
+            <li><code>wait</code>/<code>notify</code>: под монитором и в цикле</li>
+            <li>
+                Поток Java — поток Linux: <code>top -H</code>, <code>/proc</code>,
+                <code>strace</code>, <code>nid</code> в <code>jstack</code>
+            </li>
+            <li>Реализация на Intel объясняет стоимость, но не заменяет модель языка</li>
+        </ul>
+    </div>
+
+    <!-- [7.1] Вопросы для самопроверки -->
+    <div class="step slide" data-x="1100" data-y="6300">
+        <h1>Вопросы для самопроверки</h1>
+        <ol>
+            <li>Как найти поток, съедающий CPU, и увидеть его стек в <code>jstack</code>?</li>
+            <li>
+                Что значит <code>wchan = futex_wait_queue</code> и какой поток Java так выглядит?
+            </li>
+            <li>Почему <code>volatile int x; x++</code> небезопасно?</li>
+            <li>Пример, где между записью и чтением нет happens-before?</li>
+            <li>Почему запись <code>volatile</code> на x86 дороже чтения?</li>
+        </ol>
+    </div>
+
+    <!-- [7.2] Материалы -->
+    <div class="step slide" data-x="2200" data-y="6300">
+        <h1>Материалы</h1>
+        <ul>
+            <li>JLS, глава 17 (модель памяти)</li>
+            <li>«Java Concurrency in Practice» — Goetz et al.</li>
+            <li>«JSR-133 Cookbook» — Doug Lea</li>
+            <li>Алексей Шипилёв: JMM Pragmatics, проект <b>jcstress</b></li>
+            <li>
+                man: <code>proc(5)</code>, <code>ps(1)</code>, <code>top(1)</code>,
+                <code>lsof(8)</code>, <code>strace(1)</code>, <code>pidstat(1)</code>,
+                <code>perf(1)</code>
+            </li>
+        </ul>
+    </div>
+
+    <!-- [7.3] Вопросы? -->
+    <div class="step slide title" data-x="3300" data-y="6300">
+        <h1>Вопросы?</h1>
+        <p><a href="#/overview">Показать карту лекции</a></p>
+    </div>
+
+    <!-- Обзор: камера отъезжает и показывает всю карту -->
+    <div id="overview" class="step" data-x="4950" data-y="3150" data-scale="12"></div>
+
+</div>
+
+<div class="impress-progressbar"><div></div></div>
+<div class="impress-progress"></div>
+<a class="ov" href="#/overview">Обзор</a>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<script>
+    if (window.hljs) {
+        hljs.highlightAll();
+    }
+</script>
+<script src="js/impress.js"></script>
+<script>
+    impress().init();
+</script>
+</body>
+</html>
