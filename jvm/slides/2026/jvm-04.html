@@ -1,0 +1,716 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1024" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <title>ООП в Kotlin</title>
+
+    <link href="//fonts.googleapis.com/css?family=Open+Sans:regular,semibold,italic,italicsemibold|PT+Sans:400,700,400italic,700italic|PT+Serif:400,700,400italic,700italic" rel="stylesheet" />
+
+    <link href="css/impress-demo.css" rel="stylesheet" />
+    <link href="css/impress-common.css" rel="stylesheet" />
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/default.min.css">
+
+    <style>
+        /* Дополнения к impress-demo.css: только то, чего нет в образце (код, таблицы, разделы). Можно удалить/подправить. */
+
+        .slide {
+            font-size: 27px;
+            line-height: 1.3;
+            letter-spacing: -.5px;
+        }
+
+        .slide h1 {
+            font-size: 40px;
+            line-height: 1.15;
+            margin: 0 0 .5em;
+            text-align: left;
+        }
+
+        .slide ul,
+        .slide ol {
+            margin: 0;
+            padding-left: 1.1em;
+        }
+
+        .slide li {
+            margin: .25em 0;
+        }
+
+        .slide p {
+            margin: .6em 0 0;
+        }
+
+        .slide pre {
+            margin: 0 0 12px;
+            letter-spacing: 0;
+            text-shadow: none;
+        }
+
+        .slide pre code.hljs {
+            padding: 12px 16px;
+            font-size: 17px;
+            line-height: 1.35;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .slide pre.small code.hljs {
+            font-size: 15.5px;
+        }
+
+        .slide code:not(.hljs) {
+            background: #e2e8f0;
+            color: #1e293b;
+            padding: 0 .3em;
+            border-radius: 4px;
+            font-size: .85em;
+            letter-spacing: 0;
+        }
+
+        .slide.section code:not(.hljs),
+        .slide.title code:not(.hljs) {
+            background: rgba(255,255,255,.28);
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .slide table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 22px;
+            line-height: 1.25;
+        }
+
+        .slide th,
+        .slide td {
+            border-bottom: 1px solid #ccc;
+            padding: 6px 10px;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .slide th {
+            background: #e2e8f0;
+            color: #1e293b;
+        }
+
+        .slide .hl {
+            color: #b91c1c;
+        }
+
+        .slide.section {
+            background: linear-gradient(135deg,#0f766e,#1d4ed8);
+            color: #fff;
+            text-shadow: none;
+        }
+
+        .slide.section h1 {
+            color: #fff;
+            font-size: 50px;
+        }
+
+        .slide.section .num {
+            position: absolute;
+            right: 40px;
+            top: 0;
+            font-size: 200px;
+            font-weight: 700;
+            opacity: .18;
+            line-height: 1;
+        }
+
+        .slide.title .hint {
+            font-size: 20px;
+            color: #999;
+            margin-top: 40px;
+        }
+
+        .notes {
+            display: none;
+        }
+
+        .ov {
+            position: fixed;
+            left: 14px;
+            bottom: 12px;
+            color: #93c5fd;
+            font-size: 14px;
+            text-decoration: none;
+            z-index: 10;
+        }
+
+        #overview {
+            background: none!important;
+            border: 0!important;
+            box-shadow: none!important;
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body class="impress-not-supported">
+
+<div class="fallback-message">
+    <p>Ваш браузер <b>не поддерживает возможности, необходимые для impress.js</b>, поэтому показана упрощённая версия презентации.</p>
+    <p>Лучше всего использовать свежие <b>Chrome</b>, <b>Safari</b> или <b>Firefox</b>.</p>
+</div>
+
+<div id="impress"
+    data-transition-duration="1000"
+    data-width="1024"
+    data-height="768"
+    data-max-scale="3"
+    data-min-scale="0"
+    data-perspective="1000"
+    >
+
+    <div class="step slide title" data-x="-1000" data-y="-1500">
+      <h1>Коллекции в Kotlin</h1>
+        <ul>
+            <li>List/Map</li>
+            <li>Типизация</li>
+            <li>Многомерность</li>
+            <li>Sequence</li>
+            <li>Конвейеры</li>
+        </ul> 
+    </div>
+
+    <div class="step slide" data-x="0" data-y="-1500">
+      <h1>Общая рамка лекции</h1>
+      <ul>
+      <li>Kotlin не переизобретает коллекции — <code>List</code>/<code>Set</code>/<code>Map</code> это <code>java.util.*</code></li>
+      <li>Два добавленных слоя: read-only/mutable интерфейсы и функции-расширения</li>
+      <li>Функции-расширения по умолчанию eager — ключевое отличие от Stream API</li>
+      <li>Центральный блок сегодня — <code>Sequence</code> и её устройство изнутри</li>
+      </ul>
+    </div>
+
+    <div class="step slide" data-x="1000" data-y="-1500">
+      <h1>Что уже есть в Java, что добавляет Kotlin</h1>
+      <table>
+      <tr><th>Есть в Java</th><th>Добавляет Kotlin</th></tr>
+      <tr><td>ArrayList, HashSet, HashMap</td><td>Read-only/mutable интерфейсы поверх них</td></tr>
+      <tr><td>Stream.map/filter/reduce</td><td>Аналоги прямо на List — но eager</td></tr>
+      <tr><td>Stream (lazy, одноразовый)</td><td>Sequence (lazy, обычно можно обойти повторно)</td></tr>
+      <tr><td>Collectors.groupingBy</td><td>groupBy/associateBy — короче</td></tr>
+      </table>
+    </div>
+
+    <div class="step slide" data-x="2000" data-y="-1500">
+      <h1>List — та же Java-коллекция</h1>
+      <pre><code>val backing = mutableListOf(1, 2, 3)
+      val readOnlyView: List&lt;Int&gt; = backing</code></pre>
+      <ul>
+      <li>Никакой отдельной реализации под капотом — это один и тот же объект</li>
+      <li><code>List</code> просто не показывает методы изменения на уровне типа</li>
+      </ul>
+    </div>
+
+    <div class="step slide" data-x="3000" data-y="-1500">
+      <h1>Read-only ≠ immutable: демонстрация</h1>
+      <pre><code>backing.add(4)
+      println(readOnlyView)
+      // [1, 2, 3, 4] — изменения видны через "read-only" ссылку!</code></pre>
+      <ul>
+      <li>Объект физически мутабелен, "неизменяемость" — только со стороны конкретной переменной</li>
+      <li>В Java <code>Collections.unmodifiableList</code> бросил бы исключение при попытке менять САМУ обёртку — тут иначе</li>
+      </ul>
+    </div>
+
+    <div class="step slide" data-x="4000" data-y="-1500">
+      <h1>Приведение открывает мутацию снова</h1>
+      <pre><code>val mutableAgain = readOnlyView as MutableList&lt;Int&gt;
+      mutableAgain.add(5)
+      println(backing) // [1, 2, 3, 4, 5]</code></pre>
+      <ul>
+      <li>Компилятор не мешает такому касту — рантайм-защиты от него нет</li>
+      <li>Вывод для дизайна API: возврат <code>List&lt;T&gt;</code> — не гарантия неизменности для недоверенного кода</li>
+      </ul>
+    </div>
+
+
+
+    <div class="step slide" data-x="5000" data-y="-1500">
+      <h1>Фабрики под капотом</h1>
+      <table>
+      <tr><th>Вызов</th><th>Реальный тип</th></tr>
+      <tr><td><code>listOf(1,2,3)</code></td><td>неизменяемая обёртка вроде Arrays.asList</td></tr>
+      <tr><td><code>listOf&lt;Int&gt;()</code></td><td>синглтон Collections.emptyList()</td></tr>
+      <tr><td><code>mutableListOf(1,2,3)</code></td><td>обычный java.util.ArrayList</td></tr>
+      <tr><td><code>buildList { add(1) }</code></td><td>ArrayList внутри DSL, наружу — как List</td></tr>
+      </table>
+    </div>
+      
+    <div class="step slide" data-x="6000" data-y="-1500">
+      <h1>Список, содержащий сам себя: постановка</h1>
+      <pre><code>val list = mutableListOf&lt;Any&gt;(1, 2, 3)
+      list.add(list) // список содержит сам себя как элемент</code></pre>
+      <ul>
+      <li>MutableList — реальный объект со ссылочной семантикой, циклы возможны</li>
+      <li>Что произойдёт при печати, хешировании, сравнении?</li>
+      </ul>
+    </div>
+
+    <div class="step slide" data-x="7000" data-y="-1500">
+      <h1>toString(): специальная защита от рекурсии</h1>
+      <pre><code>println(list) // [1, 2, 3, (this Collection)]</code></pre>
+      <ul>
+      <li><code>java.util.AbstractCollection.toString()</code> проверяет <code>if (e == this)</code></li>
+      <li>Вместо бесконечной рекурсии печатает маркер — защита есть только здесь</li>
+      </ul>
+    </div>
+    <div class="step slide" data-x="8000" data-y="-1500">
+      <h1>hashCode()/equals(): защиты нет</h1>
+      <pre><code>list.hashCode()      // StackOverflowError
+      list.equals(other)   // StackOverflowError</code></pre>
+      <ul>
+      <li>Проверено напрямую на JVM — MutableList = java.util.ArrayList</li>
+      <li>Вывод: коллекции — обычные mutable-объекты со всеми острыми углами объектного графа с циклами</li>
+      </ul>
+    </div>
+
+
+    <div class="step slide" data-x="9000" data-y="-1500">
+      <h1>Трансформации</h1>
+      <ul>
+      <li><code>map { }</code> — применить функцию к каждому элементу</li>
+      <li><code>mapIndexed { i, v -&gt; }</code> — то же самое, но с индексом</li>
+      <li><code>mapNotNull { }</code> — как map, но null-результаты выбрасываются</li>
+      </ul>
+      <pre><code>listOf("1","x","2").mapNotNull { it.toIntOrNull() } // [1, 2]</code></pre>
+    </div>
+
+    <div class="step slide" data-x="10000" data-y="-1500">
+      <h1>Фильтрация</h1>
+      <pre><code>listOf(1,2,3,4).filter { it % 2 == 0 }        // [2, 4]
+      listOf&lt;Any&gt;(1,"a",2).filterIsInstance&lt;String&gt;() // ["a"]
+      val (evens, odds) = listOf(1,2,3,4).partition { it % 2 == 0 }</code></pre>
+    </div>
+
+    <div class="step slide" data-x="11000" data-y="-1500">
+      <h1>fold vs reduce: разница в безопасности</h1>
+      <pre><code>emptyList&lt;Int&gt;().fold(10) { acc, v -&gt; acc + v }   // 10 — безопасно
+      emptyList&lt;Int&gt;().reduce { acc, v -&gt; acc + v }     // UnsupportedOperationException!</code></pre>
+      <ul>
+      <li><code>fold</code> всегда имеет стартовое значение — работает и на пустой коллекции</li>
+      <li><code>reduce</code> берёт первый элемент как старт — падает, если брать неоткуда</li>
+      </ul>
+    </div>
+
+    <div class="step slide" data-x="12000" data-y="-1500">
+      <h1>Группировки и агрегация</h1>
+      <pre><code>listOf("a","bb","ccc").groupBy { it.length }
+      // {1=[a], 2=[bb], 3=[ccc]}
+      listOf("a","bb").associateWith { it.length }
+      // {a=1, bb=2}
+      listOf(1,2,3).sumOf { it * 2 } // 12</code></pre>
+    </div>
+
+    <div class="step slide" data-x="13000" data-y="-1500">
+      <h1>Терминальные проверки</h1>
+      <pre><code>listOf(1,2,3).any { it > 2 }   // true
+      listOf(1,2,3).all { it > 0 }   // true
+      listOf(1,2,3).none { it > 5 }  // true
+      listOf(1,2,3).count { it > 1 } // 2</code></pre>
+    </div>
+
+    <div class="step slide" data-x="14000" data-y="-1500">
+      <h1>Менее очевидные операции</h1>
+      <pre><code>listOf(1,2,3).zip(listOf("a","b","c"))
+      // [(1,a), (2,b), (3,c)]
+      listOf(1,2,3,4,5).windowed(3)
+      // [[1,2,3], [2,3,4], [3,4,5]]
+      listOf(1,2,3,4,5).chunked(2)
+      // [[1,2], [3,4], [5]]</code></pre>
+    </div>
+
+    <div class="step slide" data-x="15000" data-y="-1500">
+      <h1>flatMap: map + разворачивание вложенности</h1>
+      <ul>
+      <li><code>map</code> над списком списков даёт список списков — вложенность остаётся</li>
+      <li><code>flatMap</code> делает то же самое, но затем "разворачивает" один уровень вложенности</li>
+      </ul>
+      <pre><code>listOf(listOf(1,2), listOf(3,4)).map { it }
+      // [[1, 2], [3, 4]] — вложенность осталась
+      listOf(listOf(1,2), listOf(3,4)).flatMap { it }
+      // [1, 2, 3, 4] — развернули один уровень</code></pre>
+    </div>
+
+    <div class="step slide" data-x="16000" data-y="-1500">
+      <h1>flatMap: трансформация ВНУТРИ разворачивания</h1>
+      <pre><code>data class Person(val name: String, val hobbies: List&lt;String&gt;)
+      val people = listOf(
+      Person("Аня", listOf("рисование", "бег")),
+      Person("Боря", listOf("шахматы"))
+      )
+      val allHobbies = people.flatMap { it.hobbies }
+      // [рисование, бег, шахматы] — плоский список всех увлечений</code></pre>
+      <p>Лямбда возвращает список ДЛЯ КАЖДОГО элемента — flatMap склеивает их все в один</p>
+    </div>
+
+    <div class="step slide" data-x="17000" data-y="-1500">
+      <h1>flatMap vs map(...).flatten()</h1>
+      <pre><code>val a = people.map { it.hobbies }.flatten()
+      val b = people.flatMap { it.hobbies }
+      // a и b — одинаковый результат</code></pre>
+      <ul>
+      <li><code>flatMap</code> — это ровно <code>map</code>, а затем <code>flatten</code>, объединённые в одну операцию</li>
+      <li>Разница практическая: не создаётся промежуточный список списков — меньше аллокаций</li>
+      </ul>
+    </div>
+
+    <div class="step slide" data-x="18000" data-y="-1500">
+      <h1>flatMap на Sequence: ленивость сохраняется</h1>
+      <pre><code>people.asSequence()
+      .flatMap { it.hobbies.asSequence() }
+      .first()
+      // вычисляется только до первого найденного увлечения,
+      // остальные Person и их списки не трогаются вовсе</code></pre>
+      <p>Внутренние списки тоже оборачиваются в Sequence — ленивость не теряется на вложенном уровне</p>
+    </div>
+
+    <div class="step slide" data-x="19000" data-y="-1500">
+      <h1>flatMap: параллель с Java</h1>
+      <pre><code>// Java
+      list.stream()
+      .flatMap(p -> p.getHobbies().stream())
+      .collect(Collectors.toList());</code></pre>
+      <ul>
+      <li>Тот же самый смысл: "для каждого элемента — поток элементов, все потоки — в один"</li>
+      <li>Название и смысл операции в Kotlin и Java идентичны — переносится знание один в один</li>
+      </ul>
+    </div>
+
+    <div class="step slide" data-x="20000" data-y="-1500">
+      <h1>Нюанс типизации: тип не сохраняется</h1>
+      <pre><code>val s = setOf(1, 2, 3)
+      val mapped = s.map { it % 2 }
+      println(mapped) // [1, 0, 1] — список с дубликатами!</code></pre>
+      <p>Интуиция подсказывает "Set на входе — Set на выходе". Это не так.</p>
+    </div>
+
+    <div class="step slide" data-x="21000" data-y="-1500">
+      <h1>Почему это не баг, а необходимость</h1>
+      <ul>
+      <li>Лямбда не обязана быть инъективной — разные элементы могут схлопнуться в одно значение</li>
+      <li>Если бы map всегда возвращал Set — куда делся бы "лишний" дубликат?</li>
+      <li>Стандартная библиотека не пытается угадывать — map/filter/distinct/sorted всегда дают List</li>
+      </ul>
+    </div>
+
+    <div class="step slide" data-x="22000" data-y="-1500">
+      <h1>Явное преобразование и Scala для контраста</h1>
+      <pre><code>val result: Set&lt;Int&gt; = setOf(1,2,3).map { it % 2 }.toSet() // {1, 0}</code></pre>
+      <ul>
+      <li>Нужен Set на выходе — просите об этом явно через <code>.toSet()</code></li>
+      <li>В Scala иначе: <code>Set(1,2).map(_+1)</code> вернёт Set (через CanBuildFrom) — другой архитектурный выбор</li>
+      </ul>
+    </div>
+
+    <div class="step slide" data-x="23000" data-y="-1500">
+      <h1>Многомерность: список списков, не матрица</h1>
+      <pre><code>val matrix: Array&lt;IntArray&gt; = Array(3) { IntArray(4) }
+      matrix[1][2] = 99</code></pre>
+      <ul>
+      <li>Нет истинной прямоугольной матрицы, как в C# (int[,]) или Fortran</li>
+      <li><code>matrix[i][j]</code> работает потому, что matrix[i] — независимый IntArray</li>
+      </ul>
+    </div>
+
+    <div class="step slide" data-x="24000" data-y="-1500">
+      <h1>Jagged array: строки разной длины</h1>
+      <pre><code>val jagged = arrayOf(intArrayOf(1), intArrayOf(1,2), intArrayOf(1,2,3))
+      // [[1], [1, 2], [1, 2, 3]] — совершенно валидно</code></pre>
+      <p>Раз строки независимы — ничто не требует одинаковой длины</p>
+    </div>
+
+    <div class="step slide" data-x="25000" data-y="-1500">
+      <h1>Классическая ловушка: общая ссылка на строку</h1>
+      <pre><code>val row = MutableList(4) { 0 }
+      val broken = MutableList(3) { row } // ОДИН И ТОТ ЖЕ объект 3 раза!
+      broken[0][0] = 99
+      // [[99,0,0,0],[99,0,0,0],[99,0,0,0]] — изменилось всё сразу</code></pre>
+      <pre><code>val correct = MutableList(3) { MutableList(4) { 0 } } // новый объект каждый раз</code></pre>
+    </div>
+
+    <div class="step slide" data-x="26000" data-y="-1500">
+      <h1>Eager vs Lazy: один и тот же код, два поведения</h1>
+      <pre><code>listOf(1,2,3,4,5)
+      .map { println("map $it"); it * 2 }
+      .filter { println("filter $it"); it > 4 }
+      .first()</code></pre>
+      <p>Вывод: все 5 map, потом все filter — 10 вызовов лямбд</p>
+    </div>
+
+    <div class="step slide" data-x="27000" data-y="-1500">
+      <h1>То же самое через Sequence</h1>
+      <pre><code>sequenceOf(1,2,3,4,5)
+      .map { println("map $it"); it * 2 }
+      .filter { println("filter $it"); it > 4 }
+      .first()</code></pre>
+      <p>Вывод: map 1, filter 2, map 2, filter 4, map 3, filter 6 — СТОП</p>
+    </div>
+
+    <div class="step slide" data-x="28000" data-y="-1500">
+      <h1>Разбор: по вертикали, а не по горизонтали</h1>
+      <ul>
+      <li>List: сначала ВСЯ операция для всех элементов, потом следующая операция</li>
+      <li>Sequence: каждый элемент проходит ВСЮ цепочку целиком, один за другим</li>
+      <li>first() нашёл результат на 3-м элементе — 4-й и 5-й вообще не потребовались</li>
+      </ul>
+    </div>
+
+    <div class="step slide" data-x="29000" data-y="-1500">
+      <h1>Когда Sequence даёт реальный выигрыш</h1>
+      <ul>
+      <li>Длинные цепочки трансформаций над большими коллекциями — нет промежуточных списков</li>
+      <li>Ранний выход: <code>first</code>, <code>find</code>, <code>take</code>, <code>any</code></li>
+      <li>Бесконечные последовательности:</li>
+      </ul>
+      <pre><code>generateSequence(1) { it * 2 }.take(10).toList()
+      // [1, 2, 4, 8, 16, 32, 64, 128, 256, 512]</code></pre>
+    </div>
+
+    <div class="step slide" data-x="30000" data-y="-1500">
+      <h1>Когда Sequence не нужна и даже вредна</h1>
+      <ul>
+      <li>Маленькие коллекции — оверхед обёрток-итераторов перевешивает выигрыш</li>
+      <li>Если в конце всё равно нужен полный toList() — ленивость не даёт ничего</li>
+      <li>Карго-культ "Sequence = всегда быстрее" — неправда на малых данных</li>
+      </ul>
+    </div>
+
+    <div class="step slide" data-x="31000" data-y="-1500">
+      <h1>Практическая эвристика выбора</h1>
+      <ul>
+      <li>1–2 операции, небольшая коллекция → обычный List</li>
+      <li>3+ операций, или коллекция большая, или нужен ранний выход → asSequence()</li>
+      <li>Параллельная обработка → не Sequence (она ленивая, но не параллельная), а Stream.parallel()</li>
+      </ul>
+    </div>
+
+    <div class="step slide" data-x="32000" data-y="-1500">
+      <h1>Интерфейс Sequence: один метод</h1>
+      <pre><code>interface Sequence&lt;out T&gt; {
+      operator fun iterator(): Iterator&lt;T&gt;
+      }</code></pre>
+      <p>Вся "магия" ленивости — в том, как оборачиваются итераторы, а не в структуре данных</p>
+    </div>
+
+    <div class="step slide" data-x="33000" data-y="-1500">
+      <h1>Реализация map(): TransformingSequence</h1>
+      <pre><code>class TransformingSequence&lt;T, R&gt;(
+      private val source: Sequence&lt;T&gt;,
+      private val transform: (T) -&gt; R
+      ) : Sequence&lt;R&gt; {
+      override fun iterator() = object : Iterator&lt;R&gt; {
+      val inner = source.iterator()
+      override fun hasNext() = inner.hasNext()
+      override fun next(): R = transform(inner.next())
+      }
+      }</code></pre>
+      <p>Иллюстративная реконструкция механизма, не дословная цитата stdlib</p>
+    </div>
+
+    <div class="step slide" data-x="34000" data-y="-1500">
+      <h1>Почему filter() сложнее map()</h1>
+      <ul>
+      <li>map: один входной элемент → ровно один выходной — тривиальная обёртка next()</li>
+      <li>filter: неизвестно заранее, сколько элементов придётся пропустить до подходящего</li>
+      <li>Нужна мини-машина состояний — "найти следующий подходящий и запомнить его"</li>
+      </ul>
+    </div>
+
+    <div class="step slide" data-x="35000" data-y="-1500">
+      <h1>Реализация filter(): FilteringSequence</h1>
+      <pre><code>class FilteringSequence&lt;T&gt;(
+      private val source: Sequence&lt;T&gt;,
+      private val predicate: (T) -&gt; Boolean
+      ) : Sequence&lt;T&gt; {
+      override fun iterator() = object : Iterator&lt;T&gt; {
+      val inner = source.iterator()
+      var nextItem: T? = null
+      var found = false
+      fun seekNext() {
+      while (inner.hasNext()) {
+      val c = inner.next()
+      if (predicate(c)) { nextItem = c; found = true; return }
+      }
+      found = false
+      }
+      override fun hasNext(): Boolean {
+      if (!found) seekNext(); return found
+      }
+      override fun next(): T {
+      if (!found) seekNext()
+      found = false
+      return nextItem as T
+      }
+      }
+      }</code></pre>
+    </div>
+
+    <div class="step slide" data-x="36000" data-y="-1500">
+      <h1>Трассировка: map{}.filter{}.first(), шаг 1</h1>
+      <ul>
+      <li><code>first()</code> запрашивает у цепочки: <code>hasNext()</code>, затем <code>next()</code></li>
+      <li>Запрос идёт СНАРУЖИ ВНУТРЬ: FilteringSequence спрашивает TransformingSequence</li>
+      <li>TransformingSequence спрашивает исходный sequenceOf(1,2,3,4,5)</li>
+      </ul>
+    </div>
+
+    <div class="step slide" data-x="37000" data-y="-1500">
+      <h1>Трассировка: map{}.filter{}.first(), шаг 2</h1>
+      <ul>
+      <li>Источник отдаёт 1 → TransformingSequence применяет map → 2</li>
+      <li>FilteringSequence.seekNext() проверяет predicate(2) → 2 &gt; 4? нет — просит следующий</li>
+      <li>Источник отдаёт 2 → map → 4 → predicate(4)? нет — просит следующий</li>
+      <li>Источник отдаёт 3 → map → 6 → predicate(6)? ДА — останов</li>
+      </ul>
+    </div>
+
+    <div class="step slide" data-x="38000" data-y="-1500">
+      <h1>Трассировка: итог</h1>
+      <ul>
+      <li>Элементы 4 и 5 исходной последовательности НЕ запрошены вообще</li>
+      <li>Ни один промежуточный список нигде не создавался — только цепочка вложенных Iterator</li>
+      <li>Это и есть буквальный смысл "ленивости": работа делается по требованию, а не заранее</li>
+      </ul>
+    </div>
+
+    <div class="step slide" data-x="39000" data-y="-1500">
+      <h1>generateSequence: как устроен бесконечный источник</h1>
+      <pre><code>fun &lt;T&gt; generateSequence(seed: T, next: (T) -&gt; T?): Sequence&lt;T&gt;</code></pre>
+      <ul>
+      <li>Каждый вызов next() у итератора вызывает переданную функцию next(prev)</li>
+      <li>Ничего не хранится заранее — следующее значение вычисляется в момент запроса</li>
+      <li>Возврат null из next завершает последовательность</li>
+      </ul>
+    </div>
+
+    <div class="step slide" data-x="40000" data-y="-1500">
+      <h1>take(): как обрывается бесконечность</h1>
+      <pre><code>generateSequence(1) { it * 2 }.take(10)</code></pre>
+      <ul>
+      <li>TakeSequence оборачивает источник и считает, сколько элементов уже отдано</li>
+      <li>После n-го элемента hasNext() начинает возвращать false — источник больше не трогают</li>
+      <li>Без take() бесконечный generateSequence просто никогда не завершит toList()</li>
+      </ul>
+    </div>
+
+    <div class="step slide" data-x="41000" data-y="-1500">
+      <h1>Пример 1: обработка заказов — постановка</h1>
+      <pre><code>data class Order(val customer: String, val amount: Double, val paid: Boolean)</code></pre>
+      <p>Задача: посчитать суммарную оплаченную выручку по каждому клиенту, отсортировано по убыванию</p>
+    </div>
+
+    <div class="step slide" data-x="42000" data-y="-1500">
+      <h1>Пример 1: конвейер целиком</h1>
+      <pre><code>val totals = orders
+      .filter { it.paid }
+      .groupBy { it.customer }
+      .mapValues { (_, list) -> list.sumOf { it.amount } }
+      .toList()
+      .sortedByDescending { (_, sum) -> sum }</code></pre>
+      <p>Четыре операции подряд — filter, groupBy, mapValues, sortedByDescending — читаются как описание задачи</p>
+    </div>
+
+    <div class="step slide" data-x="43000" data-y="-1500">
+      <h1>Пример 2: анализ лога — постановка</h1>
+      <pre><code>// строки вида "2026-01-01 ERROR disk full"
+      val logLines: List&lt;String&gt;</code></pre>
+      <p>Задача: найти первую строку уровня FATAL, не читая файл целиком, если он гигантский</p>
+    </div>
+
+    <div class="step slide" data-x="44000" data-y="-1500">
+      <h1>Пример 2: конвейер на Sequence</h1>
+      <pre><code>val firstFatal = logLines.asSequence()
+      .map { it.split(" ", limit = 3) }
+      .filter { it.size == 3 && it[1] == "FATAL" }
+      .map { it[2] }
+      .firstOrNull()</code></pre>
+      <p>asSequence() здесь принципиален: как только нашли FATAL — остаток лога не разбирается вовсе</p>
+    </div>
+
+    <div class="step slide" data-x="45000" data-y="-1500">
+      <h1>Пример 3: flatMap в конвейере — постановка</h1>
+      <pre><code>data class Student(val name: String, val grades: List&lt;Int&gt;)
+      val students: List&lt;Student&gt;</code></pre>
+      <p>Задача: средний балл по ВСЕМ оценкам ВСЕХ студентов разом (не по каждому студенту отдельно)</p>
+    </div>
+
+    <div class="step slide" data-x="46000" data-y="-1500">
+      <h1>Пример 3: конвейер с flatMap</h1>
+      <pre><code>val overallAverage = students
+      .flatMap { it.grades }
+      .average()</code></pre>
+      <p>Без flatMap пришлось бы вручную собирать плоский список через цикл — здесь одна строка</p>
+    </div>
+
+    <div class="step slide" data-x="47000" data-y="-1500">
+      <h1>Когда в конвейер стоит вставлять asSequence()</h1>
+      <ul>
+      <li>Пример 1 (заказы) — обычно небольшой список, groupBy всё равно материализует Map целиком → asSequence() не нужен</li>
+      <li>Пример 2 (лог) — потенциально гигабайты строк, ранний выход через firstOrNull() → asSequence() критичен</li>
+      <li>Пример 3 (студенты) — average() всё равно обходит всё до конца → asSequence() почти не поможет</li>
+      </ul>
+    </div>
+
+    <div class="step slide" data-x="48000" data-y="-1500">
+      <h1>groupingBy().eachCount(): компактность</h1>
+      <pre><code>words.groupingBy { it.first() }.eachCount()
+      // {a=2, b=2, c=1}</code></pre>
+      <pre><code>// Java
+      words.stream().collect(Collectors.groupingBy(
+      w -> w.charAt(0), Collectors.counting()));</code></pre>
+    </div>
+
+    <div class="step slide" data-x="49000" data-y="-1500">
+      <h1>Деструктуризация при переборе Map</h1>
+      <pre><code>for ((key, value) in grouped) {
+      println("$key -> $value")
+      }</code></pre>
+      <p>Маленькая, но приятная деталь для Java-аудитории, привыкшей к entrySet()/getKey()/getValue()</p>
+    </div>
+
+    <div class="step slide" data-x="50000" data-y="-1500">
+      <h1>Итоги, часть 1</h1>
+      <ul>
+      <li>List/Map — Java-коллекции с урезанным на уровне типов интерфейсом, не новая реализация</li>
+      <li>Мутабельные коллекции — обычные объекты со ссылочной семантикой, включая циклы</li>
+      <li>Трансформации не сохраняют тип коллекции — только семантически возможный List</li>
+      <li>flatMap — map, слитый с разворачиванием на один уровень вложенности</li>
+      </ul>
+    </div>
+
+    <div class="step slide" data-x="51000" data-y="-1500">
+      <h1>Итоги, часть 2 — что дальше</h1>
+      <ul>
+      <li>Sequence — цепочка обёрток над Iterator, вычисление по требованию</li>
+      <li>Многомерность — вложенность, а не матрица; следите за общими ссылками</li>
+      <li>В реальных конвейерах asSequence() полезен ровно там, где есть ранний выход или гигантский вход</li>
+      </ul>
+      <p>Материалы: документация Kotlin по Sequences, исходники kotlin.sequences.Sequences.kt</p>
+    </div>
+
+</div>
+
+<div class="impress-progressbar"><div></div></div>
+<div class="impress-progress"></div>
+<a class="ov" href="#/overview">Обзор</a>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<script>
+    if (window.hljs) {
+        hljs.highlightAll();
+    }
+</script>
+<script src="js/impress.js"></script>
+<script>
+    impress().init();
+</script>
+</body>
+</html>

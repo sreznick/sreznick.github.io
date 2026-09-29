@@ -1,0 +1,1726 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1024" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <title>ООП в Kotlin</title>
+
+    <link href="//fonts.googleapis.com/css?family=Open+Sans:regular,semibold,italic,italicsemibold|PT+Sans:400,700,400italic,700italic|PT+Serif:400,700,400italic,700italic" rel="stylesheet" />
+
+    <link href="css/impress-demo.css" rel="stylesheet" />
+    <link href="css/impress-common.css" rel="stylesheet" />
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/default.min.css">
+
+    <style>
+        /* Дополнения к impress-demo.css: только то, чего нет в образце (код, таблицы, разделы). Можно удалить/подправить. */
+
+        .slide {
+            font-size: 27px;
+            line-height: 1.3;
+            letter-spacing: -.5px;
+        }
+
+        .slide h1 {
+            font-size: 40px;
+            line-height: 1.15;
+            margin: 0 0 .5em;
+            text-align: left;
+        }
+
+        .slide ul,
+        .slide ol {
+            margin: 0;
+            padding-left: 1.1em;
+        }
+
+        .slide li {
+            margin: .25em 0;
+        }
+
+        .slide p {
+            margin: .6em 0 0;
+        }
+
+        .slide pre {
+            margin: 0 0 12px;
+            letter-spacing: 0;
+            text-shadow: none;
+        }
+
+        .slide pre code.hljs {
+            padding: 12px 16px;
+            font-size: 17px;
+            line-height: 1.35;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .slide pre.small code.hljs {
+            font-size: 15.5px;
+        }
+
+        .slide code:not(.hljs) {
+            background: #e2e8f0;
+            color: #1e293b;
+            padding: 0 .3em;
+            border-radius: 4px;
+            font-size: .85em;
+            letter-spacing: 0;
+        }
+
+        .slide.section code:not(.hljs),
+        .slide.title code:not(.hljs) {
+            background: rgba(255,255,255,.28);
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .slide table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 22px;
+            line-height: 1.25;
+        }
+
+        .slide th,
+        .slide td {
+            border-bottom: 1px solid #ccc;
+            padding: 6px 10px;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .slide th {
+            background: #e2e8f0;
+            color: #1e293b;
+        }
+
+        .slide .hl {
+            color: #b91c1c;
+        }
+
+        .slide.section {
+            background: linear-gradient(135deg,#0f766e,#1d4ed8);
+            color: #fff;
+            text-shadow: none;
+        }
+
+        .slide.section h1 {
+            color: #fff;
+            font-size: 50px;
+        }
+
+        .slide.section .num {
+            position: absolute;
+            right: 40px;
+            top: 0;
+            font-size: 200px;
+            font-weight: 700;
+            opacity: .18;
+            line-height: 1;
+        }
+
+        .slide.title .hint {
+            font-size: 20px;
+            color: #999;
+            margin-top: 40px;
+        }
+
+        .notes {
+            display: none;
+        }
+
+        .ov {
+            position: fixed;
+            left: 14px;
+            bottom: 12px;
+            color: #93c5fd;
+            font-size: 14px;
+            text-decoration: none;
+            z-index: 10;
+        }
+
+        #overview {
+            background: none!important;
+            border: 0!important;
+            box-shadow: none!important;
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body class="impress-not-supported">
+
+<div class="fallback-message">
+    <p>Ваш браузер <b>не поддерживает возможности, необходимые для impress.js</b>, поэтому показана упрощённая версия презентации.</p>
+    <p>Лучше всего использовать свежие <b>Chrome</b>, <b>Safari</b> или <b>Firefox</b>.</p>
+</div>
+
+<div id="impress"
+    data-transition-duration="1000"
+    data-width="1024"
+    data-height="768"
+    data-max-scale="3"
+    data-min-scale="0"
+    data-perspective="1000"
+    >
+
+    <!-- ===================== ряд 0 ===================== -->
+    <!-- [0.0] ООП в Kotlin -->
+    <div class="step slide title" data-x="0" data-y="0">
+        <h1>ООП в&nbsp;Kotlin</h1>
+        <ul>
+            <li>Свойства и инициализация</li>
+            <li>Видимость, object и companion</li>
+            <li>Наследование и полиморфизм</li>
+            <li>Интерфейсы, enum и sealed</li>
+            <li>Делегирование и расширения</li>
+            <li>Шаблоны проектирования на каждом шаге</li>
+        </ul>
+        <p class="hint">← → или пробел · P — заметки докладчика · «Обзор» — карта лекции</p>
+    </div>
+
+    <!-- [0.1] Цели лекции -->
+    <div class="step slide" data-x="1100" data-y="0">
+        <h1>Цели лекции</h1>
+        <ul>
+            <li>Понимать свойства, инициализацию, видимость и наследование в Kotlin</li>
+            <li>Проектировать иерархии: <code>abstract</code>, интерфейсы, <code>sealed</code></li>
+            <li>Предпочитать композицию наследованию: делегирование <code>by</code></li>
+            <li>
+                Видеть, как паттерны GoF реализуются средствами языка — и какие из них почти
+                исчезают
+            </li>
+            <li>Понимать, во что это компилируется на JVM</li>
+        </ul>
+    </div>
+
+    <!-- [0.2] План -->
+    <div class="step slide" data-x="2200" data-y="0">
+        <h1>План</h1>
+        <table>
+            <tr>
+                <th>Блок</th>
+                <th>Паттерны</th>
+            </tr>
+            <tr>
+                <td><a href="#/b0">0. Мост</a></td>
+                <td>зачем нужны паттерны</td>
+            </tr>
+            <tr>
+                <td><a href="#/b1">1. Свойства и инициализация</a></td>
+                <td>Prototype, Builder, Value Object</td>
+            </tr>
+            <tr>
+                <td><a href="#/b2">2. Видимость, object, companion</a></td>
+                <td>Singleton, Factory Method</td>
+            </tr>
+            <tr>
+                <td><a href="#/b3">3. Наследование</a></td>
+                <td>Template Method, LSP</td>
+            </tr>
+            <tr>
+                <td><a href="#/b4">4. Интерфейсы</a></td>
+                <td>Strategy, Null Object, Adapter</td>
+            </tr>
+            <tr>
+                <td><a href="#/b5">5. enum и sealed</a></td>
+                <td>State, Composite, Visitor</td>
+            </tr>
+            <tr>
+                <td><a href="#/b6">6. Делегирование</a></td>
+                <td>Decorator, Proxy, Observer</td>
+            </tr>
+            <tr>
+                <td><a href="#/b7">7. Расширения</a></td>
+                <td>Adapter, Facade-API</td>
+            </tr>
+            <tr>
+                <td><a href="#/b8">Итоги</a></td>
+                <td></td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- [0.3] Сквозной пример: заказ -->
+    <div class="step slide" data-x="3300" data-y="0">
+        <h1>Сквозной пример: заказ</h1>
+        <ul>
+            <li><b>Money</b>, <b>Product</b> — value object, валидация (блок 1)</li>
+            <li><b>Order</b> — фабрика, инкапсуляция списка позиций (блок 2)</li>
+            <li><b>Discount</b> — стратегия и null object (блок 4)</li>
+            <li><b>OrderState</b>, <b>PaymentResult</b> — <code>sealed</code> (блок 5)</li>
+            <li><b>Repo</b> с логированием и кешем — декоратор (блок 6)</li>
+            <li><b>Money.format()</b> — расширение (блок 7)</li>
+        </ul>
+    </div>
+
+    <!-- ===================== ряд 1 ===================== -->
+    <!-- [1.0] Мост и постановка идеи -->
+    <div id="b0" class="step slide section" data-x="0" data-y="900">
+        <div class="num">0</div>
+        <h1>Мост и постановка идеи</h1>
+        <ul>
+            <li>Что уже знаем: data-классы</li>
+            <li>Заглянем в байткод</li>
+            <li>Идея лекции: язык и паттерны</li>
+        </ul>
+        <div class="notes">Быстрый опрос по data-классам, потом тизер декомпиляции.</div>
+    </div>
+
+    <!-- [1.1] Что уже знаем -->
+    <div class="step slide" data-x="1100" data-y="900">
+        <h1>Что уже знаем</h1>
+        <pre><code class="language-kotlin">data class Product(val name: String, val price: Int)
+
+val p = Product(&quot;Book&quot;, 300)
+println(p)                              // Product(name=Book, price=300)
+println(p == Product(&quot;Book&quot;, 300))      // true — равенство по значению
+val p2 = p.copy(price = 250)            // копия с изменением
+val (name, price) = p                   // деструктуризация (componentN)</code></pre>
+        <p>Вопрос группе: что ещё генерирует компилятор и что попадает в <code>equals</code>?</p>
+    </div>
+
+    <!-- [1.2] Заглянем в байткод -->
+    <div class="step slide" data-x="2200" data-y="900">
+        <h1>Заглянем в байткод</h1>
+        <ul>
+            <li>IntelliJ: <i>Tools → Kotlin → Show Kotlin Bytecode → Decompile</i></li>
+            <li>
+                Класс <code>final</code>, приватные поля, геттеры, <code>copy</code>,
+                <code>component1..N</code>, <code>equals</code>, <code>hashCode</code>,
+                <code>toString</code>
+            </li>
+            <li>
+                Так будем проверять, что стоит за короткими конструкциями: свойства,
+                <code>object</code>, <code>by</code>, расширения
+            </li>
+            <li>Kotlin компилируется в обычные классы JVM — всё видно из Java</li>
+        </ul>
+    </div>
+
+    <!-- [1.3] Идея лекции -->
+    <div class="step slide" data-x="3300" data-y="900">
+        <h1>Идея лекции</h1>
+        <ul>
+            <li><b>Паттерн</b> — типовое решение типовой проблемы</li>
+            <li>
+                Язык либо реализует его <b>конструкцией</b>, либо требует <b>шаблонного кода</b>
+            </li>
+            <li>
+                В Kotlin многие паттерны «встроены»: <code>object</code>, <code>by</code>,
+                <code>sealed</code>, <code>copy</code>
+            </li>
+            <li>
+                Работаем так: конструкция языка → какой паттерн она реализует → как это выглядело бы
+                в Java
+            </li>
+            <li>Принципы SOLID — компас, паттерны — словарь</li>
+        </ul>
+    </div>
+
+    <!-- ===================== ряд 2 ===================== -->
+    <!-- [2.0] Свойства и инициализация -->
+    <div id="b1" class="step slide section" data-x="0" data-y="1800">
+        <div class="num">1</div>
+        <h1>Свойства и инициализация</h1>
+        <ul>
+            <li>Свойство = поле + геттер/сеттер</li>
+            <li>init, конструкторы, значения по умолчанию</li>
+            <li>lateinit, lazy, const</li>
+            <li>Prototype · Builder · Value Object</li>
+        </ul>
+    </div>
+
+    <!-- [2.1] Свойство = поле + геттер (+ сеттер) -->
+    <div class="step slide" data-x="1100" data-y="1800">
+        <h1>Свойство = поле + геттер (+ сеттер)</h1>
+        <pre><code class="language-kotlin">class User(val id: Int, var name: String)
+
+val u = User(1, &quot;Ann&quot;)
+u.name = &quot;Bob&quot;          // на самом деле вызов setName(&quot;Bob&quot;)
+println(u.id)           // getId()</code></pre>
+        <ul>
+            <li><code>val</code> — поле и геттер; <code>var</code> — поле, геттер и сеттер</li>
+            <li>
+                Из Java виден обычный JavaBean: <code>getId()</code>, <code>getName()</code>,
+                <code>setName()</code>
+            </li>
+            <li><code>@JvmField</code> отдаёт поле напрямую, без методов (упоминание)</li>
+        </ul>
+    </div>
+
+    <!-- [2.2] Свои get/set и backing field -->
+    <div class="step slide" data-x="2200" data-y="1800">
+        <h1>Свои get/set и backing field</h1>
+        <pre class="small"><code class="language-kotlin">class Temperature(celsius: Double) {
+    var celsius: Double = celsius
+        set(value) {
+            require(value &gt;= -273.15) { &quot;ниже абсолютного нуля&quot; }
+            field = value                    // backing field
+        }
+
+    val fahrenheit: Double                   // вычисляемое, без поля
+        get() = celsius * 9 / 5 + 32
+}</code></pre>
+        <ul>
+            <li><code>field</code> — ссылка на поле внутри аксессора</li>
+            <li>
+                Начальное значение пишется в поле <b>напрямую</b>, сеттер при инициализации не
+                вызывается
+            </li>
+            <li>
+                Свойство без <code>field</code> не хранит данных — вычисляется при каждом обращении
+            </li>
+        </ul>
+    </div>
+
+    <!-- [2.3] private set -->
+    <div class="step slide" data-x="3300" data-y="1800">
+        <h1>private set</h1>
+        <pre><code class="language-kotlin">class Counter {
+    var value = 0
+        private set                 // писать можно только внутри
+
+    fun inc() { value++ }
+}
+
+val c = Counter()
+c.inc()
+// c.value = 5                    // ошибка компиляции</code></pre>
+        <p>Инкапсуляция без ручных геттеров: публичное чтение, закрытая запись.</p>
+    </div>
+
+    <!-- [2.4] init и порядок инициализации -->
+    <div class="step slide" data-x="4400" data-y="1800">
+        <h1>init и порядок инициализации</h1>
+        <pre><code class="language-kotlin">class Order(val id: Int) {
+    val created = System.currentTimeMillis()
+    init { println(&quot;init 1: id=$id&quot;) }
+    val items = mutableListOf&lt;String&gt;()
+    init { println(&quot;init 2: items=${items.size}&quot;) }
+}</code></pre>
+        <ul>
+            <li>
+                Свойства и блоки <code>init</code> выполняются <b>сверху вниз</b>, в порядке записи
+            </li>
+            <li>Параметры основного конструктора видны в <code>init</code> и инициализаторах</li>
+            <li>
+                Обращаться к свойству, объявленному ниже, из <code>init</code> нельзя (ошибка
+                компиляции)
+            </li>
+        </ul>
+    </div>
+
+    <!-- [2.5] Вторичные конструкторы и значения по умолчанию -->
+    <div class="step slide" data-x="5500" data-y="1800">
+        <h1>Вторичные конструкторы и значения по умолчанию</h1>
+        <pre class="small"><code class="language-kotlin">class Money(val amount: Long, val currency: String = &quot;RUB&quot;) {
+    constructor(text: String) : this(text.toLong())   // обязан вызвать основной
+}
+
+Money(100)                          // валюта по умолчанию
+Money(100, currency = &quot;USD&quot;)        // именованный аргумент
+Money(&quot;250&quot;)                        // вторичный конструктор</code></pre>
+        <ul>
+            <li>
+                Значения по умолчанию и именованные аргументы <b>заменяют перегрузки</b> из Java
+            </li>
+            <li>Для Java-вызовов есть <code>@JvmOverloads</code></li>
+        </ul>
+    </div>
+
+    <!-- [2.6] Проверка инвариантов -->
+    <div class="step slide" data-x="6600" data-y="1800">
+        <h1>Проверка инвариантов</h1>
+        <pre><code class="language-kotlin">data class Money(val amount: Long, val currency: String) {
+    init {
+        require(amount &gt;= 0) { &quot;сумма отрицательна: $amount&quot; }
+        require(currency.length == 3) { &quot;код валюты: $currency&quot; }
+    }
+}
+
+Money(-5, &quot;RUB&quot;)     // IllegalArgumentException</code></pre>
+        <ul>
+            <li>
+                <code>require</code> — проверка аргументов (<code>IllegalArgumentException</code>)
+            </li>
+            <li><code>check</code> — проверка состояния (<code>IllegalStateException</code>)</li>
+            <li>Объект корректен с момента создания — не бывает «полупустых» экземпляров</li>
+        </ul>
+    </div>
+
+    <!-- [2.7] lateinit, lazy, const -->
+    <div class="step slide" data-x="7700" data-y="1800">
+        <h1>lateinit, lazy, const</h1>
+        <pre class="small"><code class="language-kotlin">class Service {
+    lateinit var config: Config              // будет задано позже (DI, тесты)
+    val heavy: Heavy by lazy { Heavy() }     // создаётся при первом обращении
+
+    fun ready() = ::config.isInitialized
+}
+
+const val MAX_ITEMS = 100                    // константа времени компиляции</code></pre>
+        <ul>
+            <li>
+                <code>lateinit</code>: только <code>var</code>, не для примитивов и nullable; до
+                присваивания — <code>UninitializedPropertyAccessException</code>
+            </li>
+            <li><code>lazy</code>: считается один раз, по умолчанию потокобезопасно</li>
+            <li>
+                <code>const val</code>: примитивы и <code>String</code>, на верхнем уровне или в
+                <code>object</code>
+            </li>
+        </ul>
+    </div>
+
+    <!-- [2.8] Ловушка: свойства в теле data-класса -->
+    <div class="step slide" data-x="8800" data-y="1800">
+        <h1>Ловушка: свойства в теле data-класса</h1>
+        <pre class="small"><code class="language-kotlin">data class Item(val name: String) {
+    var note: String = &quot;&quot;      // вне equals/hashCode/toString/copy
+}
+
+val a = Item(&quot;x&quot;).apply { note = &quot;1&quot; }
+val b = Item(&quot;x&quot;).apply { note = &quot;2&quot; }
+println(a == b)                // true
+println(a.copy().note)         // &quot;&quot; — note не скопирован</code></pre>
+        <p>
+            В <code>equals</code>, <code>hashCode</code>, <code>toString</code>, <code>copy</code>
+            участвуют только свойства из основного конструктора.
+        </p>
+        <div class="notes">Связь с прошлой лекцией про data-классы.</div>
+    </div>
+
+    <!-- [2.9] Prototype: copy() -->
+    <div class="step slide" data-x="9900" data-y="1800">
+        <h1>Prototype: copy()</h1>
+        <pre class="small"><code class="language-kotlin">data class Address(val street: String, val city: String)
+data class Customer(val name: String, val address: Address,
+                    val tags: MutableList&lt;String&gt;)
+
+val c1 = Customer(&quot;Ann&quot;, Address(&quot;Lenina 1&quot;, &quot;Perm&quot;), mutableListOf(&quot;vip&quot;))
+val c2 = c1.copy(name = &quot;Bob&quot;)
+c2.tags.add(&quot;new&quot;)
+println(c1.tags)                  // [vip, new] — копия поверхностная!</code></pre>
+        <ul>
+            <li><code>copy()</code> — готовый Prototype: «клон с изменениями»</li>
+            <li>Копия <b>поверхностная</b>: изменяемые вложенные объекты разделяются</li>
+            <li>Решение: неизменяемые коллекции и вложенные data-классы</li>
+        </ul>
+    </div>
+
+    <!-- [2.10] Builder: чаще не нужен -->
+    <div class="step slide" data-x="11000" data-y="1800">
+        <h1>Builder: чаще не нужен</h1>
+        <pre><code class="language-kotlin">class HttpRequest(
+    val url: String,
+    val method: String = &quot;GET&quot;,
+    val timeoutMs: Int = 5_000,
+    val headers: Map&lt;String, String&gt; = emptyMap(),
+)
+
+HttpRequest(&quot;https://example.com&quot;, timeoutMs = 1_000)</code></pre>
+        <ul>
+            <li>
+                Именованные аргументы и значения по умолчанию заменяют Builder и «телескопические»
+                конструкторы
+            </li>
+            <li>Builder нужен: при пошаговой сборке, сложной валидации, для Java-клиентов</li>
+            <li>Type-safe builders (DSL) — отдельная тема</li>
+        </ul>
+    </div>
+
+    <!-- [2.11] Value Object -->
+    <div class="step slide" data-x="12100" data-y="1800">
+        <h1>Value Object</h1>
+        <ul>
+            <li><b>Value Object</b> — значение без идентичности: равенство по содержимому</li>
+            <li>
+                В Kotlin: <code>data class</code> + только <code>val</code> + проверка в
+                <code>init</code> (<code>Money</code>)
+            </li>
+            <li>Неизменяемость: безопасно разделять между потоками (вспомните блок про JMM)</li>
+            <li>
+                Операции возвращают <b>новые</b> объекты: <code>fun plus(o: Money) = copy(amount =
+                amount + o.amount)</code>
+            </li>
+            <li>
+                Для «типизированных примитивов» без накладных расходов — <code>value class</code>
+                (за рамками лекции)
+            </li>
+        </ul>
+    </div>
+
+    <!-- ===================== ряд 3 ===================== -->
+    <!-- [3.0] Видимость, object и companion -->
+    <div id="b2" class="step slide section" data-x="0" data-y="2700">
+        <div class="num">2</div>
+        <h1>Видимость, object и companion</h1>
+        <ul>
+            <li>Модификаторы видимости</li>
+            <li>Инкапсуляция состояния, nested и inner</li>
+            <li>object, companion object</li>
+            <li>Singleton · Factory Method</li>
+        </ul>
+    </div>
+
+    <!-- [3.1] Модификаторы видимости -->
+    <div class="step slide" data-x="1100" data-y="2700">
+        <h1>Модификаторы видимости</h1>
+        <table>
+            <tr>
+                <th>Модификатор</th>
+                <th>Где виден</th>
+            </tr>
+            <tr>
+                <td><code>public</code> (по умолчанию)</td>
+                <td>везде</td>
+            </tr>
+            <tr>
+                <td><code>private</code></td>
+                <td>в классе; для верхнего уровня — в файле</td>
+            </tr>
+            <tr>
+                <td><code>protected</code></td>
+                <td>в классе и наследниках (на верхнем уровне нет)</td>
+            </tr>
+            <tr>
+                <td><code>internal</code></td>
+                <td>во всём <b>модуле</b> (Gradle/Maven-модуль)</td>
+            </tr>
+        </table>
+        <p>Отличия от Java: по умолчанию <code>public</code>; нет package-private.</p>
+    </div>
+
+    <!-- [3.2] Инкапсуляция состояния -->
+    <div class="step slide" data-x="2200" data-y="2700">
+        <h1>Инкапсуляция состояния</h1>
+        <pre><code class="language-kotlin">class Cart {
+    private val _items = mutableListOf&lt;Item&gt;()
+    val items: List&lt;Item&gt; get() = _items       // наружу — только чтение
+
+    fun add(item: Item) { _items += item }
+}</code></pre>
+        <ul>
+            <li>
+                Приём <code>_items</code> / <code>items</code>: изменяемое внутри, «только чтение»
+                снаружи
+            </li>
+            <li>
+                <code>List</code> — read-only <b>интерфейс</b>, а не копия: привести к
+                <code>MutableList</code> всё ещё можно
+            </li>
+            <li>Строгая защита — отдавать копию: <code>_items.toList()</code></li>
+        </ul>
+    </div>
+
+    <!-- [3.3] nested и inner -->
+    <div class="step slide" data-x="3300" data-y="2700">
+        <h1>nested и inner</h1>
+        <pre class="small"><code class="language-kotlin">class Outer(val name: String) {
+    class Nested {                          // нет ссылки на Outer
+        fun hi() = &quot;nested&quot;
+    }
+    inner class Inner {                     // хранит ссылку на Outer
+        fun hi() = &quot;inner of ${this@Outer.name}&quot;
+    }
+}
+
+val n = Outer.Nested()
+val i = Outer(&quot;A&quot;).Inner()</code></pre>
+        <p>
+            В Java наоборот: вложенный класс по умолчанию «внутренний»; <code>static</code> нужно
+            писать явно. В Kotlin случайных утечек ссылки на внешний объект меньше.
+        </p>
+    </div>
+
+    <!-- [3.4] object: синглтон -->
+    <div class="step slide" data-x="4400" data-y="2700">
+        <h1>object: синглтон</h1>
+        <pre><code class="language-kotlin">object Clock {
+    private var offset = 0L
+    fun now() = System.currentTimeMillis() + offset
+}
+
+Clock.now()</code></pre>
+        <ul>
+            <li>
+                Один экземпляр; создаётся при первом обращении, инициализация потокобезопасна
+                (гарантия JVM)
+            </li>
+            <li>Нет параметров конструктора; может реализовывать интерфейсы и наследоваться</li>
+            <li>
+                <code>object expression</code> (<code>object : Runnable { ... }</code>) заменяет
+                анонимные классы
+            </li>
+        </ul>
+    </div>
+
+    <!-- [3.5] companion object -->
+    <div class="step slide" data-x="5500" data-y="2700">
+        <h1>companion object</h1>
+        <pre class="small"><code class="language-kotlin">class Order private constructor(val id: Int) {
+    companion object {
+        const val MAX_ITEMS = 100
+
+        fun create(id: Int): Order {
+            require(id &gt; 0)
+            return Order(id)
+        }
+    }
+}
+
+val o = Order.create(1)</code></pre>
+        <ul>
+            <li>
+                Ключевого слова <code>static</code> в Kotlin нет: <code>companion</code>,
+                <code>object</code>, функции верхнего уровня
+            </li>
+            <li>Companion — обычный объект: может реализовывать интерфейсы, хранить состояние</li>
+            <li>
+                Из Java: <code>Order.Companion.create()</code>, либо <code>@JvmStatic</code> →
+                <code>Order.create()</code>
+            </li>
+        </ul>
+    </div>
+
+    <!-- [3.6] Что в байткоде -->
+    <div class="step slide" data-x="6600" data-y="2700">
+        <h1>Что в байткоде</h1>
+        <ul>
+            <li>
+                <code>object Clock</code> → класс с полем <code>INSTANCE</code> и приватным
+                конструктором
+            </li>
+            <li>
+                <code>companion object</code> → вложенный класс <code>Companion</code> и статическое
+                поле во внешнем классе
+            </li>
+            <li>Свойство → приватное поле + геттер/сеттер</li>
+            <li>
+                <code>internal</code> → в байткоде <code>public</code>, но имя метода с суффиксом
+                модуля (<code>foo$module</code>)
+            </li>
+            <li>Верхнеуровневые функции → статические методы класса <code>FileKt</code></li>
+        </ul>
+        <div class="notes">Показать декомпиляцию Clock и Order.create.</div>
+    </div>
+
+    <!-- [3.7] Singleton -->
+    <div class="step slide" data-x="7700" data-y="2700">
+        <h1>Singleton</h1>
+        <p><b>Java:</b></p>
+        <pre class="small"><code class="language-java">public final class Config {
+    private Config() {}
+    private static class Holder { static final Config INSTANCE = new Config(); }
+    public static Config getInstance() { return Holder.INSTANCE; }
+}</code></pre>
+        <p><b>Kotlin:</b></p>
+        <pre><code class="language-kotlin">object Config</code></pre>
+        <ul>
+            <li>Паттерн в одно слово; ленивость и потокобезопасность даёт JVM</li>
+            <li>
+                Оговорка: скрытая глобальная зависимость, сложнее тестировать — лучше передавать
+                через конструктор (DI)
+            </li>
+        </ul>
+    </div>
+
+    <!-- [3.8] Factory Method -->
+    <div class="step slide" data-x="8800" data-y="2700">
+        <h1>Factory Method</h1>
+        <pre class="small"><code class="language-kotlin">class Money private constructor(val amount: Long, val cur: String) {
+    companion object {
+        fun of(amount: Long, cur: String) = Money(amount, cur)
+        fun rub(amount: Long) = of(amount, &quot;RUB&quot;)
+        fun parse(text: String): Money {
+            val (a, c) = text.split(&quot; &quot;)
+            return of(a.toLong(), c)
+        }
+    }
+}
+
+val m = Money.parse(&quot;10 RUB&quot;)</code></pre>
+        <ul>
+            <li>
+                Приватный конструктор + именованные фабрики: скрывают создание, могут кешировать и
+                валидировать
+            </li>
+            <li>
+                Соглашения об именах: <code>of</code>, <code>from</code>, <code>parse</code>,
+                <code>create</code>
+            </li>
+            <li><code>operator fun invoke</code> в companion позволяет вызывать как конструктор</li>
+        </ul>
+    </div>
+
+    <!-- ===================== ряд 4 ===================== -->
+    <!-- [4.0] Наследование и полиморфизм -->
+    <div id="b3" class="step slide section" data-x="0" data-y="3600">
+        <div class="num">3</div>
+        <h1>Наследование и полиморфизм</h1>
+        <ul>
+            <li>final по умолчанию: open и override</li>
+            <li>Порядок инициализации и его ловушка</li>
+            <li>abstract, приведение типов, smart cast</li>
+            <li>Template Method · LSP · хрупкий базовый класс</li>
+        </ul>
+    </div>
+
+    <!-- [4.1] open и override -->
+    <div class="step slide" data-x="1100" data-y="3600">
+        <h1>open и override</h1>
+        <pre><code class="language-kotlin">open class Animal(val name: String) {
+    open fun sound() = &quot;...&quot;
+    fun describe() = &quot;$name says ${sound()}&quot;       // final по умолчанию
+}
+
+class Dog(name: String) : Animal(name) {
+    override fun sound() = &quot;Woof&quot;
+}</code></pre>
+        <ul>
+            <li>
+                Классы и методы <b>закрыты</b> по умолчанию: наследовать можно только то, что
+                помечено <code>open</code>
+            </li>
+            <li>
+                <code>override</code> обязателен; сам он тоже открыт, закрыть — <code>final
+                override</code>
+            </li>
+            <li>Идея (Effective Java): проектируйте для наследования или запрещайте его</li>
+        </ul>
+    </div>
+
+    <!-- [4.2] Конструктор родителя и порядок -->
+    <div class="step slide" data-x="2200" data-y="3600">
+        <h1>Конструктор родителя и порядок</h1>
+        <pre><code class="language-kotlin">open class Base(val x: Int) {
+    init { println(&quot;Base init&quot;) }
+}
+
+class Derived(x: Int, val y: Int) : Base(x) {
+    init { println(&quot;Derived init&quot;) }
+}
+
+Derived(1, 2)      // Base init → Derived init</code></pre>
+        <ul>
+            <li>
+                Родитель инициализируется <b>первым</b>, параметры для него передаются в заголовке
+                класса
+            </li>
+            <li>
+                Без основного конструктора вызов родителя пишут во вторичных: <code>:
+                super(...)</code>
+            </li>
+        </ul>
+    </div>
+
+    <!-- [4.3] Ловушка: open-метод в init -->
+    <div class="step slide" data-x="3300" data-y="3600">
+        <h1>Ловушка: open-метод в init</h1>
+        <pre><code class="language-kotlin">open class Base {
+    init { describe() }
+    open fun describe() {}
+}
+
+class Derived : Base() {
+    val name = &quot;x&quot;
+    override fun describe() = println(name)      // выведет null
+}
+
+Derived()</code></pre>
+        <ul>
+            <li>
+                <code>init</code> базового класса выполняется <b>до</b> инициализации полей
+                <code>Derived</code>
+            </li>
+            <li><code>name</code> типа <code>String</code> оказывается <code>null</code></li>
+            <li>
+                Вывод: не вызывайте <code>open</code>-члены из <code>init</code> и конструкторов
+            </li>
+        </ul>
+        <div class="notes">
+            Компилятор Kotlin предупреждает: Calling non-final function in constructor.
+        </div>
+    </div>
+
+    <!-- [4.4] abstract, protected, super -->
+    <div class="step slide" data-x="4400" data-y="3600">
+        <h1>abstract, protected, super</h1>
+        <pre class="small"><code class="language-kotlin">abstract class Shape {
+    abstract fun area(): Double
+    open fun describe() = &quot;Shape with area ${area()}&quot;
+    protected fun round(v: Double) = Math.round(v * 100) / 100.0
+}
+
+class Circle(val r: Double) : Shape() {
+    override fun area() = round(Math.PI * r * r)
+    override fun describe() = &quot;Circle: &quot; + super.describe()
+}</code></pre>
+        <ul>
+            <li><code>abstract</code> — без реализации, экземпляр создать нельзя</li>
+            <li>
+                <code>protected</code> — виден наследникам; <code>super.describe()</code> —
+                реализация родителя
+            </li>
+        </ul>
+    </div>
+
+    <!-- [4.5] Полиморфизм и приведение типов -->
+    <div class="step slide" data-x="5500" data-y="3600">
+        <h1>Полиморфизм и приведение типов</h1>
+        <pre class="small"><code class="language-kotlin">class Square(val a: Double) : Shape() { override fun area() = a * a }
+
+val shapes: List&lt;Shape&gt; = listOf(Circle(1.0), Square(2.0))
+for (s in shapes) println(s.describe())       // выбор реализации в рантайме
+
+fun show(s: Shape) {
+    if (s is Circle) println(s.r)             // smart cast
+    val c = s as? Circle                      // Circle? — без исключения
+}</code></pre>
+        <ul>
+            <li>
+                <code>is</code>, <code>!is</code>, <code>as</code> (может бросить), <code>as?</code>
+                (вернёт null)
+            </li>
+        </ul>
+    </div>
+
+    <!-- [4.6] Smart cast и особые типы -->
+    <div class="step slide" data-x="6600" data-y="3600">
+        <h1>Smart cast и особые типы</h1>
+        <ul>
+            <li>
+                Smart cast работает для локальных переменных, не меняющихся между проверкой и
+                использованием, и для <code>val</code>-свойств без кастомного геттера в том же
+                модуле
+            </li>
+            <li>
+                Не работает для <code>var</code>-свойств и <code>open</code>-свойств: значение может
+                измениться
+            </li>
+            <li>
+                <code>Any</code> — корень иерархии (<code>equals</code>, <code>hashCode</code>,
+                <code>toString</code>)
+            </li>
+            <li>
+                <code>Unit</code> — «нет значения», <code>Nothing</code> — функция не возвращается
+                (<code>throw</code>), подтип всех типов
+            </li>
+        </ul>
+    </div>
+
+    <!-- [4.7] Data-классы и наследование -->
+    <div class="step slide" data-x="7700" data-y="3600">
+        <h1>Data-классы и наследование</h1>
+        <ul>
+            <li>
+                Data-класс <b>не может</b> быть <code>open</code>, <code>abstract</code>,
+                <code>sealed</code>, <code>inner</code>
+            </li>
+            <li>Может наследовать другой класс и реализовывать интерфейсы</li>
+            <li>
+                При наследовании ломается симметричность <code>equals</code>: он сгенерирован под
+                конкретный класс
+            </li>
+            <li>
+                Рекомендация: финальные data-классы + интерфейс или <code>sealed</code>-иерархия
+            </li>
+        </ul>
+    </div>
+
+    <!-- [4.8] Template Method -->
+    <div class="step slide" data-x="8800" data-y="3600">
+        <h1>Template Method</h1>
+        <pre class="small"><code class="language-kotlin">abstract class Report {
+    fun render(): String =                       // final по умолчанию
+        header() + body() + footer()
+
+    protected open fun header() = &quot;== Report ==\n&quot;
+    protected abstract fun body(): String
+    protected open fun footer() = &quot;\n== end ==&quot;
+}
+
+class SalesReport : Report() {
+    override fun body() = &quot;Sales: 42&quot;
+}</code></pre>
+        <ul>
+            <li>Метод-шаблон фиксирует последовательность, шаги переопределяются</li>
+            <li>
+                <b>Финальность по умолчанию</b> защищает шаблон; в Java нужно писать
+                <code>final</code> вручную
+            </li>
+            <li>Hook-методы: <code>open</code> с реализацией по умолчанию</li>
+        </ul>
+    </div>
+
+    <!-- [4.9] Принцип подстановки Лисков (LSP) -->
+    <div class="step slide" data-x="9900" data-y="3600">
+        <h1>Принцип подстановки Лисков (LSP)</h1>
+        <ul>
+            <li>
+                Объект подкласса можно подставить вместо базового, не нарушив ожиданий вызывающего
+                кода
+            </li>
+            <li>
+                Классика: изменяемые <code>Rectangle</code> и <code>Square</code> — установка ширины
+                у квадрата меняет высоту, тест «2×3 = 6» ломается
+            </li>
+            <li>
+                Лекарство: неизменяемые фигуры или общий интерфейс <code>Shape</code> без «сеттеров»
+            </li>
+            <li>
+                Сигналы нарушения: <code>override</code> бросает
+                <code>UnsupportedOperationException</code>, усиливает предусловия, ослабляет
+                результат
+            </li>
+        </ul>
+    </div>
+
+    <!-- [4.10] Хрупкий базовый класс -->
+    <div class="step slide" data-x="11000" data-y="3600">
+        <h1>Хрупкий базовый класс</h1>
+        <pre class="small"><code class="language-kotlin">open class CountingSet : HashSet&lt;String&gt;() {
+    var added = 0
+    override fun add(element: String): Boolean {
+        added++
+        return super.add(element)
+    }
+    override fun addAll(elements: Collection&lt;String&gt;): Boolean {
+        added += elements.size
+        return super.addAll(elements)
+    }
+}
+
+val s = CountingSet()
+s.addAll(listOf(&quot;a&quot;, &quot;b&quot;))
+println(s.added)                  // 4, а не 2!</code></pre>
+        <ul>
+            <li>
+                <code>HashSet.addAll</code> внутри вызывает <code>add</code> — наследник зависит от
+                <b>деталей реализации</b> родителя
+            </li>
+            <li>Решение — композиция и делегирование (блок 6)</li>
+        </ul>
+    </div>
+
+    <!-- ===================== ряд 5 ===================== -->
+    <!-- [5.0] Интерфейсы и абстрактные классы -->
+    <div id="b4" class="step slide section" data-x="0" data-y="4500">
+        <div class="num">4</div>
+        <h1>Интерфейсы и абстрактные классы</h1>
+        <ul>
+            <li>Реализации по умолчанию, конфликты</li>
+            <li>Интерфейс или abstract class</li>
+            <li>fun interface</li>
+            <li>Strategy · Null Object · Adapter · принципы</li>
+        </ul>
+    </div>
+
+    <!-- [5.1] Интерфейсы с реализацией по умолчанию -->
+    <div class="step slide" data-x="1100" data-y="4500">
+        <h1>Интерфейсы с реализацией по умолчанию</h1>
+        <pre><code class="language-kotlin">interface Named {
+    val name: String                       // абстрактное свойство
+    fun greet() = &quot;Hello, $name&quot;           // реализация по умолчанию
+}
+
+class User(override val name: String) : Named
+
+User(&quot;Ann&quot;).greet()                        // &quot;Hello, Ann&quot;</code></pre>
+        <ul>
+            <li>Свойства в интерфейсе не хранят состояние (нет backing field)</li>
+            <li>Класс может реализовывать <b>сколько угодно</b> интерфейсов</li>
+        </ul>
+    </div>
+
+    <!-- [5.2] Конфликт реализаций -->
+    <div class="step slide" data-x="2200" data-y="4500">
+        <h1>Конфликт реализаций</h1>
+        <pre><code class="language-kotlin">interface A { fun hello() = &quot;A&quot; }
+interface B { fun hello() = &quot;B&quot; }
+
+class C : A, B {
+    override fun hello() = super&lt;A&gt;.hello() + super&lt;B&gt;.hello()
+}
+
+C().hello()          // &quot;AB&quot;</code></pre>
+        <ul>
+            <li>
+                Если два интерфейса дают реализацию одного метода, компилятор требует явный
+                <code>override</code>
+            </li>
+            <li><code>super&lt;A&gt;</code> выбирает нужную реализацию</li>
+        </ul>
+    </div>
+
+    <!-- [5.3] Интерфейс или abstract class? -->
+    <div class="step slide" data-x="3300" data-y="4500">
+        <h1>Интерфейс или abstract class?</h1>
+        <table>
+            <tr>
+                <th></th>
+                <th>Интерфейс</th>
+                <th>Abstract class</th>
+            </tr>
+            <tr>
+                <td>Состояние (поля)</td>
+                <td>нет</td>
+                <td>да</td>
+            </tr>
+            <tr>
+                <td>Конструктор</td>
+                <td>нет</td>
+                <td>да</td>
+            </tr>
+            <tr>
+                <td>Множественное наследование</td>
+                <td>да</td>
+                <td>нет (один родитель)</td>
+            </tr>
+            <tr>
+                <td>Когда брать</td>
+                <td>контракт, роль, поведение</td>
+                <td>общая часть реализации и состояние</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- [5.4] fun interface и функциональные типы -->
+    <div class="step slide" data-x="4400" data-y="4500">
+        <h1>fun interface и функциональные типы</h1>
+        <pre><code class="language-kotlin">fun interface Discount {
+    fun apply(price: Int): Int
+}
+
+val tenPercent = Discount { it * 90 / 100 }     // SAM-преобразование
+println(tenPercent.apply(200))                 // 180
+
+val same: (Int) -&gt; Int = { it * 90 / 100 }      // функциональный тип</code></pre>
+        <ul>
+            <li>Интерфейс с одним абстрактным методом можно создавать лямбдой</li>
+            <li>Функциональный тип часто заменяет такие интерфейсы совсем</li>
+        </ul>
+    </div>
+
+    <!-- [5.5] Strategy -->
+    <div class="step slide" data-x="5500" data-y="4500">
+        <h1>Strategy</h1>
+        <pre class="small"><code class="language-kotlin">interface Discount { fun apply(price: Int): Int }
+
+class Percent(private val p: Int) : Discount {
+    override fun apply(price: Int) = price * (100 - p) / 100
+}
+class Fixed(private val off: Int) : Discount {
+    override fun apply(price: Int) = maxOf(0, price - off)
+}
+
+class Order(val price: Int, val discount: Discount) {
+    fun total() = discount.apply(price)
+}</code></pre>
+        <ul>
+            <li>Поведение подменяется без наследования <code>Order</code></li>
+            <li>Упрощение: параметр <code>discount: (Int) -> Int</code> — стратегия как лямбда</li>
+        </ul>
+    </div>
+
+    <!-- [5.6] Null Object -->
+    <div class="step slide" data-x="6600" data-y="4500">
+        <h1>Null Object</h1>
+        <pre class="small"><code class="language-kotlin">object NoDiscount : Discount {
+    override fun apply(price: Int) = price
+}
+
+val order = Order(1000, NoDiscount)   // вместо Discount? и проверок на null
+println(order.total())                // 1000</code></pre>
+        <ul>
+            <li>«Пустая» реализация вместо <code>null</code>: вызывающему не нужны проверки</li>
+            <li>
+                Nullable-типы Kotlin хороши, когда «отсутствие» — просто отсутствие; Null Object —
+                когда у отсутствия есть <b>поведение</b>
+            </li>
+        </ul>
+    </div>
+
+    <!-- [5.7] Adapter (первый подход) -->
+    <div class="step slide" data-x="7700" data-y="4500">
+        <h1>Adapter (первый подход)</h1>
+        <pre class="small"><code class="language-kotlin">interface Notifier { fun send(text: String) }
+
+class LegacySms {
+    fun push(number: String, msg: String) { /* ... */ }
+}
+
+class SmsNotifier(
+    private val sms: LegacySms,
+    private val number: String,
+) : Notifier {
+    override fun send(text: String) = sms.push(number, text)
+}</code></pre>
+        <p>
+            Приводит чужой интерфейс к нужному. Короче — через <code>by</code> (блок 6) и расширения
+            (блок 7).
+        </p>
+    </div>
+
+    <!-- [5.8] Принципы -->
+    <div class="step slide" data-x="8800" data-y="4500">
+        <h1>Принципы</h1>
+        <ul>
+            <li><b>DIP:</b> зависим от <code>Discount</code>, а не от <code>Percent</code></li>
+            <li><b>OCP:</b> новая скидка — новый класс, <code>Order</code> не меняется</li>
+            <li><b>ISP:</b> маленькие интерфейсы: клиент видит только нужное</li>
+            <li>
+                <b>LSP:</b> любая реализация <code>Discount</code> ведёт себя в рамках контракта
+            </li>
+            <li>Интерфейсы — основа Strategy, Adapter, Decorator</li>
+        </ul>
+    </div>
+
+    <!-- ===================== ряд 6 ===================== -->
+    <!-- [6.0] enum и sealed -->
+    <div id="b5" class="step slide section" data-x="0" data-y="5400">
+        <div class="num">5</div>
+        <h1>enum и sealed</h1>
+        <ul>
+            <li>enum class</li>
+            <li>sealed-классы и интерфейсы, exhaustive when</li>
+            <li>State · Composite · Visitor</li>
+        </ul>
+    </div>
+
+    <!-- [6.1] enum class -->
+    <div class="step slide" data-x="1100" data-y="5400">
+        <h1>enum class</h1>
+        <pre class="small"><code class="language-kotlin">enum class Status(val label: String) {
+    NEW(&quot;Новый&quot;),
+    PAID(&quot;Оплачен&quot;) { override fun next() = SHIPPED },
+    SHIPPED(&quot;Отправлен&quot;);
+
+    open fun next(): Status = this
+}
+
+Status.PAID.next()          // SHIPPED
+Status.entries              // список констант
+Status.valueOf(&quot;NEW&quot;)</code></pre>
+        <ul>
+            <li>Константы — синглтоны, у них могут быть свойства, методы и собственные тела</li>
+            <li><code>entries</code> — современная замена <code>values()</code></li>
+        </ul>
+    </div>
+
+    <!-- [6.2] when по enum -->
+    <div class="step slide" data-x="2200" data-y="5400">
+        <h1>when по enum</h1>
+        <pre><code class="language-kotlin">fun label(s: Status) = when (s) {
+    Status.NEW -&gt; &quot;новый&quot;
+    Status.PAID -&gt; &quot;оплачен&quot;
+    Status.SHIPPED -&gt; &quot;в пути&quot;
+}                 // без else: компилятор проверил полноту</code></pre>
+        <p>
+            Если добавить константу и забыть ветку <code>when</code>-выражения, код не
+            скомпилируется.
+        </p>
+    </div>
+
+    <!-- [6.3] sealed: закрытая иерархия -->
+    <div class="step slide" data-x="3300" data-y="5400">
+        <h1>sealed: закрытая иерархия</h1>
+        <pre class="small"><code class="language-kotlin">sealed interface PaymentResult {
+    data class Success(val txId: String) : PaymentResult
+    data class Failure(val reason: String) : PaymentResult
+    data object Cancelled : PaymentResult
+}
+
+fun report(r: PaymentResult): String = when (r) {
+    is PaymentResult.Success -&gt; &quot;OK ${r.txId}&quot;
+    is PaymentResult.Failure -&gt; &quot;Ошибка: ${r.reason}&quot;
+    PaymentResult.Cancelled  -&gt; &quot;Отмена&quot;
+}</code></pre>
+        <ul>
+            <li>Все подтипы известны компилятору (один пакет и модуль)</li>
+            <li>
+                <code>when</code> без <code>else</code>: добавили подтип — компилятор покажет все
+                забытые места
+            </li>
+        </ul>
+    </div>
+
+    <!-- [6.4] enum, sealed и Java -->
+    <div class="step slide" data-x="4400" data-y="5400">
+        <h1>enum, sealed и Java</h1>
+        <table>
+            <tr>
+                <th></th>
+                <th>enum</th>
+                <th>sealed</th>
+            </tr>
+            <tr>
+                <td>Что это</td>
+                <td>фиксированный набор констант</td>
+                <td>закрытая иерархия типов</td>
+            </tr>
+            <tr>
+                <td>Данные у вариантов</td>
+                <td>одинаковые</td>
+                <td>у каждого подтипа свои</td>
+            </tr>
+            <tr>
+                <td>Экземпляры</td>
+                <td>по одному на константу</td>
+                <td>сколько угодно (кроме <code>object</code>)</td>
+            </tr>
+            <tr>
+                <td>В Java</td>
+                <td><code>enum</code></td>
+                <td>
+                    <code>sealed</code> + <code>permits</code> (17), <code>switch</code> по образцу
+                    (21)
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- [6.5] State -->
+    <div class="step slide" data-x="5500" data-y="5400">
+        <h1>State</h1>
+        <pre class="small"><code class="language-kotlin">sealed interface OrderState {
+    data object New : OrderState
+    data class Paid(val txId: String) : OrderState
+    data class Shipped(val trackingNo: String) : OrderState
+    data object Cancelled : OrderState
+}
+
+fun pay(s: OrderState, tx: String): OrderState = when (s) {
+    OrderState.New -&gt; OrderState.Paid(tx)
+    else -&gt; error(&quot;нельзя оплатить заказ в состоянии $s&quot;)
+}</code></pre>
+        <ul>
+            <li>
+                Переходы — функции, возвращающие <b>новое</b> состояние; недопустимые запрещены явно
+            </li>
+            <li>
+                В GoF состояния — классы с методами; здесь — данные и <code>when</code>: логика
+                видна в одном месте
+            </li>
+        </ul>
+    </div>
+
+    <!-- [6.6] Composite -->
+    <div class="step slide" data-x="6600" data-y="5400">
+        <h1>Composite</h1>
+        <pre class="small"><code class="language-kotlin">sealed interface Expr {
+    data class Num(val v: Int) : Expr
+    data class Sum(val l: Expr, val r: Expr) : Expr
+    data class Mul(val l: Expr, val r: Expr) : Expr
+}
+
+fun eval(e: Expr): Int = when (e) {
+    is Expr.Num -&gt; e.v
+    is Expr.Sum -&gt; eval(e.l) + eval(e.r)
+    is Expr.Mul -&gt; eval(e.l) * eval(e.r)
+}
+
+eval(Expr.Sum(Expr.Num(2), Expr.Mul(Expr.Num(3), Expr.Num(4))))   // 14</code></pre>
+        <p>Лист и составной узел — один тип; рекурсия по структуре.</p>
+    </div>
+
+    <!-- [6.7] Visitor -->
+    <div class="step slide" data-x="7700" data-y="5400">
+        <h1>Visitor</h1>
+        <ul>
+            <li>
+                <b>Java (классика):</b> интерфейс <code>Visitor</code> с методом на каждый тип и
+                <code>accept(visitor)</code> в каждом классе — двойная диспетчеризация
+            </li>
+            <li>
+                <b>Kotlin:</b> <code>sealed</code> + <code>when</code>: новая операция — просто
+                новая функция (<code>eval</code>, <code>print</code>, <code>simplify</code>)
+            </li>
+            <li>
+                Компромисс (<i>expression problem</i>): новую операцию добавить легко; новый подтип
+                потребует правки всех <code>when</code>, но компилятор их покажет
+            </li>
+            <li>В обычном ООП наоборот: подтип добавить легко, операцию — трудно</li>
+        </ul>
+    </div>
+
+    <!-- ===================== ряд 7 ===================== -->
+    <!-- [7.0] Композиция и делегирование -->
+    <div id="b6" class="step slide section" data-x="0" data-y="6300">
+        <div class="num">6</div>
+        <h1>Композиция и делегирование</h1>
+        <ul>
+            <li>Композиция вместо наследования</li>
+            <li>Делегирование интерфейса by</li>
+            <li>Делегированные свойства</li>
+            <li>Decorator · Proxy · Observer</li>
+        </ul>
+    </div>
+
+    <!-- [7.1] Композиция вместо наследования -->
+    <div class="step slide" data-x="1100" data-y="6300">
+        <h1>Композиция вместо наследования</h1>
+        <ul>
+            <li>
+                Наследование связывает наследника с <b>деталями</b> родителя (пример с
+                <code>CountingSet</code>)
+            </li>
+            <li>Композиция: содержим объект и <b>делегируем</b> ему, а не расширяем</li>
+            <li>
+                Проблема композиции в Java — рутина: писать методы-пробросы для каждого метода
+                интерфейса
+            </li>
+            <li>В Kotlin рутину берёт на себя компилятор: <code>by</code></li>
+        </ul>
+    </div>
+
+    <!-- [7.2] Делегирование интерфейса: by -->
+    <div class="step slide" data-x="2200" data-y="6300">
+        <h1>Делегирование интерфейса: by</h1>
+        <pre><code class="language-kotlin">interface Repo {
+    fun save(order: Order)
+    fun find(id: Int): Order?
+}
+
+class LoggingRepo(private val inner: Repo) : Repo by inner {
+    override fun save(order: Order) {
+        println(&quot;save ${order.id}&quot;)
+        inner.save(order)
+    }
+}</code></pre>
+        <ul>
+            <li>Компилятор генерирует проброс всех методов интерфейса (<code>find</code> тоже)</li>
+            <li>
+                Переопределяем только то, что нужно; в декомпиляции видны сгенерированные методы
+            </li>
+        </ul>
+    </div>
+
+    <!-- [7.3] Decorator -->
+    <div class="step slide" data-x="3300" data-y="6300">
+        <h1>Decorator</h1>
+        <pre><code class="language-kotlin">class CachingRepo(private val inner: Repo) : Repo by inner {
+    private val cache = mutableMapOf&lt;Int, Order&gt;()
+    override fun find(id: Int): Order? =
+        cache[id] ?: inner.find(id)?.also { cache[id] = it }
+}
+
+val repo: Repo = LoggingRepo(CachingRepo(InMemoryRepo()))</code></pre>
+        <ul>
+            <li>Декораторы вкладываются друг в друга и остаются <code>Repo</code></li>
+            <li>Порядок обёрток определяет поведение (логировать ли обращения к кешу?)</li>
+        </ul>
+    </div>
+
+    <!-- [7.4] Композиция без хрупкости -->
+    <div class="step slide" data-x="4400" data-y="6300">
+        <h1>Композиция без хрупкости</h1>
+        <pre class="small"><code class="language-kotlin">class MetricsList&lt;T&gt;(
+    private val inner: MutableList&lt;T&gt;,
+) : MutableList&lt;T&gt; by inner {
+    var adds = 0
+        private set
+
+    override fun add(element: T): Boolean {
+        adds++
+        return inner.add(element)
+    }
+}</code></pre>
+        <ul>
+            <li>
+                <code>addAll</code> идёт напрямую в <code>inner</code> и не вызывает наш
+                <code>add</code>: счётчик не удваивается
+            </li>
+            <li>
+                Считать элементы <code>addAll</code> нужно явным переопределением — контроль у нас
+            </li>
+        </ul>
+    </div>
+
+    <!-- [7.5] Делегированные свойства -->
+    <div class="step slide" data-x="5500" data-y="6300">
+        <h1>Делегированные свойства</h1>
+        <pre class="small"><code class="language-kotlin">import kotlin.properties.Delegates
+
+class Product {
+    val description: String by lazy { loadFromDb() }     // лениво
+
+    var price: Int by Delegates.observable(0) { _, old, new -&gt;
+        println(&quot;price: $old -&gt; $new&quot;)                   // реакция на изменение
+    }
+
+    private fun loadFromDb() = &quot;long description&quot;
+}</code></pre>
+        <ul>
+            <li>
+                Готовые делегаты: <code>lazy</code>, <code>observable</code>, <code>vetoable</code>
+                (может отклонить), <code>by map</code>
+            </li>
+            <li>Свой делегат — интерфейс <code>ReadWriteProperty</code></li>
+        </ul>
+    </div>
+
+    <!-- [7.6] Proxy и Observer -->
+    <div class="step slide" data-x="6600" data-y="6300">
+        <h1>Proxy и Observer</h1>
+        <ul>
+            <li>
+                <b>Virtual Proxy:</b> <code>by lazy</code> — дорогой объект создаётся при первом
+                обращении
+            </li>
+            <li><b>Protection Proxy:</b> класс с <code>by</code> и проверкой прав перед вызовом</li>
+            <li>
+                <b>Observer:</b> <code>Delegates.observable</code> — реакция на изменение одного
+                свойства
+            </li>
+            <li>
+                Для нескольких подписчиков — список колбэков <code>(Int) -> Unit</code> (лямбды —
+                отдельная лекция)
+            </li>
+            <li>
+                <b>Adapter (полная форма):</b> <code>by</code> + несколько своих методов приводят
+                чужой интерфейс к нужному
+            </li>
+        </ul>
+    </div>
+
+    <!-- ===================== ряд 8 ===================== -->
+    <!-- [8.0] Функции-расширения -->
+    <div id="b7" class="step slide section" data-x="0" data-y="7200">
+        <div class="num">7</div>
+        <h1>Функции-расширения</h1>
+        <ul>
+            <li>Синтаксис и правила</li>
+            <li>Как компилируется</li>
+            <li>Adapter · Facade-подобный API</li>
+        </ul>
+    </div>
+
+    <!-- [8.1] Функции и свойства-расширения -->
+    <div class="step slide" data-x="1100" data-y="7200">
+        <h1>Функции и свойства-расширения</h1>
+        <pre><code class="language-kotlin">class Money(val amount: Long, val currency: String)
+
+fun Money.format() = &quot;%d %s&quot;.format(amount, currency)
+val Money.isZero: Boolean get() = amount == 0L
+
+Money(10, &quot;RUB&quot;).format()        // &quot;10 RUB&quot;</code></pre>
+        <ul>
+            <li>Внутри расширения <code>this</code> — объект-получатель (receiver)</li>
+            <li>
+                Класс не меняется и не пересобирается: расширение можно написать для чужого типа
+            </li>
+            <li>Бывают и для nullable-типов: <code>fun String?.orEmpty()</code></li>
+        </ul>
+    </div>
+
+    <!-- [8.2] Правила расширений -->
+    <div class="step slide" data-x="2200" data-y="7200">
+        <h1>Правила расширений</h1>
+        <pre><code class="language-kotlin">open class A
+class B : A()
+
+fun A.who() = &quot;A&quot;
+fun B.who() = &quot;B&quot;
+
+val a: A = B()
+println(a.who())          // &quot;A&quot; — выбор по статическому типу!</code></pre>
+        <ul>
+            <li>Разрешаются <b>статически</b>: не полиморфны</li>
+            <li>Нет доступа к <code>private</code>/<code>protected</code> членам</li>
+            <li>Если у класса есть метод с той же сигнатурой, <b>метод побеждает</b> расширение</li>
+        </ul>
+    </div>
+
+    <!-- [8.3] Как компилируется -->
+    <div class="step slide" data-x="3300" data-y="7200">
+        <h1>Как компилируется</h1>
+        <p><b>Kotlin:</b></p>
+        <pre><code class="language-kotlin">fun Money.format(): String = &quot;...&quot;</code></pre>
+        <p><b>Что видит Java:</b></p>
+        <pre><code class="language-java">// файл MoneyKt.java (имя можно задать @file:JvmName)
+public static final String format(Money $this) { ... }</code></pre>
+        <ul>
+            <li>Обычный статический метод, receiver — первый параметр</li>
+            <li>Вызов <code>m.format()</code> — сахар над <code>MoneyKt.format(m)</code></li>
+        </ul>
+    </div>
+
+    <!-- [8.4] Adapter и Facade-подобный API -->
+    <div class="step slide" data-x="4400" data-y="7200">
+        <h1>Adapter и Facade-подобный API</h1>
+        <pre><code class="language-kotlin">fun ExternalDto.toOrder() = Order(id = orderId, total = sum)
+
+val orders = dtos.map { it.toOrder() }</code></pre>
+        <ul>
+            <li>
+                <b>Adapter без обёртки:</b> приводим чужой тип к своему, не создавая класс-обёртку
+            </li>
+            <li><b>Facade-подобный API:</b> удобные операции над сложными типами</li>
+            <li>Замена <code>*Utils</code>-классов из Java</li>
+            <li>
+                Ограничения: нельзя добавить состояние и переопределить; нужен <code>import</code>
+            </li>
+            <li>Мост к следующим темам: лямбды, <code>let</code>/<code>apply</code>, DSL</li>
+        </ul>
+    </div>
+
+    <!-- ===================== ряд 9 ===================== -->
+    <!-- [9.0] Паттерн → средство Kotlin -->
+    <div id="b8" class="step slide" data-x="0" data-y="8100">
+        <h1>Паттерн → средство Kotlin</h1>
+        <table>
+            <tr>
+                <th>Паттерн</th>
+                <th>Что в Kotlin</th>
+            </tr>
+            <tr>
+                <td>Singleton</td>
+                <td><code>object</code></td>
+            </tr>
+            <tr>
+                <td>Factory Method</td>
+                <td><code>companion</code> + приватный конструктор</td>
+            </tr>
+            <tr>
+                <td>Builder</td>
+                <td>аргументы по умолчанию и именованные</td>
+            </tr>
+            <tr>
+                <td>Prototype</td>
+                <td><code>copy()</code></td>
+            </tr>
+            <tr>
+                <td>Template Method</td>
+                <td><code>abstract</code>-класс, <code>final</code> по умолчанию</td>
+            </tr>
+            <tr>
+                <td>Strategy</td>
+                <td>интерфейс, <code>fun interface</code>, лямбда</td>
+            </tr>
+            <tr>
+                <td>Null Object</td>
+                <td><code>object</code>, реализующий интерфейс</td>
+            </tr>
+            <tr>
+                <td>State, Composite, Visitor</td>
+                <td><code>sealed</code> + <code>when</code></td>
+            </tr>
+            <tr>
+                <td>Decorator, Proxy, Adapter</td>
+                <td><code>by</code>, <code>by lazy</code></td>
+            </tr>
+            <tr>
+                <td>Observer</td>
+                <td><code>Delegates.observable</code></td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- [9.1] Что в ООП Kotlin иначе, чем в Java -->
+    <div class="step slide" data-x="1100" data-y="8100">
+        <h1>Что в ООП Kotlin иначе, чем в Java</h1>
+        <table>
+            <tr>
+                <th>Java</th>
+                <th>Kotlin</th>
+            </tr>
+            <tr>
+                <td>поля + геттеры и сеттеры</td>
+                <td>свойства</td>
+            </tr>
+            <tr>
+                <td>классы по умолчанию открыты</td>
+                <td><code>final</code>, нужен <code>open</code></td>
+            </tr>
+            <tr>
+                <td><code>static</code>, утилитные классы</td>
+                <td><code>companion</code>, <code>object</code>, функции верхнего уровня</td>
+            </tr>
+            <tr>
+                <td>вложенный класс — inner по умолчанию</td>
+                <td><code>nested</code> по умолчанию, <code>inner</code> явно</td>
+            </tr>
+            <tr>
+                <td>перегрузка конструкторов и методов</td>
+                <td>значения по умолчанию, именованные аргументы</td>
+            </tr>
+            <tr>
+                <td>package-private</td>
+                <td><code>internal</code> (модуль)</td>
+            </tr>
+            <tr>
+                <td><code>enum</code>, цепочки <code>instanceof</code></td>
+                <td><code>sealed</code> + исчерпывающий <code>when</code></td>
+            </tr>
+            <tr>
+                <td>наследование ради повторного использования</td>
+                <td>делегирование <code>by</code>, расширения</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- [9.2] Вопросы к аудитории -->
+    <div class="step slide" data-x="2200" data-y="8100">
+        <h1>Вопросы к аудитории</h1>
+        <ol>
+            <li>
+                Что произойдёт при вызове <code>open</code>-метода из <code>init</code> базового
+                класса?
+            </li>
+            <li>Какие паттерны в Kotlin почти исчезают и почему?</li>
+            <li>Когда <code>sealed</code>, а когда <code>enum</code>?</li>
+            <li>Чем <code>by</code> лучше наследования при реализации Decorator?</li>
+            <li>Почему расширение не может переопределить метод класса?</li>
+        </ol>
+    </div>
+
+    <!-- [9.3] Материалы -->
+    <div class="step slide" data-x="3300" data-y="8100">
+        <h1>Материалы</h1>
+        <ul>
+            <li>
+                Документация Kotlin: <i>Classes</i>, <i>Inheritance</i>, <i>Interfaces</i>,
+                <i>Sealed classes</i>, <i>Delegation</i>, <i>Extensions</i>
+            </li>
+            <li>«Design Patterns» (GoF); «Head First Design Patterns»</li>
+            <li>A. Sarcar, <i>Kotlin Design Patterns and Best Practices</i></li>
+            <li>IntelliJ IDEA: <i>Show Kotlin Bytecode → Decompile</i></li>
+            <li>
+                За рамками лекции: generics, коллекции, лямбды, исключения, <code>value
+                class</code>, перегрузка операторов, корутины
+            </li>
+        </ul>
+    </div>
+
+    <!-- [9.4] Вопросы? -->
+    <div class="step slide title" data-x="4400" data-y="8100">
+        <h1>Вопросы?</h1>
+        <p><a href="#/overview">Показать карту лекции</a></p>
+    </div>
+
+    <!-- Обзор: камера отъезжает и показывает всю карту -->
+    <div id="overview" class="step" data-x="6050" data-y="4050" data-scale="15"></div>
+
+</div>
+
+<div class="impress-progressbar"><div></div></div>
+<div class="impress-progress"></div>
+<a class="ov" href="#/overview">Обзор</a>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<script>
+    if (window.hljs) {
+        hljs.highlightAll();
+    }
+</script>
+<script src="js/impress.js"></script>
+<script>
+    impress().init();
+</script>
+</body>
+</html>
