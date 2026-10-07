@@ -1,0 +1,920 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1024" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <title>Цикл разработки для Intel-процессоров | Лекция 5</title>
+    
+    <meta name="description" content="Цикл разработки для Intel-процессоров: от компилятора до загрузки ОС" />
+    <meta name="author" content="Лектор" />
+
+    <link href="//fonts.googleapis.com/css?family=Open+Sans:regular,semibold,italic,italicsemibold|PT+Sans:400,700,400italic,700italic|PT+Serif:400,700,400italic,700italic" rel="stylesheet" />
+
+    <link href="css/impress-demo.css" rel="stylesheet" />
+    <link href="css/impress-common.css" rel="stylesheet" />
+    
+    <link rel="shortcut icon" href="favicon.png" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/default.min.css">
+
+</head>
+
+<body class="impress-not-supported">
+
+<div class="fallback-message">
+    <p>Your browser <b>doesn't support the features required</b> by impress.js, so you are presented with a simplified version of this presentation.</p>
+    <p>For the best experience please use the latest <b>Chrome</b>, <b>Safari</b> or <b>Firefox</b> browser.</p>
+</div>
+
+<div id="impress"
+    data-transition-duration="1000"
+    
+    data-width="1024"
+    data-height="768"
+    data-max-scale="3"
+    data-min-scale="0"
+    data-perspective="1000"
+    >
+
+    <!-- ==================== 0. Вводная (5 слайдов) ==================== -->
+    <div class="step slide" data-x="-1000" data-y="-1500">
+        <h1>Цикл разработки: лекция 5</h1>
+        <ul>
+            <li>Путь: текст программы → байты, которые выполняет процессор</li>
+            <li>Компилятор, ассемблер, линкер — отдельные инструменты</li>
+            <li>Freestanding-разработка: ОС, загрузчики, embedded</li>
+            <li>Финал: загрузка реального десктопа</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="0000" data-y="-1500">
+        <h1>Невидимая цепочка</h1>
+        <ul>
+            <li>Прикладной разработчик видит единое целое</li>
+            <li>gcc, системы сборки, IDE — незаметно дёргают инструменты по цепочке</li>
+            <li>Каждый этап — отдельная программа</li>
+            <li>Обычно это скрыто за одной командой</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="1000" data-y="-1500">
+        <h1>Freestanding: всё видно</h1>
+        <ul>
+            <li>В ОС, загрузчиках, embedded — цепочка видимая</li>
+            <li>Каждый шаг управляется руками</li>
+            <li>Нет сборочной системы, которая прячет детали</li>
+            <li>Отсюда — необходимость понимать каждый этап</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="3000" data-y="-1500">
+        <h1>Структура лекции</h1>
+        <ul>
+            <li>Hosted vs Freestanding — формальная рамка</li>
+            <li>Компилятор, ассемблер, линкер — инструменты</li>
+            <li>Системная библиотека и syscall'ы</li>
+            <li>QEMU — инструмент разработки</li>
+            <li>Загрузка реального десктопа — кульминация</li>
+        </ul>
+    </div>
+
+    <!-- ==================== 1. Hosted vs Freestanding (8 слайдов) ==================== -->
+    <div class="step slide" data-x="4000" data-y="-1500">
+        <h1>Hosted vs Freestanding</h1>
+        <ul>
+            <li>Термины из стандарта ISO C</li>
+            <li>Формальная классификация окружения выполнения</li>
+            <li>Не бытовое деление на «ОС / без ОС»</li>
+            <li>Определяет, что гарантировано программе</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="5000" data-y="-1500">
+        <h1>Hosted environment</h1>
+        <ul>
+            <li>Полная стандартная библиотека (libc)</li>
+            <li>Гарантированная точка входа: main()</li>
+            <li>Окружение предоставляет рантайм</li>
+            <li>Инициализация глобальных объектов до main()</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="6000" data-y="-1500">
+        <h1>Hosted: что делает рантайм</h1>
+        <ul>
+            <li>argc/argv — собираются из командной строки</li>
+            <li>exit() — реально завершает процесс через ОС</li>
+            <li>stdio — буферизация, файловые дескрипторы</li>
+            <li>malloc/free — работают через системные вызовы</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="7000" data-y="-1500">
+        <h1>Freestanding environment</h1>
+        <ul>
+            <li>Никаких предположений об ОС</li>
+            <li>Гарантированы только несколько заголовков</li>
+            <li>stddef.h, stdint.h, float.h, limits.h, stdarg.h</li>
+            <li>main() не обязан существовать</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="8000" data-y="-1500">
+        <h1>Freestanding: точка входа</h1>
+        <ul>
+            <li>Определяется вами и линкером</li>
+            <li>Может называться _start, kernel_main, что угодно</li>
+            <li>Линкер получает явное указание через linker script</li>
+            <li>Никто не вызывает main() — вы сами решаете</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="9000" data-y="-1500">
+        <h1>Флаг -ffreestanding</h1>
+        <ul>
+            <li>GCC/Clang: отключает предположения о libc</li>
+            <li>Запрещает подставлять memcpy/memset без ведома</li>
+            <li>Компилятор не «оптимистично» вставляет вызовы</li>
+            <li>Вы контролируете каждый вызов</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="10000" data-y="-1500">
+        <h1>Пример: оптимизация memset</h1>
+        <pre><code>// Без -ffreestanding:
+// компилятор может заменить цикл на вызов memset
+for (int i = 0; i < 100; i++) {
+    arr[i] = 0;
+}
+// С -ffreestanding:
+// цикл останется циклом</code></pre>
+    </div>
+
+    <div class="step slide" data-x="11000" data-y="-1500">
+        <h1>Кто обязан быть freestanding</h1>
+        <ul>
+            <li>Ядро ОС — нет libc под ним</li>
+            <li>Загрузчик — работает до ОС</li>
+            <li>Прошивка embedded — голое железо</li>
+            <li>Им буквально не на что «хоститься»</li>
+        </ul>
+    </div>
+
+    <!-- ==================== 2. Компилятор (7 слайдов) ==================== -->
+    <div class="step slide" data-x="12000" data-y="-1500">
+        <h1>Компилятор: общая схема</h1>
+        <ul>
+            <li>Препроцессинг — текстовые подстановки, #include</li>
+            <li>Frontend — разбор синтаксиса, AST</li>
+            <li>Оптимизации — внутреннее представление</li>
+            <li>Backend — генерация кода</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="13000" data-y="-1500">
+        <h1>Стадии: препроцессинг</h1>
+        <ul>
+            <li>#include — вставка содержимого файлов</li>
+            <li>#define — макроподстановки</li>
+            <li>#ifdef — условная компиляция</li>
+            <li>Результат: чистый код на C без директив</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="14000" data-y="-1500">
+        <h1>Стадии: frontend и оптимизации</h1>
+        <ul>
+            <li>Frontend: синтаксический анализ → AST</li>
+            <li>AST → внутреннее представление (IR)</li>
+            <li>Оптимизации: dead code, inline, loop unrolling</li>
+            <li>IR не привязан к конкретной архитектуре</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="15000" data-y="-1500">
+        <h1>Стадии: backend</h1>
+        <ul>
+            <li>Выбор инструкций под архитектуру</li>
+            <li>Регистровое распределение</li>
+            <li>Планирование инструкций</li>
+            <li>Результат: ассемблер или объектный код</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="16000" data-y="-1500">
+        <h1>Кросс-компиляция</h1>
+        <ul>
+            <li>Компилятор на одной архитектуре → код для другой</li>
+            <li>Необходимость для freestanding-разработки</li>
+            <li>Target triple: x86_64-elf</li>
+            <li>Без привязки к хостовой ОС</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="17000" data-y="-1500">
+        <h1>gcc -S: посмотреть ассемблер</h1>
+        <pre><code>// C код
+int add(int a, int b) {
+    return a + b;
+}
+
+// gcc -S add.c → add.s
+// add:
+//     push rbp
+//     mov  rbp, rsp
+//     mov  DWORD PTR [rbp-4], edi
+//     mov  DWORD PTR [rbp-8], esi
+//     mov  eax, DWORD PTR [rbp-8]
+//     mov  edx, DWORD PTR [rbp-4]
+//     add  eax, edx
+//     pop  rbp
+//     ret</code></pre>
+    </div>
+
+    <div class="step slide" data-x="18000" data-y="-1500">
+        <h1>Компилятор не делает exe</h1>
+        <ul>
+            <li>Компилятор — только объектный код или ассемблер</li>
+            <li>Исполняемый файл собирают дальше</li>
+            <li>Ассемблер и линкер — следующие шаги</li>
+            <li>Это ключевая мысль: цепочка инструментов</li>
+        </ul>
+    </div>
+
+    <!-- ==================== 3. Ассемблер (7 слайдов) ==================== -->
+    <div class="step slide" data-x="19000" data-y="-1500">
+        <h1>Ассемблер: задача</h1>
+        <ul>
+            <li>Текст на ассемблере → машинный код</li>
+            <li>Почти 1:1 соответствие мнемоника → инструкция</li>
+            <li>В отличие от компилятора — без оптимизаций</li>
+            <li>Каждая строка — одна инструкция</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="20000" data-y="-1500">
+        <h1>Intel vs AT&T синтаксис</h1>
+        <ul>
+            <li>Intel: NASM, YASM — mov eax, ebx</li>
+            <li>AT&T: GNU as — mov %ebx, %eax</li>
+            <li>Порядок операндов разный</li>
+            <li>Источник постоянной путаницы у новичков</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="21000" data-y="-1500">
+        <h1>Пример: Intel vs AT&T</h1>
+        <pre><code>; Intel (NASM):
+mov eax, [ebx]    ; eax = *ebx
+add eax, 10       ; eax += 10
+
+; AT&T (GAS):
+mov (%ebx), %eax  ; eax = *ebx
+add $10, %eax     ; eax += 10
+; Внимание: направление операндов!</code></pre>
+    </div>
+
+    <div class="step slide" data-x="22000" data-y="-1500">
+        <h1>Секции объектного файла</h1>
+        <ul>
+            <li>.text — исполняемый код</li>
+            <li>.data — инициализированные данные</li>
+            <li>.bss — неинициализированные данные</li>
+            <li>.rodata — константы (read-only)</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="23000" data-y="-1500">
+        <h1>.bss: экономия места</h1>
+        <ul>
+            <li>Неинициализированные данные — нули по умолчанию</li>
+            <li>Не занимают места на диске</li>
+            <li>Только размер записан в объектном файле</li>
+            <li>При загрузке — выделяется и обнуляется</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="24000" data-y="-1500">
+        <h1>ELF: формат объектного файла</h1>
+        <ul>
+            <li>Executable and Linkable Format</li>
+            <li>Стандарт на Linux</li>
+            <li>Содержит секции, символы, релокации</li>
+            <li>Позже линкер будет его разбирать</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="25000" data-y="-1500">
+        <h1>Символы (symbols)</h1>
+        <ul>
+            <li>Имена функций и переменных</li>
+            <li>Экспортируемые — видны другим .o файлам</li>
+            <li>Импортируемые — ссылки на внешние</li>
+            <li>Ещё не адреса — только имена</li>
+            <li>Адреса разрешит линкер</li>
+        </ul>
+    </div>
+
+    <!-- ==================== 4. Линкер (8 слайдов) ==================== -->
+    <div class="step slide" data-x="26000" data-y="-1500">
+        <h1>Линкер: задача</h1>
+        <ul>
+            <li>Собирает несколько .o файлов и библиотек</li>
+            <li>Результат: исполняемый файл или .so</li>
+            <li>Разрешает символы и релокации</li>
+            <li>Создаёт финальный образ</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="27000" data-y="-1500">
+        <h1>Разрешение символов</h1>
+        <ul>
+            <li>Вызов функции из другого .o</li>
+            <li>Линкер ищет определение по имени</li>
+            <li>Находит в другом объектном файле или библиотеке</li>
+            <li>Если не нашёл — ошибка undefined reference</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="28000" data-y="-1500">
+        <h1>Релокации</h1>
+        <ul>
+            <li>Объектный файл не знает финальных адресов</li>
+            <li>Линкер подставляет адреса при сборке</li>
+            <li>Статическая линковка — адреса фиксируются сейчас</li>
+            <li>Динамическая — загрузчик ОС сделает это позже</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="29000" data-y="-1500">
+        <h1>Статическая vs динамическая</h1>
+        <ul>
+            <li>.a — статические библиотеки</li>
+            <li>.so — разделяемые (динамические)</li>
+            <li>Статика: всё в одном файле, больше размер</li>
+            <li>Динамика: меньше, но нужны .so при запуске</li>
+            <li>Компромисс: размер vs гибкость обновлений</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="30000" data-y="-1500">
+        <h1>Linker script: зачем</h1>
+        <ul>
+            <li>Явное управление размещением секций</li>
+            <li>Какой адрес считается точкой входа</li>
+            <li>Куда в памяти попадает каждая секция</li>
+            <li>Критично для ОС и загрузчиков</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="31000" data-y="-1500">
+        <h1>Почему linker script необходим</h1>
+        <ul>
+            <li>Линкер по умолчанию не знает физический адрес</li>
+            <li>Он собирает под виртуальную память ОС</li>
+            <li>Ядро должно грузиться по конкретному адресу</li>
+            <li>Например, 0x100000 для Multiboot</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="32000" data-y="-1500">
+        <h1>Минимальный linker script</h1>
+        <pre><code>ENTRY(_start)
+
+SECTIONS {
+    . = 0x100000;  /* адрес загрузки */
+
+    .text : {
+        *(.text)
+    }
+
+    .data : {
+        *(.data)
+    }
+
+    .bss : {
+        *(.bss)
+    }
+}</code></pre>
+    </div>
+
+    <div class="step slide" data-x="33000" data-y="-1500">
+        <h1>Демонстрация: сборка ядра</h1>
+        <pre><code># Компиляция без libc
+gcc -ffreestanding -c kernel.c -o kernel.o
+# Ассемблирование
+nasm -f elf64 start.asm -o start.o
+# Линковка с явным скриптом
+ld -T linker.ld kernel.o start.o -o kernel.bin</code></pre>
+    </div>
+
+    <!-- ==================== 4.5 Адресация при загрузке (7 новых слайдов) ==================== -->
+    <div class="step slide" data-x="34000" data-y="-1500">
+        <h1>Вопрос: статическая линковка и адреса</h1>
+        <ul>
+            <li>Собрали статический исполняемый файл</li>
+            <li>Линкер не знает, куда ОС загрузит программу</li>
+            <li>Но адреса в коде уже проставлены?</li>
+            <li>Как это разрешается?</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="35000" data-y="-1500">
+        <h1>Короткий ответ</h1>
+        <ul>
+            <li>Статическая линковка ≠ фиксированные адреса</li>
+            <li>Линкер знает относительное расположение секций</li>
+            <li>Абсолютные адреса решает ОС при загрузке</li>
+            <li>Механизм: PIE или релокации</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="36000" data-y="-1500">
+        <h1>ELF: относительные смещения</h1>
+        <pre><code>Исполняемый файл (ELF):
+┌─────────────────────┐
+│ ELF Header          │
+├─────────────────────┤
+│ Program Headers     │
+├─────────────────────┤
+│ .text (код)         │  ← смещение 0x1000
+├─────────────────────┤
+│ .rodata (константы) │  ← смещение 0x2000
+├─────────────────────┤
+│ .data (данные)      │  ← смещение 0x3000
+├─────────────────────┤
+│ .bss  (нули)        │  ← смещение 0x4000
+└─────────────────────┘</code></pre>
+    </div>
+
+    <div class="step slide" data-x="37000" data-y="-1500">
+        <h1>Загрузка: базовый адрес</h1>
+        <pre><code>Виртуальная память процесса:
+┌─────────────────────────┐
+│ 0x400000 (base)         │ ← ОС выбирает адрес
+├─────────────────────────┤
+│ base + 0x1000 → .text   │
+├─────────────────────────┤
+│ base + 0x2000 → .rodata │
+├─────────────────────────┤
+│ base + 0x3000 → .data   │
+└─────────────────────────┘</code></pre>
+        <ul>
+            <li>ОС решает, куда загрузить</li>
+            <li>Обычно 0x400000 для x86-64 Linux</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="38000" data-y="-1500">
+        <h1>PIE: Position Independent Executable</h1>
+        <pre><code># Современный стандарт:
+gcc -fPIE -pie main.c -o program
+
+# Код использует относительные адреса:
+; вместо: mov rax, [0x400123]
+; используется:
+lea rax, [rip + offset]  ; адрес от текущей позиции
+
+# Никаких исправлений при загрузке не нужно!</code></pre>
+    </div>
+
+    <div class="step slide" data-x="39000" data-y="-1500">
+        <h1>ET_EXEC: фиксированный base</h1>
+        <pre><code># Старый формат:
+gcc -no-pie main.c -o program
+
+# Линкер зашивает адреса от 0x400000:
+mov rax, [0x400123]  ; абсолютный адрес
+
+# Загрузчик ОС обязан загрузить по 0x400000
+# Если занято — программа не запустится</code></pre>
+    </div>
+
+    <div class="step slide" data-x="40000" data-y="-1500">
+        <h1>Аналогия с ядром ОС</h1>
+        <ul>
+            <li>Обычная программа: ОС выбирает адрес (PIE)</li>
+            <li>Ядро ОС: вы выбираете адрес (linker script)</li>
+            <li>Ядро не может быть PIE — оно само создаёт таблицы страниц</li>
+            <li>Поэтому для ядра нужен явный linker script</li>
+        </ul>
+    </div>
+
+    <!-- ==================== 5. Системная библиотека (5 слайдов) ==================== -->
+    <div class="step slide" data-x="41000" data-y="-1500">
+        <h1>Системная библиотека: роль</h1>
+        <ul>
+            <li>Прослойка между кодом и ядром</li>
+            <li>malloc, printf, fopen — обёртки над syscall'ами</li>
+            <li>Добавляет буферизацию и абстракции</li>
+            <li>Скрывает детали системных вызовов</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="42000" data-y="-1500">
+        <h1>Пример: printf → write</h1>
+        <pre><code>// printf("Hello\n") внутри делает:
+// 1. Форматирует строку в буфер
+// 2. Вызывает write(1, buf, len)
+// 3. write — это системный вызов
+
+// Пользователь видит только printf
+// Библиотека скрывает syscall</code></pre>
+    </div>
+
+    <div class="step slide" data-x="43000" data-y="-1500">
+        <h1>Hosted: библиотека всегда есть</h1>
+        <ul>
+            <li>glibc — стандарт на Linux</li>
+            <li>musl — легковесная альтернатива</li>
+            <li>Разный компромисс: размер, строгость POSIX</li>
+            <li>Подключается автоматически</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="44000" data-y="-1500">
+        <h1>Freestanding: без библиотеки</h1>
+        <ul>
+            <li>Пишете свою минимальную замену</li>
+            <li>Или обходитесь вовсе без неё</li>
+            <li>Каждая функция — только если нужна</li>
+            <li>Полный контроль над кодом</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="45000" data-y="-1500">
+        <h1>Мостик к syscall'ам</h1>
+        <ul>
+            <li>Библиотека внутри — через системные вызовы</li>
+            <li>Она не более «привилегированна», чем ваш код</li>
+            <li>Просто удобная обёртка</li>
+            <li>Следующий раздел: как работают syscall'ы</li>
+        </ul>
+    </div>
+
+    <!-- ==================== 6. Системные вызовы (8 слайдов) ==================== -->
+    <div class="step slide" data-x="46000" data-y="-1500">
+        <h1>Системные вызовы: зачем</h1>
+        <ul>
+            <li>Запрос услуг ядра из пользовательского пространства</li>
+            <li>Файловый ввод-вывод, процессы, память</li>
+            <li>Единственный легальный способ попасть в ядро</li>
+            <li>Безопасный переход между кольцами</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="47000" data-y="-1500">
+        <h1>Кольца защиты</h1>
+        <ul>
+            <li>Ring 0 — ядро, полный доступ</li>
+            <li>Ring 3 — пользовательский код</li>
+            <li>Промежуточные — драйверы (редко)</li>
+            <li>Переход: только через syscall/int</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="48000" data-y="-1500">
+        <h1>Эволюция: int 0x80</h1>
+        <ul>
+            <li>32-битный Linux</li>
+            <li>Программное прерывание</li>
+            <li>Номер вызова в eax</li>
+            <li>Аргументы в ebx, ecx, edx, esi, edi</li>
+            <li>Медленно: полный цикл прерывания</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="49000" data-y="-1500">
+        <h1>Современный: syscall/sysenter</h1>
+        <ul>
+            <li>x86-64 Linux</li>
+            <li>Быстрый механизм через MSR</li>
+            <li>Без полноценного прерывания</li>
+            <li>Минимальные накладные расходы</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="50000" data-y="-1500">
+        <h1>Соглашение о вызове x86-64</h1>
+        <ul>
+            <li>rax — номер системного вызова</li>
+            <li>rdi, rsi, rdx, r10, r8, r9 — аргументы</li>
+            <li>Не совпадает с обычным ABI функций</li>
+            <li>Обычный ABI: rdi, rsi, rdx, rcx, r8, r9</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="51000" data-y="-1500">
+        <h1>Пример: write() без libc</h1>
+        <pre><code>; write(1, msg, len)
+mov rax, 1       ; номер write
+mov rdi, 1       ; fd = stdout
+mov rsi, msg     ; буфер
+mov rdx, len     ; длина
+syscall
+
+; exit(0)
+mov rax, 60      ; номер exit
+mov rdi, 0       ; код возврата
+syscall</code></pre>
+    </div>
+
+    <div class="step slide" data-x="52000" data-y="-1500">
+        <h1>Inline-ассемблер в C</h1>
+        <pre><code>static inline long syscall1(long n, long a1) {
+    long ret;
+    asm volatile (
+        "syscall"
+        : "=a"(ret)
+        : "a"(n), "D"(a1)
+        : "rcx", "r11", "memory"
+    );
+    return ret;
+}
+
+// Использование:
+syscall1(1, 1);  // write(1, ...)</code></pre>
+    </div>
+
+    <div class="step slide" data-x="53000" data-y="-1500">
+        <h1>Демонстрация: Hello без libc</h1>
+        <pre><code>// Полный freestanding Hello, world!
+void _start() {
+    char msg[] = "Hello!\n";
+    syscall1(1, 1);  // write(1, msg, 7)
+    syscall1(60, 0); // exit(0)
+}
+// Собрано: gcc -ffreestanding -nostdlib
+// Запущено: ./hello  (работает!)</code></pre>
+    </div>
+
+    <!-- ==================== 7. QEMU (6 слайдов) ==================== -->
+    <div class="step slide" data-x="54000" data-y="-1500">
+        <h1>QEMU: что это</h1>
+        <ul>
+            <li>Эмулятор/виртуализатор</li>
+            <li>Запускает freestanding-бинарник без железа</li>
+            <li>Поддерживает x86, ARM, RISC-V и др.</li>
+            <li>Два режима: эмуляция и виртуализация</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="55000" data-y="-1500">
+        <h1>Запуск ядра напрямую</h1>
+        <pre><code># Multiboot-совместимое ядро
+qemu-system-x86_64 -kernel your_kernel.bin
+
+# С отладкой: остановить на первой инструкции
+qemu-system-x86_64 -kernel your_kernel.bin -s -S
+
+# -s: GDB server на порту 1234
+# -S: остановить CPU сразу</code></pre>
+    </div>
+
+    <div class="step slide" data-x="56000" data-y="-1500">
+        <h1>Полная эмуляция загрузки</h1>
+        <ul>
+            <li>Эмулируется BIOS/UEFI</li>
+            <li>Ваш код грузится как на реальной машине</li>
+            <li>С образа диска или ISO</li>
+            <li>Максимальная реалистичность</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="57000" data-y="-1500">
+        <h1>Отладка с GDB</h1>
+        <pre><code># Терминал 1: QEMU с GDB server
+qemu-system-x86_64 -kernel kernel.bin -s -S
+
+# Терминал 2: GDB
+gdb kernel.bin
+(gdb) target remote :1234
+(gdb) break _start
+(gdb) continue
+(gdb) info registers</code></pre>
+    </div>
+
+    <div class="step slide" data-x="58000" data-y="-1500">
+        <h1>Почему QEMU, а не железо</h1>
+        <ul>
+            <li>Быстрый цикл: секунды, не перезагрузка</li>
+            <li>Безопасно: падение ядра не роняет машину</li>
+            <li>Воспроизводимость: одинаковое поведение</li>
+            <li>Снапшоты: сохранить/восстановить состояние</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="59000" data-y="-1500">
+        <h1>Доступ к недостижимому</h1>
+        <ul>
+            <li>Первая инструкция после сброса</li>
+            <li>Состояние регистров в любой момент</li>
+            <li>На реальном железе — почти невозможно</li>
+            <li>QEMU даёт полный контроль</li>
+        </ul>
+    </div>
+
+    <!-- ==================== 8. Загрузка десктопа (12 слайдов) ==================== -->
+    <div class="step slide" data-x="60000" data-y="-1500">
+        <h1>Загрузка: общая схема</h1>
+        <ul>
+            <li>Включение питания → Reset Vector</li>
+            <li>POST → поиск загрузочного устройства</li>
+            <li>BIOS или UEFI → загрузчик</li>
+            <li>Загрузчик → ядро ОС</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="61000" data-y="-1500">
+        <h1>Reset Vector</h1>
+        <ul>
+            <li>Процессор стартует в Real Mode</li>
+            <li>Фиксированный адрес: 0xFFFFFFF0</li>
+            <li>Аппаратно отображён на ПЗУ прошивки</li>
+            <li>Первая инструкция — из BIOS/UEFI</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="62000" data-y="-1500">
+        <h1>POST</h1>
+        <ul>
+            <li>Power-On Self-Test</li>
+            <li>Базовая диагностика прошивки</li>
+            <li>Проверка памяти, устройств</li>
+            <li>Инициализация контроллеров</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="63000" data-y="-1500">
+        <h1>Legacy BIOS: MBR</h1>
+        <ul>
+            <li>Чтение первого сектора (512 байт)</li>
+            <li>Проверка сигнатуры 0x55AA</li>
+            <li>Загрузка в память по адресу 0x7C00</li>
+            <li>Переход на него в 16-битном Real Mode</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="64000" data-y="-1500">
+        <h1>Ограничение MBR</h1>
+        <ul>
+            <li>Первая стадия: ~446 байт кода</li>
+            <li>Остальное — таблица разделов</li>
+            <li>Слишком мало для полноценного загрузчика</li>
+            <li>Решение: двухстадийная загрузка</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="65000" data-y="-1500">
+        <h1>Двухстадийная загрузка</h1>
+        <ul>
+            <li>Стадия 1 (MBR): найти и загрузить стадию 2</li>
+            <li>Стадия 2 (например, GRUB): уже полноценная</li>
+            <li>Может читать файловые системы</li>
+            <li>Может показывать меню выбора ОС</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="66000" data-y="-1500">
+        <h1>Real Mode: ограничения</h1>
+        <ul>
+            <li>16-битные регистры</li>
+            <li>Максимум 1 МБ адресуемой памяти</li>
+            <li>Нет защиты памяти</li>
+            <li>Нужен переход в Protected/Long Mode</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="67000" data-y="-1500">
+        <h1>Переход в Long Mode</h1>
+        <ul>
+            <li>Настройка GDT (Global Descriptor Table)</li>
+            <li>Включение линии A20 (доступ к >1 МБ)</li>
+            <li>Установка бита PE в CR0</li>
+            <li>Переход в 64-битный режим</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="68000" data-y="-1500">
+        <h1>UEFI: другая модель</h1>
+        <ul>
+            <li>Прошивка понимает FAT32 (ESP)</li>
+            <li>EFI System Partition</li>
+            <li>Загружает PE/COFF файл напрямую</li>
+            <li>Без классического MBR</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="69000" data-y="-1500">
+        <h1>UEFI: преимущества</h1>
+        <ul>
+            <li>Загрузчик — обычный исполняемый файл</li>
+            <li>Может быть большим, с драйверами</li>
+            <li>Secure Boot — проверка подписи</li>
+            <li>Legacy-режим — для совместимости</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="70000" data-y="-1500">
+        <h1>Multiboot: протокол</h1>
+        <ul>
+            <li>Загрузчик размещает ядро в памяти</li>
+            <li>Передаёт карту памяти от BIOS/UEFI</li>
+            <li>Передаёт информацию о железе</li>
+            <li>QEMU -kernel использует тот же принцип</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="71000" data-y="-1500">
+        <h1>Инициализация ядра</h1>
+        <ul>
+            <li>Собственные таблицы страниц</li>
+            <li>IDT (Interrupt Descriptor Table)</li>
+            <li>Драйверы устройств</li>
+            <li>Монтирование корневой ФС</li>
+            <li>Запуск init/systemd</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="72000" data-y="-1500">
+        <h1>Замыкающая мысль</h1>
+        <ul>
+            <li>Ядро ОС на старте — это freestanding-программа</li>
+            <li>Собрана тем же путём: компилятор → ассемблер → линкер</li>
+            <li>С явным linker script</li>
+            <li>Только запущена на реальном процессоре</li>
+        </ul>
+    </div>
+
+    <!-- ==================== 9. Итоги (4 слайда) ==================== -->
+    <div class="step slide" data-x="73000" data-y="-1500">
+        <h1>Итоги: цепочка</h1>
+        <ul>
+            <li>Компилятор: C → ассемблер</li>
+            <li>Ассемблер: ассемблер → объектный код</li>
+            <li>Линкер: .o файлы → финальный образ</li>
+            <li>Linker script — explicit-план размещения</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="74000" data-y="-1500">
+        <h1>Итоги: freestanding</h1>
+        <ul>
+            <li>Без ОС снизу — образ должен сам стать «ОС снизу»</li>
+            <li>Для чего-то ещё</li>
+            <li>Каждый инструмент виден и управляем</li>
+            <li>Нет скрытых механизмов</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="75000" data-y="-1500">
+        <h1>Итоги: QEMU</h1>
+        <ul>
+            <li>Не просто «удобная замена железу»</li>
+            <li>Доступ к моментам выполнения</li>
+            <li>Первая инструкция после сброса</li>
+            <li>Недостижимо на реальном железе</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="76000" data-y="-1500">
+        <h1>Материалы</h1>
+        <ul>
+            <li>OSDev Wiki — подробности по каждой стадии</li>
+            <li>Исходники GRUB</li>
+            <li>Спецификация Multiboot</li>
+            <li>Практика: соберите своё ядро в QEMU</li>
+        </ul>
+    </div>
+
+    <div id="overview" class="step" data-x="3000" data-y="1500" data-z="0" data-scale="10">
+    </div>
+
+</div>
+
+<div id="impress-toolbar"></div>
+
+<div class="hint">
+    <p>Use a spacebar or arrow keys to navigate. <br/>
+       Press 'P' to launch speaker console.</p>
+</div>
+<script>
+if ("ontouchstart" in document.documentElement) { 
+    document.querySelector(".hint").innerHTML = "<p>Swipe left or right to navigate</p>";
+}
+</script>
+
+<script src="js/impress.js"></script>
+<script>impress().init();</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/python.min.js"></script>
+
+<script>hljs.highlightAll();</script>
+
+</body>
+</html>
+
