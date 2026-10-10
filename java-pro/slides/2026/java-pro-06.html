@@ -1,0 +1,1110 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1024" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <title>Метапрограммирование в Java: лекция 1</title>
+
+    <link href="//fonts.googleapis.com/css?family=Open+Sans:regular,semibold,italic,italicsemibold|PT+Sans:400,700,400italic,700italic|PT+Serif:400,700,400italic,700italic" rel="stylesheet" />
+
+    <link href="css/impress-demo.css" rel="stylesheet" />
+    <link href="css/impress-common.css" rel="stylesheet" />
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/default.min.css">
+
+    <style>
+        /* Дополнения к impress-demo.css: только то, чего нет в образце (код, таблицы, разделы). Можно удалить/подправить. */
+
+        .slide {
+            font-size: 27px;
+            line-height: 1.3;
+            letter-spacing: -.5px;
+        }
+
+        .slide h1 {
+            font-size: 40px;
+            line-height: 1.15;
+            margin: 0 0 .5em;
+            text-align: left;
+        }
+
+        .slide ul,
+        .slide ol {
+            margin: 0;
+            padding-left: 1.1em;
+        }
+
+        .slide li {
+            margin: .25em 0;
+        }
+
+        .slide p {
+            margin: .6em 0 0;
+        }
+
+        .slide pre {
+            margin: 0 0 12px;
+            letter-spacing: 0;
+            text-shadow: none;
+        }
+
+        .slide pre code.hljs {
+            padding: 12px 16px;
+            font-size: 17px;
+            line-height: 1.35;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .slide pre.small code.hljs {
+            font-size: 15.5px;
+        }
+
+        .slide code:not(.hljs) {
+            background: #e2e8f0;
+            color: #1e293b;
+            padding: 0 .3em;
+            border-radius: 4px;
+            font-size: .85em;
+            letter-spacing: 0;
+        }
+
+        .slide.section code:not(.hljs),
+        .slide.title code:not(.hljs) {
+            background: rgba(255,255,255,.28);
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .slide table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 22px;
+            line-height: 1.25;
+        }
+
+        .slide th,
+        .slide td {
+            border-bottom: 1px solid #ccc;
+            padding: 6px 10px;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .slide th {
+            background: #e2e8f0;
+            color: #1e293b;
+        }
+
+        .slide .hl {
+            color: #b91c1c;
+        }
+
+        .slide.section {
+            background: linear-gradient(135deg,#0f766e,#1d4ed8);
+            color: #fff;
+            text-shadow: none;
+        }
+
+        .slide.section h1 {
+            color: #fff;
+            font-size: 50px;
+        }
+
+        .slide.section .num {
+            position: absolute;
+            right: 40px;
+            top: 0;
+            font-size: 200px;
+            font-weight: 700;
+            opacity: .18;
+            line-height: 1;
+        }
+
+        .slide.title .hint {
+            font-size: 20px;
+            color: #999;
+            margin-top: 40px;
+        }
+
+        .notes {
+            display: none;
+        }
+
+        .ov {
+            position: fixed;
+            left: 14px;
+            bottom: 12px;
+            color: #93c5fd;
+            font-size: 14px;
+            text-decoration: none;
+            z-index: 10;
+        }
+
+        #overview {
+            background: none!important;
+            border: 0!important;
+            box-shadow: none!important;
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body class="impress-not-supported">
+
+<div class="fallback-message">
+    <p>Ваш браузер <b>не поддерживает возможности, необходимые для impress.js</b>, поэтому показана упрощённая версия презентации.</p>
+    <p>Лучше всего использовать свежие <b>Chrome</b>, <b>Safari</b> или <b>Firefox</b>.</p>
+</div>
+
+<div id="impress"
+    data-transition-duration="1000"
+    data-width="1024"
+    data-height="768"
+    data-max-scale="3"
+    data-min-scale="0"
+    data-perspective="1000"
+    >
+
+<!-- ======================= ТИТУЛ ======================= -->
+<div class="step slide" data-x="-1000" data-y="-1500">
+  <h1>Метапрограммирование в Java</h1>
+  <h2>Рефлексия, MethodHandle, аннотации, прокси, генерация кода</h2>
+  <p>Программы, которые пишут программы</p>
+  <p>От интроспекции до генерации байткода</p>
+</div>
+
+<!-- ======================= БЛОК 1: РЕФЛЕКСИЯ ======================= -->
+<div class="step slide section" data-x="0" data-y="-1500">
+  <h1>Рефлексия</h1>
+  <p>Интроспекция классов в рантайме</p>
+  <div class="num">01</div>
+</div>
+
+<div class="step slide" data-x="1000" data-y="-1500">
+  <h1>Рефлексия: Определение</h1>
+  <ul>
+    <li>Возможность программы исследовать себя в рантайме</li>
+    <li>Получение информации о классах, методах, полях без знания их имен на этапе компиляции</li>
+    <li>Точка входа — объект <code>Class&lt;?&gt;</code></li>
+  </ul>
+  <h3>Что дает</h3>
+  <ul>
+    <li>Создание объектов без <code>new</code></li>
+    <li>Вызов методов по имени (из строки)</li>
+    <li>Доступ к private-полям и методам</li>
+    <li>Чтение аннотаций</li>
+  </ul>
+</div>
+
+<div class="step slide" data-x="2000" data-y="-1500">
+  <h1>Рефлексия: Получение Class</h1>
+  <p>Три способа получить <code>Class&lt;?&gt;</code>:</p>
+  <pre><code class="language-java">// 1. Через .class (compile-time)
+Class&lt;String&gt; c1 = String.class;
+
+// 2. Через getClass() (runtime)
+String s = "hello";
+Class&lt;? extends String&gt; c2 = s.getClass();
+
+// 3. Через Class.forName() (динамически)
+Class&lt;?&gt; c3 = Class.forName("java.lang.String");</code></pre>
+  <p>Способ 3 — самый гибкий: имя класса можно получить из конфигурации</p>
+</div>
+
+<div class="step slide" data-x="3000" data-y="-1500">
+  <h1>Рефлексия: Исследование класса</h1>
+  <pre><code class="language-java">Class&lt;?&gt; clazz = User.class;
+
+// Поля
+Field[] fields = clazz.getDeclaredFields();
+
+// Методы
+Method[] methods = clazz.getDeclaredMethods();
+
+// Конструкторы
+Constructor&lt;?&gt;[] constructors = clazz.getDeclaredConstructors();
+
+// Аннотации
+Annotation[] annotations = clazz.getAnnotations();
+
+// Суперкласс и интерфейсы
+Class&lt;?&gt; superclass = clazz.getSuperclass();
+Class&lt;?&gt;[] interfaces = clazz.getInterfaces();</code></pre>
+</div>
+
+<div class="step slide" data-x="4000" data-y="-1500">
+  <h1>Рефлексия: Создание объекта</h1>
+  <pre><code class="language-java">// Через конструктор по умолчанию
+Class&lt;?&gt; clazz = Class.forName("com.example.User");
+User user = (User) clazz.getDeclaredConstructor().newInstance();
+
+// Через конструктор с параметрами
+Constructor&lt;?&gt; constructor = clazz.getConstructor(String.class, int.class);
+User user2 = (User) constructor.newInstance("Alice", 30);
+
+// Private-конструктор
+Constructor&lt;?&gt; privateCtor = clazz.getDeclaredConstructor();
+privateCtor.setAccessible(true);
+User user3 = (User) privateCtor.newInstance();</code></pre>
+</div>
+
+<div class="step slide" data-x="5000" data-y="-1500">
+  <h1>Рефлексия: Вызов методов</h1>
+  <pre><code class="language-java">Method method = clazz.getMethod("setName", String.class);
+method.invoke(user, "Bob");
+
+// Private-метод
+Method privateMethod = clazz.getDeclaredMethod("secretMethod");
+privateMethod.setAccessible(true);
+privateMethod.invoke(user);
+
+// Статический метод
+Method staticMethod = clazz.getMethod("staticMethod");
+staticMethod.invoke(null);</code></pre>
+  <p><code>invoke</code> — главный метод для динамического вызова</p>
+</div>
+
+<div class="step slide" data-x="6000" data-y="-1500">
+  <h1>Рефлексия: Доступ к полям</h1>
+  <pre><code class="language-java">Field field = clazz.getDeclaredField("name");
+field.setAccessible(true); // ломаем инкапсуляцию
+
+// Чтение
+String name = (String) field.get(user);
+
+// Запись
+field.set(user, "Charlie");</code></pre>
+  <p>С Java 9+ модули могут запретить доступ (exports/opens)</p>
+</div>
+
+<div class="step slide" data-x="7000" data-y="-1500">
+  <h1>Рефлексия: Дженерики</h1>
+  <pre><code class="language-java">// Получить параметризованный тип
+Method method = clazz.getMethod("getList");
+Type returnType = method.getGenericReturnType();
+
+if (returnType instanceof ParameterizedType) {
+    ParameterizedType pt = (ParameterizedType) returnType;
+    Type[] typeArgs = pt.getActualTypeArguments();
+    // typeArgs[0] = String.class
+}
+
+// Пример: List&lt;String&gt; getList()</code></pre>
+  <p>Нужно для библиотек, работающих с типами (Jackson, Hibernate)</p>
+</div>
+
+<div class="step slide" data-x="8000" data-y="-1500">
+  <h1>Рефлексия: Как работает под капотом</h1>
+  <pre><code class="language-java">// Упрощенная схема method.invoke(obj, args)
+public Object invoke(Object obj, Object... args) {
+    // 1. Проверка доступа (SecurityManager, модули)
+    // 2. Проверка типов аргументов (каждый раз!)
+    // 3. Упаковка/распаковка (boxing/unboxing)
+    // 4. Вызов через нативный метод (native)
+    // 5. JIT не может инлайнить (метод неизвестен)
+}</code></pre>
+  <table>
+    <tr><th>Проблема</th><th>Причина</th></tr>
+    <tr><td>Проверка доступа</td><td>Каждый вызов проверяет SecurityManager</td></tr>
+    <tr><td>Проверка типов</td><td>invoke(Object, Object[]) — все как Object</td></tr>
+    <tr><td>Boxing</td><td>int -> Integer -> Object -> int</td></tr>
+    <tr><td>Нативный вызов</td><td>JIT не видит тело метода</td></tr>
+    <tr><td>Нет инлайнинга</td><td>JIT не знает, какой метод будет вызван</td></tr>
+  </table>
+</div>
+
+<div class="step slide" data-x="9000" data-y="-1500">
+  <h1>Рефлексия: Производительность</h1>
+  <table>
+    <tr><th>Операция</th><th>Время (относительно прямого вызова)</th></tr>
+    <tr><td>Прямой вызов</td><td>1x</td></tr>
+    <tr><td>invoke()</td><td>10-100x медленнее</td></tr>
+    <tr><td>setAccessible(true)</td><td>Ускоряет, но ломает инкапсуляцию</td></tr>
+    <tr><td>Кэширование Method</td><td>2-5x медленнее (вместо 100x)</td></tr>
+  </table>
+  <p>Кэшируйте <code>Method</code> и <code>Field</code> — не вызывайте <code>getMethod()</code> каждый раз</p>
+</div>
+
+<div class="step slide" data-x="10000" data-y="-1500">
+  <h1>Рефлексия: Ограничения и опасности</h1>
+  <ul>
+    <li><strong>Производительность:</strong> invoke() медленный, JIT не оптимизирует</li>
+    <li><strong>Безопасность:</strong> setAccessible(true) ломает инкапсуляцию</li>
+    <li><strong>Модули (Java 9+):</strong> модуль должен открыть пакет (opens)</li>
+    <li><strong>Ошибки:</strong> NoSuchMethodException, IllegalAccessException — в рантайме, не на компиляции</li>
+  </ul>
+</div>
+
+<!-- ======================= БЛОК 1.5: METHODHANDLE ======================= -->
+<div class="step slide section" data-x="11000" data-y="-1500">
+  <h1>MethodHandle и LambdaMetafactory</h1>
+  <p>Производительный доступ к методам</p>
+  <div class="num">02</div>
+</div>
+
+<div class="step slide" data-x="12000" data-y="-1500">
+  <h1>MethodHandle: Определение</h1>
+  <ul>
+    <li>Типизированная ссылка на метод (Java 7+)</li>
+    <li>Альтернатива <code>java.lang.reflect.Method</code></li>
+    <li>Типы известны — JIT может оптимизировать</li>
+  </ul>
+  <pre><code class="language-java">// Создание
+MethodHandles.Lookup lookup = MethodHandles.lookup();
+MethodHandle handle = lookup.findVirtual(User.class, "getName",
+    MethodType.methodType(String.class));
+
+// Вызов
+String name = (String) handle.invoke(user);       // с проверкой типов
+String name2 = (String) handle.invokeExact(user); // без проверки (быстрее)</code></pre>
+</div>
+
+<div class="step slide" data-x="13000" data-y="-1500">
+  <h1>MethodHandle: Типы вызовов</h1>
+  <pre><code class="language-java">// invoke() — с проверкой типов и адаптацией
+// Может делать boxing/unboxing, приведение типов
+String name = (String) handle.invoke(user);
+
+// invokeExact() — без проверки, типы должны совпадать точно
+// Быстрее, но требует точного соответствия
+String name2 = (String) handle.invokeExact(user);
+
+// invokeWithArguments() — как рефлексия (медленно)
+Object result = handle.invokeWithArguments(user);</code></pre>
+  <p><code>invokeExact</code> — самый быстрый, но самый строгий</p>
+</div>
+
+<div class="step slide" data-x="14000" data-y="-1500">
+  <h1>MethodHandle: Как работает под капотом</h1>
+  <pre><code class="language-java">// JIT видит:
+//   handle.invokeExact(user) -> User.getName() -> return this.name;
+
+// JIT может инлайнить:
+//   String name = user.name;  // прямой доступ к полю
+
+// В отличие от рефлексии:
+//   method.invoke(user) -> ??? (JIT не знает, какой метод)
+//   JIT НЕ может инлайнить</code></pre>
+  <ul>
+    <li>Проверка доступа — один раз при создании</li>
+    <li>Типы известны из MethodType</li>
+    <li>Нет нативного вызова — обычный Java-код</li>
+    <li>JIT видит цепочку вызовов</li>
+  </ul>
+</div>
+
+<div class="step slide" data-x="15000" data-y="-1500">
+  <h1>MethodHandle: Сравнение с рефлексией</h1>
+  <table>
+    <tr><th>Критерий</th><th>Method</th><th>MethodHandle</th></tr>
+    <tr><td>Типобезопасность</td><td>Нет</td><td>Да (MethodType)</td></tr>
+    <tr><td>Проверка доступа</td><td>Каждый вызов</td><td>Один раз при создании</td></tr>
+    <tr><td>Boxing</td><td>Да</td><td>Нет</td></tr>
+    <tr><td>Нативный вызов</td><td>Да</td><td>Нет</td></tr>
+    <tr><td>Инлайнинг JIT</td><td>Нет</td><td>Да</td></tr>
+    <tr><td>Скорость</td><td>10-100x медленнее</td><td>1-2x (почти как прямой)</td></tr>
+  </table>
+</div>
+
+<div class="step slide" data-x="16000" data-y="-1500">
+  <h1>MethodHandle: Дополнительные возможности</h1>
+  <pre><code class="language-java">// Доступ к полям
+MethodHandle getter = lookup.findGetter(User.class, "name", String.class);
+MethodHandle setter = lookup.findSetter(User.class, "name", String.class);
+
+// Композиция
+MethodHandle fullName = lookup.findVirtual(User.class, "getFullName",
+    MethodType.methodType(String.class));
+MethodHandle upperCase = lookup.findVirtual(String.class, "toUpperCase",
+    MethodType.methodType(String.class));
+MethodHandle composed = MethodHandles.filterReturnValue(fullName, upperCase);
+
+// Привязка аргументов
+MethodHandle greet = lookup.findVirtual(User.class, "greet",
+    MethodType.methodType(String.class, String.class));
+MethodHandle greetAlice = MethodHandles.insertArguments(greet, 1, "Alice");</code></pre>
+</div>
+
+<div class="step slide" data-x="17000" data-y="-1500">
+  <h1>LambdaMetafactory: Определение</h1>
+  <ul>
+    <li>Генерация реализации функционального интерфейса (Java 8+)</li>
+    <li>Использует <code>invokedynamic</code> — инструкцию JVM</li>
+    <li>Создает класс, который вызывает метод напрямую</li>
+  </ul>
+  <pre><code class="language-java">// Функциональный интерфейс
+interface Greeter {
+    String greet(String name);
+}
+
+// Лямбда (компилятор использует LambdaMetafactory)
+Greeter greeter = name -> "Hello, " + name;</code></pre>
+</div>
+
+<div class="step slide" data-x="18000" data-y="-1500">
+  <h1>LambdaMetafactory: Как работает</h1>
+  <pre><code class="language-java">// Исходный код
+Greeter greeter = name -> "Hello, " + name;
+
+// Компилятор генерирует invokedynamic
+// JVM вызывает LambdaMetafactory.metafactory()
+// LambdaMetafactory генерирует класс:
+
+class Greeter$$Lambda {
+    public String greet(String name) {
+        return "Hello, " + name;  // прямой вызов, без рефлексии
+    }
+}</code></pre>
+  <ul>
+    <li>Нет рефлексии — сгенерированный класс вызывает метод напрямую</li>
+    <li>Нет проверок — типы известны на этапе генерации</li>
+    <li>Инлайнинг — JIT видит весь код</li>
+  </ul>
+</div>
+
+<div class="step slide" data-x="19000" data-y="-1500">
+  <h1>LambdaMetafactory: Ручное создание</h1>
+  <pre><code class="language-java">MethodHandles.Lookup lookup = MethodHandles.lookup();
+
+// Тип создаваемой реализации
+MethodType factoryType = MethodType.methodType(Greeter.class);
+
+// Тип метода интерфейса
+MethodType interfaceMethodType = MethodType.methodType(String.class, String.class);
+
+// Реализация (статический метод)
+MethodHandle implMethod = lookup.findStatic(GreeterFactory.class, "greetImpl",
+    MethodType.methodType(String.class, String.class));
+
+// Создание
+CallSite site = LambdaMetafactory.metafactory(
+    lookup, "greet", factoryType, interfaceMethodType, implMethod, interfaceMethodType
+);
+
+Greeter greeter = (Greeter) site.getTarget().invoke();
+System.out.println(greeter.greet("Alice"));</code></pre>
+</div>
+
+<div class="step slide" data-x="20000" data-y="-1500">
+  <h1>LambdaMetafactory: Сравнение производительности</h1>
+  <table>
+    <tr><th>Подход</th><th>Скорость</th><th>Причина</th></tr>
+    <tr><td>Прямой вызов</td><td>1x</td><td>JIT видит все</td></tr>
+    <tr><td>LambdaMetafactory</td><td>1x</td><td>Сгенерированный класс, JIT инлайнит</td></tr>
+    <tr><td>MethodHandle.invokeExact</td><td>1-2x</td><td>Типы известны, JIT инлайнит</td></tr>
+    <tr><td>MethodHandle.invoke</td><td>2-5x</td><td>Проверка типов</td></tr>
+    <tr><td>Рефлексия</td><td>10-100x</td><td>Проверки, нативный вызов, нет инлайнинга</td></tr>
+  </table>
+</div>
+
+<div class="step slide" data-x="21000" data-y="-1500">
+  <h1>MethodHandle: Итог — почему быстрее</h1>
+  <table>
+    <tr><th>Проблема рефлексии</th><th>Решение в MethodHandle</th></tr>
+    <tr><td>Проверка доступа каждый раз</td><td>Проверяется один раз при создании</td></tr>
+    <tr><td>Проверка типов каждый раз</td><td>Типы известны из MethodType</td></tr>
+    <tr><td>Boxing/Unboxing</td><td>Нет — типы известны</td></tr>
+    <tr><td>Нативный вызов</td><td>Нет — обычный Java-вызов</td></tr>
+    <tr><td>Нет инлайнинга</td><td>JIT видит цепочку вызовов</td></tr>
+  </table>
+</div>
+
+<!-- ======================= БЛОК 2: КЛАСС-ЛОАДЕРЫ ======================= -->
+<div class="step slide section" data-x="22000" data-y="-1500">
+  <h1>Класс-лоадеры</h1>
+  <p>Откуда берутся классы</p>
+  <div class="num">03</div>
+</div>
+
+<div class="step slide" data-x="23000" data-y="-1500">
+  <h1>Класс-лоадеры: Зачем нужны</h1>
+  <ul>
+    <li>Загрузка .class файлов в JVM</li>
+    <li>Определение видимости классов (изоляция)</li>
+    <li>Динамическая загрузка (плагины, модули)</li>
+  </ul>
+  <h3>Без класс-лоадеров невозможно</h3>
+  <ul>
+    <li>Tomcat: разные приложения не видят классы друг друга</li>
+    <li>OSGi: модули с версиями</li>
+    <li>Java Modules (JPMS)</li>
+  </ul>
+</div>
+
+<div class="step slide" data-x="24000" data-y="-1500">
+  <h1>Класс-лоадеры: Иерархия</h1>
+  <pre><code>Bootstrap (JDK, java.base)
+    |
+    +-- Platform/Extension (Java 9+, java.sql, java.xml)
+        |
+        +-- Application/System (classpath)
+            |
+            +-- Пользовательские (Tomcat, OSGi, свой ClassLoader)</code></pre>
+  <ul>
+    <li><strong>Bootstrap:</strong> встроен в JVM, загружает java.base</li>
+    <li><strong>Platform:</strong> модули JDK</li>
+    <li><strong>Application:</strong> ваш classpath</li>
+    <li><strong>Пользовательские:</strong> создаются приложением</li>
+  </ul>
+</div>
+
+<div class="step slide" data-x="25000" data-y="-1500">
+  <h1>Класс-лоадеры: Parent Delegation</h1>
+  <ol>
+    <li>Спросить родителя: "Ты знаешь этот класс?"</li>
+    <li>Если родитель не знает — загрузить самому</li>
+  </ol>
+  <pre><code class="language-java">protected Class&lt;?&gt; loadClass(String name) {
+    // 1. Проверить, не загружен ли уже
+    Class&lt;?&gt; c = findLoadedClass(name);
+    if (c != null) return c;
+    
+    // 2. Спросить родителя
+    try {
+        c = parent.loadClass(name);
+    } catch (ClassNotFoundException e) {
+        // 3. Загрузить самому
+        c = findClass(name);
+    }
+    return c;
+}</code></pre>
+</div>
+
+<div class="step slide" data-x="26000" data-y="-1500">
+  <h1>Класс-лоадеры: Почему Parent Delegation</h1>
+  <ul>
+    <li><strong>Безопасность:</strong> нельзя подменить java.lang.String своей версией</li>
+    <li><strong>Экономия:</strong> класс загружается один раз</li>
+    <li><strong>Иерархия:</strong> стандартные классы всегда доступны</li>
+  </ul>
+  <h3>Исключение: Thread Context ClassLoader</h3>
+  <ul>
+    <li>Иногда родитель не знает о классах ребенка (JDBC, JNDI)</li>
+    <li>Решение: Thread.currentThread().getContextClassLoader()</li>
+  </ul>
+</div>
+
+<div class="step slide" data-x="27000" data-y="-1500">
+  <h1>Класс-лоадеры: Свой ClassLoader</h1>
+  <pre><code class="language-java">public class MyClassLoader extends ClassLoader {
+    @Override
+    protected Class&lt;?&gt; findClass(String name) {
+        // Читаем .class файл (БД, сеть, генерация)
+        byte[] bytes = loadFromDatabase(name);
+        return defineClass(name, bytes, 0, bytes.length);
+    }
+}</code></pre>
+  <p>Применения:</p>
+  <ul>
+    <li>Загрузка классов из БД или сети</li>
+    <li>Генерация классов на лету (CGLIB, Byte Buddy)</li>
+    <li>Изоляция (Tomcat, OSGi)</li>
+  </ul>
+</div>
+
+<div class="step slide" data-x="28000" data-y="-1500">
+  <h1>Класс-лоадеры: Связь с рефлексией</h1>
+  <ul>
+    <li><code>Class&lt;?&gt;</code> — результат работы ClassLoader</li>
+    <li>Рефлексия работает с уже загруженными классами</li>
+    <li>ClassLoader определяет, какие классы доступны</li>
+  </ul>
+  <pre><code class="language-java">// Динамическая загрузка
+Class&lt;?&gt; clazz = Class.forName("com.example.Plugin");
+// Использует ClassLoader текущего потока
+
+// Явный ClassLoader
+Class&lt;?&gt; clazz2 = myClassLoader.loadClass("com.example.Plugin");</code></pre>
+</div>
+
+<!-- ======================= БЛОК 3: АННОТАЦИИ ======================= -->
+<div class="step slide section" data-x="29000" data-y="-1500">
+  <h1>Аннотации</h1>
+  <p>Декларативное метапрограммирование</p>
+  <div class="num">04</div>
+</div>
+
+<div class="step slide" data-x="30000" data-y="-1500">
+  <h1>Аннотации: Определение</h1>
+  <ul>
+    <li>Метаданные в коде — не влияют на выполнение сами по себе</li>
+    <li>Обрабатываются инструментами: компилятор, фреймворки</li>
+    <li>Примеры: <code>@Override</code>, <code>@Deprecated</code>, <code>@SpringBootApplication</code></li>
+  </ul>
+  <h3>Создание своей аннотации</h3>
+  <pre><code class="language-java">@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.METHOD)
+public @interface Loggable {
+    String level() default "INFO";
+    boolean logParams() default true;
+}</code></pre>
+</div>
+
+<div class="step slide" data-x="31000" data-y="-1500">
+  <h1>Аннотации: Retention Policy</h1>
+  <table>
+    <tr><th>Retention</th><th>Где доступна</th><th>Пример</th></tr>
+    <tr><td>SOURCE</td><td>Только в исходном коде</td><td>@Override, @SuppressWarnings</td></tr>
+    <tr><td>CLASS</td><td>В байткоде, но не в рантайме</td><td>@Lombok (частично)</td></tr>
+    <tr><td>RUNTIME</td><td>Доступна через рефлексию</td><td>@SpringBootApplication, @Test</td></tr>
+  </table>
+  <p>Для рефлексии нужен RUNTIME</p>
+</div>
+
+<div class="step slide" data-x="32000" data-y="-1500">
+  <h1>Аннотации: Target</h1>
+  <p>Куда можно вешать аннотацию:</p>
+  <pre><code class="language-java">@Target({
+    ElementType.TYPE,       // класс, интерфейс, enum
+    ElementType.METHOD,     // метод
+    ElementType.FIELD,      // поле
+    ElementType.PARAMETER,  // параметр
+    ElementType.CONSTRUCTOR,// конструктор
+    ElementType.ANNOTATION_TYPE, // другая аннотация
+    ElementType.PACKAGE     // пакет
+})</code></pre>
+</div>
+
+<div class="step slide" data-x="33000" data-y="-1500">
+  <h1>Аннотации: Чтение через рефлексию</h1>
+  <pre><code class="language-java">// Читаем аннотацию с класса
+Class&lt;?&gt; clazz = UserService.class;
+if (clazz.isAnnotationPresent(Loggable.class)) {
+    Loggable loggable = clazz.getAnnotation(Loggable.class);
+    String level = loggable.level();
+}
+
+// Читаем с метода
+Method method = clazz.getMethod("save", User.class);
+Loggable loggable = method.getAnnotation(Loggable.class);
+
+// Все аннотации
+Annotation[] annotations = method.getAnnotations();</code></pre>
+</div>
+
+<div class="step slide" data-x="34000" data-y="-1500">
+  <h1>Аннотации: Пример — Свой DI-контейнер</h1>
+  <pre><code class="language-java">@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.FIELD)
+public @interface Inject { }
+
+// Использование
+public class UserService {
+    @Inject private UserRepository repository;
+}
+
+// Обработка
+for (Field field : clazz.getDeclaredFields()) {
+    if (field.isAnnotationPresent(Inject.class)) {
+        field.setAccessible(true);
+        Object dependency = container.get(field.getType());
+        field.set(instance, dependency);
+    }
+}</code></pre>
+</div>
+
+<!-- ======================= БЛОК 4: ДИНАМИЧЕСКИЕ ПРОКСИ ======================= -->
+<div class="step slide section" data-x="35000" data-y="-1500">
+  <h1>Динамические прокси</h1>
+  <p>Перехват вызовов методов</p>
+  <div class="num">05</div>
+</div>
+
+<div class="step slide" data-x="36000" data-y="-1500">
+  <h1>Прокси: Определение</h1>
+  <ul>
+    <li>Создание реализации интерфейса на лету</li>
+    <li>Перехват вызовов методов без изменения оригинального кода</li>
+  </ul>
+  <h3>Применения</h3>
+  <ul>
+    <li>AOP: транзакции, логирование, безопасность</li>
+    <li>Mock-объекты (Mockito)</li>
+    <li>Remote calls (RMI, Feign)</li>
+    <li>Lazy-loading (Hibernate)</li>
+  </ul>
+</div>
+
+<div class="step slide" data-x="37000" data-y="-1500">
+  <h1>Прокси: java.lang.reflect.Proxy</h1>
+  <pre><code class="language-java">// Интерфейс
+public interface UserService {
+    void save(User user);
+}
+
+// InvocationHandler — перехватывает все вызовы
+InvocationHandler handler = (proxy, method, args) -> {
+    System.out.println("Before: " + method.getName());
+    Object result = method.invoke(target, args);
+    System.out.println("After: " + method.getName());
+    return result;
+};
+
+// Создание прокси
+UserService proxy = (UserService) Proxy.newProxyInstance(
+    UserService.class.getClassLoader(),
+    new Class[]{UserService.class},
+    handler
+);</code></pre>
+</div>
+
+<div class="step slide" data-x="38000" data-y="-1500">
+  <h1>Прокси: Ограничения Proxy</h1>
+  <ul>
+    <li><strong>Только интерфейсы:</strong> нельзя проксировать классы</li>
+    <li><strong>Производительность:</strong> рефлексия под капотом</li>
+    <li><strong>final-методы:</strong> не перехватываются</li>
+  </ul>
+  <h3>Когда использовать</h3>
+  <ul>
+    <li>Класс реализует интерфейс</li>
+    <li>Нужна простота</li>
+    <li>Не критична производительность</li>
+  </ul>
+</div>
+
+<div class="step slide" data-x="39000" data-y="-1500">
+  <h1>Прокси: CGLIB</h1>
+  <ul>
+    <li>Code Generation Library</li>
+    <li>Прокси для классов (не только интерфейсов)</li>
+    <li>Механизм: наследование — создает подкласс</li>
+  </ul>
+  <pre><code class="language-java">// Класс без интерфейса
+public class UserService {
+    public void save(User user) { ... }
+}
+
+// CGLIB создает подкласс
+UserService proxy = (UserService) Enhancer.create(
+    UserService.class,
+    new MethodInterceptor() {
+        @Override
+        public Object intercept(Object obj, Method method,
+                Object[] args, MethodProxy proxy) throws Throwable {
+            System.out.println("Before: " + method.getName());
+            Object result = proxy.invokeSuper(obj, args);
+            System.out.println("After: " + method.getName());
+            return result;
+        }
+    }
+);</code></pre>
+</div>
+
+<div class="step slide" data-x="40000" data-y="-1500">
+  <h1>Прокси: CGLIB — Как работает</h1>
+  <pre><code>// Оригинальный класс
+public class UserService {
+    public void save(User user) { ... }
+}
+
+// CGLIB генерирует подкласс (через ASM)
+public class UserService$$EnhancerByCGLIB extends UserService {
+    private MethodInterceptor interceptor;
+    
+    @Override
+    public void save(User user) {
+        interceptor.intercept(this, saveMethod, new Object[]{user}, null);
+    }
+}</code></pre>
+  <ul>
+    <li>Генерация байткода на лету (ASM)</li>
+    <li>Переопределение методов</li>
+    <li>MethodInterceptor — аналог InvocationHandler</li>
+  </ul>
+</div>
+
+<div class="step slide" data-x="41000" data-y="-1500">
+  <h1>Прокси: CGLIB — Ограничения</h1>
+  <ul>
+    <li><strong>final-классы:</strong> нельзя создать подкласс</li>
+    <li><strong>final-методы:</strong> нельзя переопределить</li>
+    <li><strong>private-методы:</strong> не перехватываются</li>
+    <li><strong>static-методы:</strong> не перехватываются</li>
+  </ul>
+  <h3>Когда использовать</h3>
+  <ul>
+    <li>Класс без интерфейса</li>
+    <li>Spring AOP (по умолчанию с Spring 3.2+)</li>
+    <li>Mockito для классов</li>
+  </ul>
+</div>
+
+<div class="step slide" data-x="42000" data-y="-1500">
+  <h1>Прокси: Сравнение Proxy vs CGLIB</h1>
+  <table>
+    <tr><th>Критерий</th><th>Proxy</th><th>CGLIB</th></tr>
+    <tr><td>Что проксирует</td><td>Только интерфейсы</td><td>Классы и интерфейсы</td></tr>
+    <tr><td>Механизм</td><td>Композиция</td><td>Наследование</td></tr>
+    <tr><td>final-методы</td><td>—</td><td>Не перехватывает</td></tr>
+    <tr><td>Производительность</td><td>Рефлексия</td><td>Байткод (быстрее)</td></tr>
+    <tr><td>Зависимости</td><td>JDK</td><td>cglib + asm</td></tr>
+  </table>
+</div>
+
+<!-- ======================= БЛОК 5: ГЕНЕРАЦИЯ БАЙТКОДА ======================= -->
+<div class="step slide section" data-x="43000" data-y="-1500">
+  <h1>Генерация байткода</h1>
+  <p>Создание классов на лету</p>
+  <div class="num">06</div>
+</div>
+
+<div class="step slide" data-x="44000" data-y="-1500">
+  <h1>Генерация: Зачем</h1>
+  <ul>
+    <li>Динамическое создание классов (прокси, DTO)</li>
+    <li>Оптимизация: избежать рефлексию</li>
+    <li>AOP, ORM, сериализация</li>
+  </ul>
+  <h3>Примеры</h3>
+  <ul>
+    <li>Hibernate: прокси для lazy-loading</li>
+    <li>Spring AOP: CGLIB-прокси</li>
+    <li>Jackson: генерация сериализаторов</li>
+  </ul>
+</div>
+
+<div class="step slide" data-x="45000" data-y="-1500">
+  <h1>Генерация: Инструменты</h1>
+  <table>
+    <tr><th>Инструмент</th><th>Уровень</th><th>Сложность</th><th>Когда использовать</th></tr>
+    <tr><td>ASM</td><td>Низкий</td><td>Высокая</td><td>Максимальный контроль</td></tr>
+    <tr><td>CGLIB</td><td>Средний</td><td>Средняя</td><td>Прокси для классов</td></tr>
+    <tr><td>Byte Buddy</td><td>Высокий</td><td>Низкая</td><td>Современные проекты</td></tr>
+  </table>
+</div>
+
+<div class="step slide" data-x="46000" data-y="-1500">
+  <h1>Генерация: ASM</h1>
+  <ul>
+    <li>Низкоуровневый — прямой манипуляции байткодом</li>
+    <li>Работает с ClassWriter, MethodVisitor</li>
+    <li>Сложно, но максимально гибко</li>
+  </ul>
+  <pre><code class="language-java">ClassWriter cw = new ClassWriter(0);
+cw.visit(V1_8, ACC_PUBLIC, "com/example/Generated", null, "java/lang/Object", null);
+
+MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, "hello", "()V", null, null);
+mv.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
+mv.visitLdcInsn("Hello from generated class!");
+mv.visitMethodInsn(INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/String;)V");
+mv.visitInsn(RETURN);
+mv.visitMaxs(2, 1);
+
+byte[] bytes = cw.toByteArray();</code></pre>
+</div>
+
+<div class="step slide" data-x="47000" data-y="-1500">
+  <h1>Генерация: Byte Buddy</h1>
+  <ul>
+    <li>Высокоуровневый, удобный API</li>
+    <li>Использует ASM под капотом</li>
+    <li>Современная альтернатива CGLIB</li>
+  </ul>
+  <pre><code class="language-java">Class&lt;?&gt; dynamicType = new ByteBuddy()
+    .subclass(Object.class)
+    .method(ElementMatchers.named("toString"))
+    .intercept(FixedValue.value("Hello from Byte Buddy!"))
+    .make()
+    .load(Main.class.getClassLoader())
+    .getLoaded();
+
+Object instance = dynamicType.getDeclaredConstructor().newInstance();
+System.out.println(instance.toString()); // "Hello from Byte Buddy!"</code></pre>
+</div>
+
+<div class="step slide" data-x="48000" data-y="-1500">
+  <h1>Генерация: Сравнение с рефлексией</h1>
+  <table>
+    <tr><th>Критерий</th><th>Рефлексия</th><th>Генерация</th></tr>
+    <tr><td>Скорость</td><td>Медленно</td><td>Быстро (как обычный код)</td></tr>
+    <tr><td>Сложность</td><td>Просто</td><td>Сложно</td></tr>
+    <tr><td>Типобезопасность</td><td>Нет</td><td>Есть (на этапе генерации)</td></tr>
+    <tr><td>Отладка</td><td>Проще</td><td>Сложнее</td></tr>
+    <tr><td>Гибкость</td><td>Высокая</td><td>Максимальная</td></tr>
+  </table>
+</div>
+
+<!-- ======================= БЛОК 6: APT ======================= -->
+<div class="step slide section" data-x="49000" data-y="-1500">
+  <h1>APT</h1>
+  <p>Метапрограммирование на этапе компиляции</p>
+  <div class="num">07</div>
+</div>
+
+<div class="step slide" data-x="50000" data-y="-1500">
+  <h1>APT: Определение</h1>
+  <ul>
+    <li>Annotation Processing Tool — обработка аннотаций при компиляции</li>
+    <li>Генерация кода (исходников или байткода)</li>
+    <li>Ошибки на этапе компиляции, а не в рантайме</li>
+  </ul>
+  <h3>Примеры</h3>
+  <ul>
+    <li><strong>Lombok:</strong> @Getter, @Builder — генерация методов</li>
+    <li><strong>MapStruct:</strong> генерация мапперов</li>
+    <li><strong>Dagger:</strong> DI на этапе компиляции</li>
+  </ul>
+</div>
+
+<div class="step slide" data-x="51000" data-y="-1500">
+  <h1>APT: Как работает</h1>
+  <ol>
+    <li>Компилятор вызывает Annotation Processor</li>
+    <li>Processor находит аннотации в исходниках</li>
+    <li>Генерирует новые исходники или байткод</li>
+    <li>Компилятор компилирует сгенерированный код</li>
+  </ol>
+  <p>Round-based: несколько раундов — процессор может генерировать код, который тоже содержит аннотации</p>
+</div>
+
+<div class="step slide" data-x="52000" data-y="-1500">
+  <h1>APT: Пример — Свой процессор</h1>
+  <pre><code class="language-java">@SupportedAnnotationTypes("com.example.GenerateBuilder")
+@SupportedSourceVersion(SourceVersion.RELEASE_17)
+public class BuilderProcessor extends AbstractProcessor {
+    
+    @Override
+    public boolean process(Set&lt;? extends TypeElement&gt; annotations,
+                           RoundEnvironment roundEnv) {
+        for (Element element : roundEnv.getElementsAnnotatedWith(
+                GenerateBuilder.class)) {
+            // Генерация Builder-класса
+            generateBuilder((TypeElement) element);
+        }
+        return true;
+    }
+}</code></pre>
+</div>
+
+<div class="step slide" data-x="53000" data-y="-1500">
+  <h1>APT: Lombok — Как работает</h1>
+  <pre><code class="language-java">// Исходный код
+@Getter
+@Builder
+public class User {
+    private String name;
+    private int age;
+}
+
+// Сгенерированный код (упрощенно)
+public class User {
+    private String name;
+    private int age;
+    
+    public String getName() { return name; }
+    public int getAge() { return age; }
+    
+    public static UserBuilder builder() { return new UserBuilder(); }
+    
+    public static class UserBuilder {
+        private String name;
+        private int age;
+        
+        public UserBuilder name(String name) { this.name = name; return this; }
+        public UserBuilder age(int age) { this.age = age; return this; }
+        public User build() { return new User(name, age); }
+    }
+}</code></pre>
+</div>
+
+<div class="step slide" data-x="54000" data-y="-1500">
+  <h1>APT: Преимущества</h1>
+  <ul>
+    <li><strong>Скорость:</strong> нет рефлексии в рантайме</li>
+    <li><strong>Типобезопасность:</strong> ошибки на этапе компиляции</li>
+    <li><strong>Производительность:</strong> сгенерированный код работает как обычный</li>
+  </ul>
+  <h3>Ограничения</h3>
+  <ul>
+    <li>Только на этапе компиляции</li>
+    <li>Сложно отлаживать</li>
+    <li>Нельзя генерировать код для уже скомпилированных классов</li>
+  </ul>
+</div>
+
+<!-- ======================= БЛОК 7: СРАВНЕНИЕ ======================= -->
+<div class="step slide section" data-x="55000" data-y="-1500">
+  <h1>Сравнение подходов</h1>
+  <p>Когда что использовать</p>
+  <div class="num">08</div>
+</div>
+
+<div class="step slide" data-x="56000" data-y="-1500">
+  <h1>Сравнение: Таблица</h1>
+  <table>
+    <tr><th>Подход</th><th>Когда использовать</th><th>Плюсы</th><th>Минусы</th></tr>
+    <tr><td>Рефлексия</td><td>Простые задачи, прототипы</td><td>Просто, гибко</td><td>Медленно, небезопасно</td></tr>
+    <tr><td>MethodHandle</td><td>Динамический вызов, критичный к скорости</td><td>Быстро, типобезопасно</td><td>Сложнее рефлексии</td></tr>
+    <tr><td>LambdaMetafactory</td><td>Генерация реализации интерфейса</td><td>Очень быстро</td><td>Только функциональные интерфейсы</td></tr>
+    <tr><td>Аннотации + рефлексия</td><td>Фреймворки (Spring)</td><td>Декларативно</td><td>Рантайм-оверхед</td></tr>
+    <tr><td>Proxy</td><td>AOP для интерфейсов</td><td>Чисто, просто</td><td>Только интерфейсы</td></tr>
+    <tr><td>CGLIB</td><td>AOP для классов, Spring</td><td>Быстро, без интерфейсов</td><td>final-классы</td></tr>
+    <tr><td>ASM/Byte Buddy</td><td>Hibernate, оптимизация</td><td>Быстро, мощно</td><td>Сложно, хрупко</td></tr>
+    <tr><td>APT</td><td>Lombok, MapStruct</td><td>Быстро, типобезопасно</td><td>Ограничено компиляцией</td></tr>
+  </table>
+</div>
+
+<div class="step slide" data-x="57000" data-y="-1500">
+  <h1>Сравнение: Примеры из практики</h1>
+  <table>
+    <tr><th>Библиотека</th><th>Подход</th><th>Зачем</th></tr>
+    <tr><td>Spring Core</td><td>Рефлексия + аннотации</td><td>DI, конфигурация</td></tr>
+    <tr><td>Spring AOP</td><td>Proxy / CGLIB</td><td>Транзакции, логирование</td></tr>
+    <tr><td>Hibernate</td><td>Рефлексия + Byte Buddy</td><td>ORM, lazy-loading</td></tr>
+    <tr><td>Jackson</td><td>Рефлексия + генерация</td><td>Сериализация</td></tr>
+    <tr><td>Lombok</td><td>APT</td><td>Генерация методов</td></tr>
+    <tr><td>MapStruct</td><td>APT</td><td>Генерация мапперов</td></tr>
+    <tr><td>Mockito</td><td>Proxy / CGLIB / Byte Buddy</td><td>Моки</td></tr>
+    <tr><td>Log4j2</td><td>LambdaMetafactory</td><td>Ленивое вычисление аргументов</td></tr>
+  </table>
+</div>
+
+<div class="step slide" data-x="58000" data-y="-1500">
+  <h1>Сравнение: Как выбрать</h1>
+  <ol>
+    <li><strong>Нужно прочитать аннотацию?</strong> — Рефлексия</li>
+    <li><strong>Нужно вызвать метод динамически, критична скорость?</strong> — MethodHandle</li>
+    <li><strong>Нужно перехватить вызов метода?</strong> — Proxy (интерфейс) или CGLIB (класс)</li>
+    <li><strong>Нужно создать класс на лету?</strong> — Byte Buddy</li>
+    <li><strong>Нужно генерировать код при компиляции?</strong> — APT</li>
+    <li><strong>Критична производительность?</strong> — Генерация, не рефлексия</li>
+  </ol>
+</div>
+
+<div class="step slide" data-x="59000" data-y="-1500">
+  <h1>Итоги</h1>
+  <ul>
+    <li>Рефлексия — фундамент, но медленная</li>
+    <li>MethodHandle — быстрый динамический вызов (JIT инлайнит)</li>
+    <li>LambdaMetafactory — генерация реализации интерфейса</li>
+    <li>Класс-лоадеры — откуда берутся классы</li>
+    <li>Аннотации — декларативное метапрограммирование</li>
+    <li>Proxy / CGLIB — перехват вызовов</li>
+    <li>Генерация байткода — максимальная производительность</li>
+    <li>APT — метапрограммирование на этапе компиляции</li>
+  </ul>
+  <p>Материалы: документация Oracle (Reflection, MethodHandle, ClassLoader), Byte Buddy, ASM</p>
+</div>
+
+</div>
+
+<div class="impress-progressbar"><div></div></div>
+<div class="impress-progress"></div>
+<a class="ov" href="#/overview">Обзор</a>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<script>
+    if (window.hljs) {
+        hljs.highlightAll();
+    }
+</script>
+<script src="js/impress.js"></script>
+<script>
+    impress().init();
+</script>
+</body>
+</html>
+
