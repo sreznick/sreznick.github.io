@@ -1,0 +1,922 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1024" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <title>HBase: лекция 1. Архитектура и проектирование</title>
+
+    <link href="//fonts.googleapis.com/css?family=Open+Sans:regular,semibold,italic,italicsemibold|PT+Sans:400,700,400italic,700italic|PT+Serif:400,700,400italic,700italic" rel="stylesheet" />
+
+    <link href="css/impress-demo.css" rel="stylesheet" />
+    <link href="css/impress-common.css" rel="stylesheet" />
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/default.min.css">
+
+    <style>
+        /* Дополнения к impress-demo.css: только то, чего нет в образце (код, таблицы, разделы). Можно удалить/подправить. */
+
+        .slide {
+            font-size: 27px;
+            line-height: 1.3;
+            letter-spacing: -.5px;
+        }
+
+        .slide h1 {
+            font-size: 40px;
+            line-height: 1.15;
+            margin: 0 0 .5em;
+            text-align: left;
+        }
+
+        .slide ul,
+        .slide ol {
+            margin: 0;
+            padding-left: 1.1em;
+        }
+
+        .slide li {
+            margin: .25em 0;
+        }
+
+        .slide p {
+            margin: .6em 0 0;
+        }
+
+        .slide pre {
+            margin: 0 0 12px;
+            letter-spacing: 0;
+            text-shadow: none;
+        }
+
+        .slide pre code.hljs {
+            padding: 12px 16px;
+            font-size: 17px;
+            line-height: 1.35;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .slide pre.small code.hljs {
+            font-size: 15.5px;
+        }
+
+        .slide code:not(.hljs) {
+            background: #e2e8f0;
+            color: #1e293b;
+            padding: 0 .3em;
+            border-radius: 4px;
+            font-size: .85em;
+            letter-spacing: 0;
+        }
+
+        .slide.section code:not(.hljs),
+        .slide.title code:not(.hljs) {
+            background: rgba(255,255,255,.28);
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .slide table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 22px;
+            line-height: 1.25;
+        }
+
+        .slide th,
+        .slide td {
+            border-bottom: 1px solid #ccc;
+            padding: 6px 10px;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .slide th {
+            background: #e2e8f0;
+            color: #1e293b;
+        }
+
+        .slide .hl {
+            color: #b91c1c;
+        }
+
+        .slide.section {
+            background: linear-gradient(135deg,#0f766e,#1d4ed8);
+            color: #fff;
+            text-shadow: none;
+        }
+
+        .slide.section h1 {
+            color: #fff;
+            font-size: 50px;
+        }
+
+        .slide.section .num {
+            position: absolute;
+            right: 40px;
+            top: 0;
+            font-size: 200px;
+            font-weight: 700;
+            opacity: .18;
+            line-height: 1;
+        }
+
+        .slide.title .hint {
+            font-size: 20px;
+            color: #999;
+            margin-top: 40px;
+        }
+
+        .notes {
+            display: none;
+        }
+
+        .ov {
+            position: fixed;
+            left: 14px;
+            bottom: 12px;
+            color: #93c5fd;
+            font-size: 14px;
+            text-decoration: none;
+            z-index: 10;
+        }
+
+        #overview {
+            background: none!important;
+            border: 0!important;
+            box-shadow: none!important;
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body class="impress-not-supported">
+
+<div class="fallback-message">
+    <p>Ваш браузер <b>не поддерживает возможности, необходимые для impress.js</b>, поэтому показана упрощённая версия презентации.</p>
+    <p>Лучше всего использовать свежие <b>Chrome</b>, <b>Safari</b> или <b>Firefox</b>.</p>
+</div>
+
+<div id="impress"
+    data-transition-duration="1000"
+    data-width="1024"
+    data-height="768"
+    data-max-scale="3"
+    data-min-scale="0"
+    data-perspective="1000"
+    >
+
+<!-- ======================= ТИТУЛ ======================= -->
+<div class="step slide" data-x="-1000" data-y="-1500">
+  <h1>HBase</h1>
+  <h2>Архитектура и проектирование схем</h2>
+  <p>Распределенное key-value хранилище поверх HDFS</p>
+  <p>Не замена Hive. Дополнение для online-доступа</p>
+</div>
+
+<!-- ======================= CAP-ТЕОРЕМА ======================= -->
+<div class="step slide section" data-x="0" data-y="-1500">
+  <h1>CAP-теорема</h1>
+  <p>Система координат для распределенных хранилищ</p>
+  <div class="num">01</div>
+</div>
+
+<div class="step slide" data-x="1000" data-y="-1500">
+  <h1>CAP-теорема: Формулировка</h1>
+  <p>В распределенной системе невозможно одновременно гарантировать:</p>
+  <ul>
+    <li><strong>C (Consistency):</strong> все узлы видят одни и те же данные в один момент времени</li>
+    <li><strong>A (Availability):</strong> каждый запрос получает ответ (успех или неудача), без бесконечного ожидания</li>
+    <li><strong>P (Partition Tolerance):</strong> система продолжает работать при потере связи между узлами</li>
+  </ul>
+  <p><strong>Ключевой вывод:</strong> при сетевом разделении (partition) нужно выбрать: жертвуем C или A</p>
+</div>
+
+<div class="step slide" data-x="2000" data-y="-1500">
+  <h1>CAP-теорема: Классификация</h1>
+  <table>
+    <tr><th>Тип</th><th>Что выбирает</th><th>Примеры</th><th>Поведение при partition</th></tr>
+    <tr><td>CP</td><td>Consistency</td><td>HBase, ZooKeeper, etcd</td><td>Отказывает в обслуживании части запросов, но данные консистентны</td></tr>
+    <tr><td>AP</td><td>Availability</td><td>Cassandra, DynamoDB, CouchDB</td><td>Отвечает всегда, но данные могут быть устаревшими</td></tr>
+    <tr><td>CA</td><td>Consistency + Availability</td><td>PostgreSQL, MySQL (single-node)</td><td>Не переживает разделение сети. Только один узел</td></tr>
+  </table>
+  <p>CA в распределенной системе невозможна. Только single-node</p>
+</div>
+
+<div class="step slide" data-x="3000" data-y="-1500">
+  <h1>CAP-теорема: HBase = CP</h1>
+  <ul>
+    <li><strong>Consistency:</strong> чтение всегда возвращает свежие данные (strong consistency)</li>
+    <li><strong>Partition Tolerance:</strong> при потере связи между RegionServer'ами, HMaster перераспределяет Region'ы</li>
+    <li><strong>Availability:</strong> при разделении сети часть Region'ов может быть недоступна (до перераспределения)</li>
+  </ul>
+  <h3>Что это значит на практике</h3>
+  <ul>
+    <li>Запись считается успешной только после записи в WAL (durability)</li>
+    <li>Чтение идет через один RegionServer — нет "чтения из нескольких мест"</li>
+    <li>При сбое RegionServer'а данные временно недоступны (до failover)</li>
+  </ul>
+</div>
+
+<div class="step slide" data-x="4000" data-y="-1500">
+  <h1>CAP-теорема: Cassandra = AP</h1>
+  <ul>
+    <li><strong>Availability:</strong> любой узел может принять запись/чтение</li>
+    <li><strong>Partition Tolerance:</strong> peer-to-peer, нет единой точки отказа</li>
+    <li><strong>Consistency:</strong> eventual consistency. Настраивается через QUORUM (например, запись в 2 из 3 узлов)</li>
+  </ul>
+  <h3>Что это значит на практике</h3>
+  <ul>
+    <li>Запись может быть принята, даже если часть узлов недоступна</li>
+    <li>Чтение может вернуть устаревшие данные (если реплика не успела обновиться)</li>
+    <li>Нужен repair (ремонт) для синхронизации данных между узлами</li>
+  </ul>
+</div>
+
+<div class="step slide" data-x="5000" data-y="-1500">
+  <h1>CAP-теорема: RocksDB = CA (single-node)</h1>
+  <ul>
+    <li><strong>Consistency:</strong> strong consistency в рамках одного процесса</li>
+    <li><strong>Availability:</strong> всегда доступен (если процесс жив)</li>
+    <li><strong>Partition Tolerance:</strong> нет сети, нет разделения</li>
+  </ul>
+  <h3>Что это значит на практике</h3>
+  <ul>
+    <li>RocksDB — встраиваемая библиотека, не распределенная система</li>
+    <li>Используется как движок хранения внутри других систем (Kafka Streams, Flink, TiKV)</li>
+    <li>Масштабирование — только вертикальное (упирается в ресурсы одного сервера)</li>
+  </ul>
+</div>
+
+<div class="step slide" data-x="6000" data-y="-1500">
+  <h1>CAP-теорема: Сравнение</h1>
+  <table>
+    <tr><th>Система</th><th>Тип</th><th>Согласованность</th><th>Доступность</th><th>Масштабирование</th></tr>
+    <tr><td>HBase</td><td>CP</td><td>Strong</td><td>Частичная (при partition)</td><td>Горизонтальное</td></tr>
+    <tr><td>Cassandra</td><td>AP</td><td>Eventual</td><td>Полная</td><td>Горизонтальное</td></tr>
+    <tr><td>RocksDB</td><td>CA</td><td>Strong</td><td>Полная (single-node)</td><td>Вертикальное</td></tr>
+    <tr><td>Hive</td><td>—</td><td>—</td><td>—</td><td>Горизонтальное (batch)</td></tr>
+  </table>
+  <p>Hive не участвует в CAP — это batch-система, не online-хранилище</p>
+</div>
+
+<!-- ======================= ПОЗИЦИОНИРОВАНИЕ ======================= -->
+<div class="step slide section" data-x="7000" data-y="-1500">
+  <h1>Позиционирование</h1>
+  <p>Где место HBase в экосистеме Hadoop</p>
+  <div class="num">02</div>
+</div>
+
+<div class="step slide" data-x="8000" data-y="-1500">
+  <h1>Позиционирование: Проблема</h1>
+  <ul>
+    <li>HDFS — append-only файловая система. Не умеет перезаписывать файлы</li>
+    <li>MapReduce — пакетная обработка. Latency = минуты/часы</li>
+    <li>Нужен произвольный доступ (Get/Put) с задержкой в миллисекунды</li>
+  </ul>
+  <h3>Примеры задач</h3>
+  <ul>
+    <li>История заказов пользователя (точечный Get по user_id)</li>
+    <li>Фид новостей (Scan по диапазону времени)</li>
+    <li>Счетчики просмотров (Increment)</li>
+  </ul>
+</div>
+
+<div class="step slide" data-x="9000" data-y="-1500">
+  <h1>Позиционирование: Решение</h1>
+  <ul>
+    <li>HBase — распределенное key-value хранилище поверх HDFS</li>
+    <li>Обеспечивает online-доступ к большим данным</li>
+    <li>Использует LSM-Tree для быстрой записи</li>
+  </ul>
+  <h3>Ключевое отличие от Hive</h3>
+  <ul>
+    <li>Hive — SQL над файлами (полное сканирование)</li>
+    <li>HBase — индекс для точечного чтения (Get/Put)</li>
+  </ul>
+</div>
+
+<div class="step slide" data-x="10000" data-y="-1500">
+  <h1>Позиционирование: Сравнение с соседями</h1>
+  <table>
+    <tr><th>Инструмент</th><th>Когда использовать</th><th>Latency</th><th>Модель</th></tr>
+    <tr><td>Hive</td><td>Batch-аналитика, SQL, полное сканирование</td><td>Минуты</td><td>SQL</td></tr>
+    <tr><td>HBase</td><td>Online-доступ, точечные Get/Put</td><td>Миллисекунды</td><td>Key-Value</td></tr>
+    <tr><td>Cassandra</td><td>AP-система, нет Master, локальные диски</td><td>Миллисекунды</td><td>Key-Value</td></tr>
+    <tr><td>RocksDB</td><td>Встраиваемый LSM-Tree, не распределенный</td><td>Микросекунды</td><td>Key-Value</td></tr>
+    <tr><td>Redis</td><td>Кэш, in-memory, маленькие данные</td><td>Микросекунды</td><td>Key-Value</td></tr>
+  </table>
+</div>
+
+<!-- ======================= LSM-TREE ======================= -->
+<div class="step slide section" data-x="11000" data-y="-1500">
+  <h1>LSM-Tree</h1>
+  <p>Фундамент, на котором построен HBase</p>
+  <div class="num">03</div>
+</div>
+
+<div class="step slide" data-x="12000" data-y="-1500">
+  <h1>LSM-Tree: Мотивация</h1>
+  <h3>Проблема B-Tree</h3>
+  <ul>
+    <li>Случайные записи: каждая запись = отдельный seek на диск</li>
+    <li>Пропускная способность ограничена скоростью seek (10ms)</li>
+    <li>Пример: 1000 записей = 1000 * 10ms = 10 секунд</li>
+  </ul>
+  <h3>Идея LSM-Tree</h3>
+  <ul>
+    <li>Не записывать данные сразу на место</li>
+    <li>Накопить в памяти, затем слить одним последовательным потоком</li>
+    <li>Последовательная запись в 10-100 раз быстрее случайной</li>
+  </ul>
+</div>
+
+<div class="step slide" data-x="13000" data-y="-1500">
+  <h1>LSM-Tree: Структура</h1>
+  <pre><code>[MemTable] (RAM, сортированная структура: skiplist, red-black tree)
+    |
+    | Flush (последовательная запись)
+    v
+[SSTable 1] -> [SSTable 2] -> [SSTable 3] -> ... (на диске, неизменяемые)
+    |
+    | Compaction (слияние)
+    v
+[Новый SSTable] (без дубликатов, отсортирован)</code></pre>
+  <ul>
+    <li><strong>MemTable:</strong> буфер в памяти, сортированная структура</li>
+    <li><strong>SSTable:</strong> неизменяемый файл на диске, данные отсортированы по ключу</li>
+    <li><strong>WAL:</strong> журнал для восстановления после сбоя</li>
+    <li><strong>Compaction:</strong> фоновое слияние файлов</li>
+  </ul>
+</div>
+
+<div class="step slide" data-x="14000" data-y="-1500">
+  <h1>LSM-Tree: Операции</h1>
+  <table>
+    <tr><th>Операция</th><th>Как работает</th><th>Сложность</th></tr>
+    <tr><td>Put</td><td>WAL + MemTable</td><td>O(log n) — быстро</td></tr>
+    <tr><td>Get</td><td>MemTable + SSTable (от новых к старым)</td><td>O(n * log n) — может быть медленно</td></tr>
+    <tr><td>Delete</td><td>Tombstone (маркер) в MemTable</td><td>O(log n) — быстро</td></tr>
+    <tr><td>Scan</td><td>MemTable + SSTable (merge)</td><td>O(n) — эффективно</td></tr>
+  </table>
+  <p>Delete не удаляет данные физически. Только помечает. Реальное удаление — при Compaction</p>
+</div>
+
+<div class="step slide" data-x="15000" data-y="-1500">
+  <h1>LSM-Tree: Сильные стороны</h1>
+  <ul>
+    <li><strong>Быстрая запись:</strong> все операции последовательные (WAL + Flush)</li>
+    <li><strong>Высокая плотность:</strong> сжатие лучше на больших блоках, нет фрагментации</li>
+    <li><strong>Простая отказоустойчивость:</strong> SSTable неизменяемы, восстановление = replay WAL</li>
+  </ul>
+  <h3>Почему это важно для HBase</h3>
+  <ul>
+    <li>HDFS не умеет перезаписывать файлы — SSTable идеально подходит (append-only)</li>
+    <li>WAL дает durability без случайных записей</li>
+  </ul>
+</div>
+
+<div class="step slide" data-x="16000" data-y="-1500">
+  <h1>LSM-Tree: Слабые стороны</h1>
+  <table>
+    <tr><th>Проблема</th><th>Причина</th><th>Решение</th></tr>
+    <tr><td>Медленное чтение</td><td>Поиск в нескольких SSTable</td><td>Bloom Filter, Block Cache, Compaction</td></tr>
+    <tr><td>Write Amplification</td><td>Одна запись перезаписывается при Compaction</td><td>Leveled Compaction (RocksDB), Size-Tiered (Cassandra)</td></tr>
+    <tr><td>Read Amplification</td><td>Проверка нескольких файлов</td><td>Bloom Filter, Partitioning</td></tr>
+    <tr><td>Space Amplification</td><td>Мусор (старые версии) занимает место</td><td>Compaction</td></tr>
+  </table>
+</div>
+
+<div class="step slide" data-x="17000" data-y="-1500">
+  <h1>LSM-Tree: Read Amplification</h1>
+  <ul>
+    <li>Get: нужно проверить MemTable + все SSTable (от новых к старым)</li>
+    <li>Чем больше SSTable, тем медленнее чтение</li>
+  </ul>
+  <h3>Решения</h3>
+  <ul>
+    <li><strong>Bloom Filter:</strong> вероятностная структура. "Ключа точно нет" — пропускаем файл</li>
+    <li><strong>Block Cache:</strong> кэш горячих блоков в памяти</li>
+    <li><strong>Compaction:</strong> уменьшение числа файлов</li>
+  </ul>
+</div>
+
+<div class="step slide" data-x="18000" data-y="-1500">
+  <h1>LSM-Tree: Write Amplification</h1>
+  <ul>
+    <li>Одна запись перезаписывается несколько раз при Compaction</li>
+    <li>Пример: запись попадает в MemTable -> Flush -> Compaction (несколько раз)</li>
+  </ul>
+  <h3>Решения</h3>
+  <ul>
+    <li><strong>Leveled Compaction (RocksDB):</strong> данные распределены по уровням, каждый уровень в 10 раз больше предыдущего</li>
+    <li><strong>Size-Tiered Compaction (Cassandra):</strong> объединение файлов похожего размера</li>
+    <li><strong>HBase:</strong> Minor (часто, дешево) + Major (редко, дорого)</li>
+  </ul>
+</div>
+
+<div class="step slide" data-x="19000" data-y="-1500">
+  <h1>LSM-Tree: Возможности</h1>
+  <ul>
+    <li><strong>Range Scans:</strong> данные отсортированы — легко итерироваться по диапазону</li>
+    <li><strong>Версионирование:</strong> timestamp у каждой записи, старые версии хранятся до Compaction</li>
+    <li><strong>TTL:</strong> автоматическое удаление устаревших данных при Compaction</li>
+    <li><strong>Инкрементальные агрегации:</strong> merge при Compaction может выполнять sum/count</li>
+    <li><strong>Merge-Join:</strong> два отсортированных потока сливаются за O(n)</li>
+  </ul>
+</div>
+
+<div class="step slide" data-x="20000" data-y="-1500">
+  <h1>LSM-Tree: Ключевой вывод</h1>
+  <p><strong>LSM-Tree — это компромисс:</strong></p>
+  <p>Жертвуем чтением (Read Amplification) ради записи (Write Optimization).</p>
+  <p>Идеален для:</p>
+  <ul>
+    <li>Write-heavy нагрузок (логи, метрики, события)</li>
+    <li>Append-only данных (временные ряды)</li>
+    <li>Систем, где важна скорость приема данных</li>
+  </ul>
+  <p>HBase — распределенная реализация LSM-Tree поверх HDFS</p>
+</div>
+
+<!-- ======================= МОДЕЛЬ ДАННЫХ ======================= -->
+<div class="step slide section" data-x="21000" data-y="-1500">
+  <h1>Модель данных HBase</h1>
+  <p>Как LSM-Tree выражается в таблицах</p>
+  <div class="num">04</div>
+</div>
+
+<div class="step slide" data-x="22000" data-y="-1500">
+  <h1>Модель данных: Таблица</h1>
+  <ul>
+    <li>Не реляционная таблица, а <strong>разреженная многомерная карта</strong></li>
+    <li>Строки отсортированы по RowKey (байтовый порядок)</li>
+    <li>Ячейка: (RowKey, Column Family, Qualifier, Timestamp) -> Value</li>
+  </ul>
+  <h3>Пример</h3>
+  <pre><code>RowKey=user_42
+  CF=profile:  name="Alice", age=30
+  CF=settings: theme="dark", lang="ru"</code></pre>
+  <p>Разные строки могут иметь разные наборы колонок</p>
+</div>
+
+<div class="step slide" data-x="23000" data-y="-1500">
+  <h1>Модель данных: RowKey</h1>
+  <ul>
+    <li><strong>RowKey</strong> — ключ в LSM-Tree. Все данные сортируются по нему</li>
+    <li>Один RowKey = одна сущность (пользователь, заказ, событие)</li>
+    <li>Доступ: точечный Get (по ключу) или Scan (по диапазону)</li>
+  </ul>
+  <h3>Ключевые свойства</h3>
+  <ul>
+    <li>Сортировка — байтовая (лексикографическая)</li>
+    <li>Длина влияет на память (индексы, кэш)</li>
+    <li>Дизайн RowKey — самое важное решение при проектировании</li>
+  </ul>
+</div>
+
+<div class="step slide" data-x="24000" data-y="-1500">
+  <h1>Модель данных: Column Family</h1>
+  <ul>
+    <li><strong>Column Family (CF)</strong> — физическое хранилище. Каждый CF = отдельный LSM-Tree</li>
+    <li>Колонки внутри CF — динамические (Qualifier). Не нужно заранее определять схему</li>
+    <li>Рекомендуется 1–3 CF на таблицу</li>
+  </ul>
+  <h3>Почему мало CF?</h3>
+  <ul>
+    <li>Каждый CF = отдельные файлы на диске</li>
+    <li>Чтение из нескольких CF = чтение из нескольких LSM-Tree</li>
+    <li>Разные CF могут иметь разные настройки: TTL, сжатие, in-memory</li>
+  </ul>
+</div>
+
+<div class="step slide" data-x="25000" data-y="-1500">
+  <h1>Модель данных: Qualifier и Timestamp</h1>
+  <ul>
+    <li><strong>Qualifier</strong> — имя колонки внутри CF. Динамическое</li>
+    <li><strong>Timestamp</strong> — версия значения. По умолчанию — время записи</li>
+  </ul>
+  <h3>Пример</h3>
+  <pre><code>RowKey=user_42
+  CF=profile:
+    name:qualifier="Alice", timestamp=2025-01-01 10:00
+    name:qualifier="Alice Smith", timestamp=2025-01-02 15:30</code></pre>
+  <ul>
+    <li>Чтение по умолчанию возвращает последнюю версию</li>
+    <li>Можно читать конкретную версию по timestamp</li>
+    <li>Количество хранимых версий настраивается (VERSIONS)</li>
+  </ul>
+</div>
+
+<div class="step slide" data-x="26000" data-y="-1500">
+  <h1>Модель данных: Разреженность</h1>
+  <ul>
+    <li>Разные строки могут иметь разные наборы колонок</li>
+    <li>Пустые ячейки не хранятся (не занимают место)</li>
+  </ul>
+  <h3>Пример</h3>
+  <pre><code>RowKey=user_42
+  CF=profile: name="Alice"
+  CF=profile: age=30
+
+RowKey=user_43
+  CF=profile: name="Bob"
+  // нет age — не хранится</code></pre>
+  <p>В реляционной БД пришлось бы хранить NULL. В HBase — просто отсутствие ячейки</p>
+</div>
+
+<!-- ======================= АРХИТЕКТУРА ======================= -->
+<div class="step slide section" data-x="27000" data-y="-1500">
+  <h1>Архитектура кластера</h1>
+  <p>Компоненты и их роли</p>
+  <div class="num">05</div>
+</div>
+
+<div class="step slide" data-x="28000" data-y="-1500">
+  <h1>Архитектура: Компоненты</h1>
+  <ul>
+    <li><strong>HMaster:</strong> управление Region'ами, балансировка, обработка сбоев. Не участвует в пути данных</li>
+    <li><strong>RegionServer:</strong> рабочая лошадка. Принимает запросы, держит WAL, управляет Region'ами</li>
+    <li><strong>ZooKeeper:</strong> координация, поиск META-таблицы, выбор HMaster</li>
+    <li><strong>HDFS:</strong> хранение данных (HFile) и WAL</li>
+  </ul>
+</div>
+
+<div class="step slide" data-x="29000" data-y="-1500">
+  <h1>Архитектура: HMaster</h1>
+  <ul>
+    <li>Управляет Region'ами: назначает на RegionServer'ы, балансирует</li>
+    <li>Обрабатывает сбои: перераспределяет Region'ы упавших серверов</li>
+    <li>Не участвует в пути данных (чтение/запись идут напрямую к RegionServer)</li>
+  </ul>
+  <h3>Что это значит</h3>
+  <ul>
+    <li>HMaster может упасть — данные останутся доступны</li>
+    <li>Но без HMaster нельзя перераспределить Region'ы (нет failover)</li>
+    <li>HA: два HMaster (active/standby) через ZooKeeper</li>
+  </ul>
+</div>
+
+<div class="step slide" data-x="30000" data-y="-1500">
+  <h1>Архитектура: RegionServer</h1>
+  <ul>
+    <li>Принимает запросы от клиентов (Get/Put/Scan)</li>
+    <li>Держит WAL (Write-Ahead Log) для durability</li>
+    <li>Управляет Region'ами: MemStore, HFile, Compaction</li>
+  </ul>
+  <h3>Внутри RegionServer</h3>
+  <ul>
+    <li>Несколько Region'ов (обычно 10-100)</li>
+    <li>Каждый Region = диапазон RowKey</li>
+    <li>BlockCache — кэш горячих блоков для чтения</li>
+  </ul>
+</div>
+
+<div class="step slide" data-x="31000" data-y="-1500">
+  <h1>Архитектура: Region</h1>
+  <ul>
+    <li><strong>Region</strong> — горизонтальный шард таблицы (по диапазону RowKey)</li>
+    <li>Таблица разбита на Region'ы. Каждый RegionServer держит несколько Region'ов</li>
+    <li>При росте Region делится пополам (Split)</li>
+  </ul>
+  <h3>Внутри Region</h3>
+  <ul>
+    <li><strong>Store</strong> = один Column Family внутри Region</li>
+    <li><strong>MemStore</strong> = буфер в памяти (MemTable)</li>
+    <li><strong>HFile</strong> = SSTable на HDFS</li>
+  </ul>
+</div>
+
+<div class="step slide" data-x="32000" data-y="-1500">
+  <h1>Архитектура: Путь записи</h1>
+  <ol>
+    <li>Client -> ZooKeeper (найти RegionServer для ключа)</li>
+    <li>Запись в WAL (последовательно, для durability)</li>
+    <li>Запись в MemStore (в память)</li>
+    <li>При достижении порога — Flush: MemStore -> HFile (последовательная запись на HDFS)</li>
+  </ol>
+  <p>Быстро, потому что все операции последовательные</p>
+</div>
+
+<div class="step slide" data-x="33000" data-y="-1500">
+  <h1>Архитектура: Путь чтения</h1>
+  <ol>
+    <li>Client -> ZooKeeper (найти RegionServer)</li>
+    <li>Поиск в MemStore (свежие данные)</li>
+    <li>Поиск в BlockCache (кэш горячих блоков)</li>
+    <li>Поиск в HFile (старые данные, через Bloom Filter)</li>
+  </ol>
+  <p>Чтение может быть медленным: нужно проверить несколько HFile. Решение — Compaction</p>
+</div>
+
+<div class="step slide" data-x="34000" data-y="-1500">
+  <h1>Архитектура: WAL (Write-Ahead Log)</h1>
+  <ul>
+    <li>Журнал для восстановления после сбоя</li>
+    <li>Каждая запись сначала попадает в WAL, потом в MemStore</li>
+    <li>При сбое RegionServer'а данные восстанавливаются из WAL</li>
+  </ul>
+  <h3>Особенности</h3>
+  <ul>
+    <li>WAL хранится на HDFS (репликация)</li>
+    <li>Один WAL на RegionServer (не на Region)</li>
+    <li>При сбое WAL разбивается и распределяется по другим RegionServer'ам</li>
+  </ul>
+</div>
+
+<div class="step slide" data-x="35000" data-y="-1500">
+  <h1>Архитектура: HFile</h1>
+  <ul>
+    <li>SSTable на HDFS. Неизменяемый файл</li>
+    <li>Данные отсортированы по RowKey</li>
+    <li>Содержит индексы и Bloom Filter для ускорения чтения</li>
+  </ul>
+  <h3>Структура HFile</h3>
+  <ul>
+    <li>Trailer: метаданные, указатели на индексы</li>
+    <li>Index: дерево для поиска блоков</li>
+    <li>Bloom Filter: вероятностная структура для проверки наличия ключа</li>
+    <li>Data Blocks: сами данные (сжатые)</li>
+  </ul>
+</div>
+
+<div class="step slide" data-x="36000" data-y="-1500">
+  <h1>Архитектура: Compaction</h1>
+  <ul>
+    <li><strong>Minor Compaction:</strong> объединение нескольких HFile в один. Быстро, часто</li>
+    <li><strong>Major Compaction:</strong> объединение всех HFile в один. Медленно, редко. Удаляет tombstone и старые версии</li>
+  </ul>
+  <h3>Проблемы</h3>
+  <ul>
+    <li>Write Amplification: одна запись перезаписывается несколько раз</li>
+    <li>Major Compaction может блокировать чтение (stop-the-world)</li>
+  </ul>
+</div>
+
+<div class="step slide" data-x="37000" data-y="-1500">
+  <h1>Архитектура: Split</h1>
+  <ul>
+    <li>Region растет — данные не помещаются</li>
+    <li>Split: Region делится на два по середине RowKey</li>
+    <li>Дочерние Region'ы распределяются по RegionServer'ам</li>
+  </ul>
+  <h3>Когда происходит</h3>
+  <ul>
+    <li>Размер Region превышает порог (hbase.hregion.max.filesize)</li>
+    <li>Настраивается автоматически или вручную</li>
+  </ul>
+</div>
+
+<div class="step slide" data-x="38000" data-y="-1500">
+  <h1>Архитектура: ZooKeeper</h1>
+  <ul>
+    <li>Координация: выбор HMaster, обнаружение RegionServer'ов</li>
+    <li>Хранение расположения META-таблицы</li>
+    <li>Отслеживание состояния узлов (heartbeat)</li>
+  </ul>
+  <h3>META-таблица</h3>
+  <ul>
+    <li>Содержит расположение всех Region'ов</li>
+    <li>Client сначала обращается к ZooKeeper, потом к META, потом к RegionServer</li>
+    <li>Кэшируется на клиенте для ускорения</li>
+  </ul>
+</div>
+
+<!-- ======================= ПРОЕКТИРОВАНИЕ ======================= -->
+<div class="step slide section" data-x="39000" data-y="-1500">
+  <h1>Проектирование схемы</h1>
+  <p>Паттерны и антипаттерны RowKey</p>
+  <div class="num">06</div>
+</div>
+
+<div class="step slide" data-x="40000" data-y="-1500">
+  <h1>Проектирование: Принципы</h1>
+  <p><strong>Главное правило:</strong> все данные физически сортируются по RowKey. Один RowKey = одна сущность.</p>
+  <h3>Три вопроса при проектировании</h3>
+  <ul>
+    <li>Как я буду читать данные? (по ключу, по диапазону, по префиксу)</li>
+    <li>Как я буду писать данные? (равномерно или в одну точку)</li>
+    <li>Какой у меня паттерн доступа? (горячие ключи, последние данные)</li>
+  </ul>
+</div>
+
+<div class="step slide" data-x="41000" data-y="-1500">
+  <h1>Проектирование: Паттерны RowKey</h1>
+  <table>
+    <tr><th>Паттерн</th><th>Описание</th><th>Когда использовать</th><th>Пример</th></tr>
+    <tr><td>Salt</td><td>Префикс = хеш(key) % N</td><td>Равномерное распределение</td><td>user_42_12345</td></tr>
+    <tr><td>Hash</td><td>Префикс = MD5(key)</td><td>Полная рандомизация</td><td>a3f2_12345</td></tr>
+    <tr><td>Reverse</td><td>Перевернуть ключ</td><td>Горячие ключи</td><td>54321_42</td></tr>
+    <tr><td>Composite</td><td>Несколько полей</td><td>Многоуровневый доступ</td><td>user_42_event_123</td></tr>
+    <tr><td>Time-based</td><td>Время в начале/конце</td><td>Временные ряды</td><td>20250101_42</td></tr>
+  </table>
+</div>
+
+<div class="step slide" data-x="42000" data-y="-1500">
+  <h1>Проектирование: Salt</h1>
+  <ul>
+    <li>Префикс = хеш(key) % N (N — количество "бакетов")</li>
+    <li>Равномерно распределяет записи по Region'ам</li>
+    <li>Минус: при чтении нужно знать N и перебирать все бакеты</li>
+  </ul>
+  <h3>Пример</h3>
+  <pre><code>// Без соли (плохо): все пишут в один Region
+user_1, user_2, user_3, ..., user_1000000
+
+// С солью (хорошо): записи распределены
+0_user_1, 1_user_2, 0_user_3, ..., 3_user_1000000</code></pre>
+</div>
+
+<div class="step slide" data-x="43000" data-y="-1500">
+  <h1>Проектирование: Hash</h1>
+  <ul>
+    <li>Префикс = MD5(key) или другой хеш</li>
+    <li>Полная рандомизация распределения</li>
+    <li>Минус: нельзя делать Range Scan по исходному ключу</li>
+  </ul>
+  <h3>Пример</h3>
+  <pre><code>// Исходный ключ: user_42
+// Хеш: a3f2c1d4e5b6...
+// RowKey: a3f2_user_42</code></pre>
+  <p>Используется, когда нужен только точечный Get</p>
+</div>
+
+<div class="step slide" data-x="44000" data-y="-1500">
+  <h1>Проектирование: Reverse</h1>
+  <ul>
+    <li>Перевернуть ключ (например, user_id -> reversed_user_id)</li>
+    <li>Используется для горячих ключей (последние данные)</li>
+    <li>Позволяет избежать Hotspotting</li>
+  </ul>
+  <h3>Пример</h3>
+  <pre><code>// Исходный ключ: user_42
+// Reverse: 24_resu
+// RowKey: 24_resu</code></pre>
+  <p>Часто используется для временных рядов: последние события в начале</p>
+</div>
+
+<div class="step slide" data-x="45000" data-y="-1500">
+  <h1>Проектирование: Антипаттерны RowKey</h1>
+  <table>
+    <tr><th>Антипаттерн</th><th>Проблема</th><th>Решение</th></tr>
+    <tr><td>Монотонный ключ (timestamp в начале)</td><td>Все пишут в один Region (Hotspotting)</td><td>Salt или Hash</td></tr>
+    <tr><td>Слишком длинный ключ</td><td>Занимает память в индексах и кэше</td><td>Хешировать, сокращать</td></tr>
+    <tr><td>Слишком короткий ключ</td><td>Много коллизий, плохая сортировка</td><td>Добавить суффикс</td></tr>
+    <tr><td>Горячая точка (один пользователь пишет постоянно)</td><td>Один Region перегружен</td><td>Reverse или Salt</td></tr>
+    <tr><td>Изменяемая часть ключа</td><td>Нельзя обновить без перезаписи</td><td>Выносить изменяемое в Qualifier</td></tr>
+  </table>
+</div>
+
+<div class="step slide" data-x="46000" data-y="-1500">
+  <h1>Проектирование: Hotspotting</h1>
+  <ul>
+    <li>Все записи попадают в один Region</li>
+    <li>Один RegionServer перегружен, остальные простаивают</li>
+  </ul>
+  <h3>Причины</h3>
+  <ul>
+    <li>Монотонный RowKey (timestamp в начале)</li>
+    <li>Один "горячий" ключ (популярный пользователь)</li>
+  </ul>
+  <h3>Решение</h3>
+  <ul>
+    <li>Salt: распределить записи по разным Region'ам</li>
+    <li>Reverse: для горячих ключей</li>
+  </ul>
+</div>
+
+<div class="step slide" data-x="47000" data-y="-1500">
+  <h1>Проектирование: Column Family</h1>
+  <h3>Правила</h3>
+  <ul>
+    <li>Минимум CF (1–3). Каждый CF = отдельный LSM-Tree</li>
+    <li>Группировка по паттерну доступа: горячие данные отдельно от холодных</li>
+    <li>Разные настройки: TTL, сжатие, in-memory</li>
+  </ul>
+  <h3>Пример</h3>
+  <pre><code>CREATE TABLE users (
+  profile CF: name, age, email,
+  settings CF: theme, lang
+) WITH ...</code></pre>
+</div>
+
+<div class="step slide" data-x="48000" data-y="-1500">
+  <h1>Проектирование: Пример 1 — Лог событий</h1>
+  <p><strong>Требования:</strong> читать события пользователя за период, писать много, читать редко</p>
+  <h3>Решение</h3>
+  <ul>
+    <li>RowKey: <code>reverse(user_id)_timestamp</code> — последние события в начале</li>
+    <li>CF: <code>events</code> (TTL = 30 дней)</li>
+    <li>Qualifier: <code>type</code>, <code>data</code></li>
+  </ul>
+</div>
+
+<div class="step slide" data-x="49000" data-y="-1500">
+  <h1>Проектирование: Пример 2 — Профиль</h1>
+  <p><strong>Требования:</strong> читать по user_id (точечный Get), обновлять часто</p>
+  <h3>Решение</h3>
+  <ul>
+    <li>RowKey: <code>user_id</code> — прямой доступ</li>
+    <li>CF: <code>profile</code> (горячие), <code>settings</code> (холодные)</li>
+    <li>Версионирование: 3 версии для аудита</li>
+  </ul>
+</div>
+
+<div class="step slide" data-x="50000" data-y="-1500">
+  <h1>Проектирование: Пример 3 — Счетчики</h1>
+  <p><strong>Требования:</strong> инкремент на каждый просмотр, чтение агрегата за день</p>
+  <h3>Решение</h3>
+  <ul>
+    <li>RowKey: <code>date_user</code> — агрегация по дню</li>
+    <li>Использовать <code>Increment</code> — атомарная операция на стороне сервера</li>
+    <li>CF: <code>counters</code> (In-memory = true)</li>
+  </ul>
+</div>
+
+<div class="step slide" data-x="51000" data-y="-1500">
+  <h1>Проектирование: Чек-лист</h1>
+  <ol>
+    <li>Определите паттерн чтения: точечный Get или Range Scan?</li>
+    <li>Определите паттерн записи: равномерный или с горячими точками?</li>
+    <li>Выберите RowKey: Salt/Hash для распределения, Reverse для горячих ключей</li>
+    <li>Выберите Column Family: группировка по доступу, TTL</li>
+    <li>Проверьте на антипаттерны: нет монотонного ключа, нет горячей точки</li>
+  </ol>
+</div>
+
+<!-- ======================= СПЕЦИФИКА ======================= -->
+<div class="step slide section" data-x="52000" data-y="-1500">
+  <h1>Специфика HBase</h1>
+  <p>Что отличает HBase от Cassandra и RocksDB</p>
+  <div class="num">07</div>
+</div>
+
+<div class="step slide" data-x="53000" data-y="-1500">
+  <h1>Специфика: HDFS</h1>
+  <ul>
+    <li>HBase хранит данные на HDFS (HFile) — репликация и отказоустойчивость на уровне HDFS</li>
+    <li>RegionServer может упасть — данные остаются в HDFS</li>
+    <li>Минус: лишний сетевой hop (RegionServer -> DataNode)</li>
+  </ul>
+  <p>Cassandra пишет на локальный диск — быстрее, но сложнее консистентность</p>
+</div>
+
+<div class="step slide" data-x="54000" data-y="-1500">
+  <h1>Специфика: Master и Strong Consistency</h1>
+  <ul>
+    <li><strong>HMaster</strong> управляет Region'ами, но не участвует в пути данных</li>
+    <li><strong>Strong Consistency (CP):</strong> читаете всегда свежие данные</li>
+    <li>Cassandra — eventual consistency (AP), настраиваемая через QUORUM</li>
+  </ul>
+  <h3>Что это значит на практике</h3>
+  <ul>
+    <li>HBase проще в эксплуатации (нет repair, нет gossip)</li>
+    <li>Cassandra лучше для multi-DC, где нужна доступность</li>
+  </ul>
+</div>
+
+<div class="step slide" data-x="55000" data-y="-1500">
+  <h1>Сравнение: HBase vs Cassandra vs RocksDB</h1>
+  <table>
+    <tr><th>Критерий</th><th>HBase</th><th>Cassandra</th><th>RocksDB</th></tr>
+    <tr><td>Модель</td><td>Табличная</td><td>Табличная</td><td>Key-Value</td></tr>
+    <tr><td>Распределение</td><td>Master/Slave</td><td>Peer-to-Peer</td><td>Embedded</td></tr>
+    <tr><td>Согласованность</td><td>Strong (CP)</td><td>Eventual (AP)</td><td>Strong (1 процесс)</td></tr>
+    <tr><td>Хранение</td><td>HDFS</td><td>Локальный диск</td><td>Локальный диск</td></tr>
+    <tr><td>Масштабирование</td><td>Горизонтальное</td><td>Горизонтальное</td><td>Вертикальное</td></tr>
+    <tr><td>Compaction</td><td>Minor + Major</td><td>Size-Tiered / Leveled</td><td>Leveled</td></tr>
+    <tr><td>Зависимости</td><td>HDFS, ZooKeeper</td><td>Нет</td><td>Нет</td></tr>
+  </table>
+</div>
+
+<div class="step slide" data-x="56000" data-y="-1500">
+  <h1>Итоги</h1>
+  <ul>
+    <li>HBase — распределенный LSM-Tree поверх HDFS с strong consistency (CP)</li>
+    <li>LSM-Tree — компромисс: быстрая запись, медленное чтение</li>
+    <li>RowKey — самое важное решение при проектировании</li>
+    <li>Column Family — группировка по паттерну доступа</li>
+  </ul>
+  <p>Материалы: документация Apache HBase, HBase: The Definitive Guide (Lars George)</p>
+</div>
+
+</div>
+
+<div class="impress-progressbar"><div></div></div>
+<div class="impress-progress"></div>
+<a class="ov" href="#/overview">Обзор</a>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<script>
+    if (window.hljs) {
+        hljs.highlightAll();
+    }
+</script>
+<script src="js/impress.js"></script>
+<script>
+    impress().init();
+</script>
+</body>
+</html>
+
