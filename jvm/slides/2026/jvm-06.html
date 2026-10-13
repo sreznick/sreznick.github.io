@@ -1,0 +1,999 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1024" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <title>Расширения в Kotlin</title>
+
+    <link href="//fonts.googleapis.com/css?family=Open+Sans:regular,semibold,italic,italicsemibold|PT+Sans:400,700,400italic,700italic|PT+Serif:400,700,400italic,700italic" rel="stylesheet" />
+
+    <link href="css/impress-demo.css" rel="stylesheet" />
+    <link href="css/impress-common.css" rel="stylesheet" />
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/default.min.css">
+
+    <style>
+        .slide {
+            font-size: 27px;
+            line-height: 1.3;
+            letter-spacing: -.5px;
+        }
+
+        .slide h1 {
+            font-size: 40px;
+            line-height: 1.15;
+            margin: 0 0 .5em;
+            text-align: left;
+        }
+
+        .slide ul,
+        .slide ol {
+            margin: 0;
+            padding-left: 1.1em;
+        }
+
+        .slide li {
+            margin: .25em 0;
+        }
+
+        .slide p {
+            margin: .6em 0 0;
+        }
+
+        .slide pre {
+            margin: 0 0 12px;
+            letter-spacing: 0;
+            text-shadow: none;
+        }
+
+        .slide pre code.hljs {
+            padding: 12px 16px;
+            font-size: 17px;
+            line-height: 1.35;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .slide pre.small code.hljs {
+            font-size: 15.5px;
+        }
+
+        .slide code:not(.hljs) {
+            background: #e2e8f0;
+            color: #1e293b;
+            padding: 0 .3em;
+            border-radius: 4px;
+            font-size: .85em;
+            letter-spacing: 0;
+        }
+
+        .slide.section code:not(.hljs),
+        .slide.title code:not(.hljs) {
+            background: rgba(255,255,255,.28);
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .slide table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 22px;
+            line-height: 1.25;
+        }
+
+        .slide th,
+        .slide td {
+            border-bottom: 1px solid #ccc;
+            padding: 6px 10px;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .slide th {
+            background: #e2e8f0;
+            color: #1e293b;
+        }
+
+        .slide .hl {
+            color: #b91c1c;
+        }
+
+        .slide.section {
+            background: linear-gradient(135deg,#0f766e,#1d4ed8);
+            color: #fff;
+            text-shadow: none;
+        }
+
+        .slide.section h1 {
+            color: #fff;
+            font-size: 50px;
+        }
+
+        .slide.section .num {
+            position: absolute;
+            right: 40px;
+            top: 0;
+            font-size: 200px;
+            font-weight: 700;
+            opacity: .18;
+            line-height: 1;
+        }
+
+        .slide.title .hint {
+            font-size: 20px;
+            color: #999;
+            margin-top: 40px;
+        }
+
+        .notes {
+            display: none;
+        }
+
+        .ov {
+            position: fixed;
+            left: 14px;
+            bottom: 12px;
+            color: #93c5fd;
+            font-size: 14px;
+            text-decoration: none;
+            z-index: 10;
+        }
+
+        #overview {
+            background: none!important;
+            border: 0!important;
+            box-shadow: none!important;
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body class="impress-not-supported">
+
+<div class="fallback-message">
+    <p>Ваш браузер <b>не поддерживает возможности, необходимые для impress.js</b>, поэтому показана упрощённая версия презентации.</p>
+    <p>Лучше всего использовать свежие <b>Chrome</b>, <b>Safari</b> или <b>Firefox</b>.</p>
+</div>
+
+<div id="impress"
+    data-transition-duration="1000"
+    data-width="1024"
+    data-height="768"
+    data-max-scale="3"
+    data-min-scale="0"
+    data-perspective="1000"
+    >
+
+    <!-- БЛОК 1: БАЗОВЫЕ РАСШИРЕНИЯ -->
+
+    <div class="step slide title" data-x="-1000" data-y="-1500">
+        <h1>Расширения в Kotlin</h1>
+        <ul>
+            <li>Базовые расширения</li>
+            <li>Невиртуальность</li>
+            <li>Реализация и вызов из Java</li>
+            <li>Специальные случаи: вложенные классы, enum, интерфейсы</li>
+            <li>Кастомизация операторов</li>
+            <li>Invoke и дуализм объект/функция</li>
+            <li>Причесывание легаси</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="0" data-y="-1500">
+        <h1>Что такое расширения</h1>
+        <ul>
+            <li>Добавление функций к классу без наследования</li>
+            <li>Синтаксис: <code>fun Receiver.funcName() {}</code></li>
+            <li><code>this</code> внутри — receiver</li>
+        </ul>
+        <pre><code>fun String.reverseWords(): String =
+    this.split(" ").reversed().joinToString(" ")
+
+"Hello World".reverseWords() // "World Hello"</code></pre>
+        <p>Расширения позволяют добавлять новые функции к уже существующим классам, не изменяя их исходный код и не создавая подклассы. Это особенно полезно для классов из сторонних библиотек или стандартной библиотеки Java.</p>
+    </div>
+
+    <div class="step slide" data-x="1000" data-y="-1500">
+        <h1>Невиртуальность — главное правило</h1>
+        <ul>
+            <li>Расширения разрешаются <b>статически</b> (по типу переменной)</li>
+            <li>НЕ по фактическому типу объекта</li>
+            <li>Это НЕ полиморфизм</li>
+        </ul>
+        <p>В отличие от виртуальных методов, которые выбираются на основе фактического типа объекта во время выполнения, расширения выбираются компилятором на основе статического типа переменной. Это ключевое отличие, которое важно понимать при проектировании API.</p>
+    </div>
+
+    <div class="step slide" data-x="2000" data-y="-1500">
+        <h1>Пример невиртуальности</h1>
+        <pre><code>open class Animal
+class Dog : Animal()
+
+fun Animal.speak() = "Animal"
+fun Dog.speak() = "Dog"
+
+fun printSound(a: Animal) {
+    println(a.speak()) // "Animal" (не "Dog")!
+}
+
+printSound(Dog()) // Вывод: "Animal"</code></pre>
+        <p>Внутри функции <code>printSound</code> параметр <code>a</code> имеет статический тип <code>Animal</code>. Компилятор видит расширение <code>Animal.speak()</code> и вызывает именно его, игнорируя тот факт, что фактический объект — <code>Dog</code>. Это поведение часто становится неожиданностью для разработчиков, привыкших к полиморфизму.</p>
+    </div>
+
+    <div class="step slide" data-x="3000" data-y="-1500">
+        <h1>Конфликт с членом класса</h1>
+        <pre><code>class MyClass {
+    fun print() = "Member"
+}
+
+fun MyClass.print() = "Extension"
+
+MyClass().print() // "Member" (всегда выигрывает член)</code></pre>
+        <p>Если в классе уже есть метод с такой же сигнатурой, как у расширения, приоритет всегда отдается члену класса. Расширение в этом случае просто игнорируется компилятором. Это защитный механизм, который предотвращает случайное переопределение существующего поведения.</p>
+    </div>
+
+    <div class="step slide" data-x="4000" data-y="-1500">
+        <h1>Реализация под капотом</h1>
+        <ul>
+            <li>Компилятор превращает в статическую функцию</li>
+            <li>Первый аргумент — receiver</li>
+        </ul>
+        <pre><code>// Kotlin
+fun String.reverseWords(): String
+
+// Java (сгенерировано)
+public static String reverseWords(String $this)</code></pre>
+        <p>Когда вы объявляете расширение, компилятор Kotlin генерирует статическую функцию в байткоде. Первым параметром этой функции становится receiver — объект, для которого вызывается расширение. Именно поэтому расширения не могут быть виртуальными — статические функции не участвуют в динамической диспетчеризации.</p>
+    </div>
+
+    <div class="step slide" data-x="5000" data-y="-1500">
+        <h1>Вызов из Java</h1>
+        <pre><code>// Файл: StringUtils.kt
+package com.example
+fun String.reverseWords(): String</code></pre>
+        <pre><code>// Java
+String result = StringUtilsKt.reverseWords("Hello");</code></pre>
+        <p>Из Java-кода расширения вызываются как обычные статические функции. Имя класса-обертки формируется из имени файла, в котором объявлено расширение, с добавлением суффикса <code>Kt</code>. Это важно учитывать при написании библиотек, которые будут использоваться из Java.</p>
+    </div>
+
+    <div class="step slide" data-x="6000" data-y="-1500">
+        <h1>Аннотация @JvmName</h1>
+        <pre><code>@file:JvmName("StringExt")
+package com.example</code></pre>
+        <pre><code>// Java
+StringExt.reverseWords("Hello");</code></pre>
+        <p>Аннотация <code>@JvmName</code> позволяет задать более осмысленное имя для класса-обертки, который генерируется для расширений. Это особенно полезно, когда у вас много расширений в одном файле, и вы хотите, чтобы из Java они выглядели как методы утилитного класса с понятным именем.</p>
+    </div>
+
+    <div class="step slide" data-x="7000" data-y="-1500">
+        <h1>Расширения для примитивов</h1>
+        <pre><code>fun Int.isEven(): Boolean = this % 2 == 0
+fun Int.squared(): Int = this * this
+
+4.isEven() // true
+5.squared() // 25</code></pre>
+        <p>Kotlin позволяет расширять примитивные типы: <code>Int</code>, <code>Long</code>, <code>Double</code>, <code>Boolean</code> и другие. Это дает возможность добавлять доменные методы к числам, делая код более выразительным. Например, <code>isEven()</code> читается естественнее, чем <code>number % 2 == 0</code>.</p>
+    </div>
+
+    <div class="step slide" data-x="8000" data-y="-1500">
+        <h1>Реализация для примитивов</h1>
+        <ul>
+            <li>Компилятор генерирует статическую функцию с примитивом (без боксинга)</li>
+        </ul>
+        <pre><code>// Java
+public static boolean isEven(int $this) {
+    return $this % 2 == 0;
+}</code></pre>
+        <p>Для примитивных типов компилятор генерирует статическую функцию, которая принимает примитив напрямую, без упаковки в объект-обертку. Это делает вызовы расширений для примитивов такими же эффективными, как и обычные вызовы методов.</p>
+    </div>
+
+    <div class="step slide" data-x="9000" data-y="-1500">
+        <h1>Нюанс с ссылкой на функцию</h1>
+        <pre><code>list.map(Int::isEven) // Боксинг! Function1&lt;Int, Boolean&gt;</code></pre>
+        <p>Когда вы передаете расширение как ссылку на функцию (например, в <code>map</code>), происходит упаковка примитива в объект. Это связано с тем, что функциональные типы в Kotlin работают с объектами. Если производительность критична, стоит избегать таких конструкций для примитивных типов.</p>
+    </div>
+
+    <div class="step slide" data-x="10000" data-y="-1500">
+        <h1>Расширения для nullable-типов</h1>
+        <pre><code>fun String?.safeLength(): Int = this?.length ?: 0
+
+val s: String? = null
+s.safeLength() // 0</code></pre>
+        <p>Расширения могут быть объявлены для nullable-типов. В этом случае внутри расширения нужно обрабатывать возможность <code>null</code>. Это удобно, когда вы хотите предоставить безопасные методы, которые не бросают исключений при работе с nullable-значениями.</p>
+    </div>
+
+    <div class="step slide" data-x="11000" data-y="-1500">
+        <h1>Расширения для generic-типов</h1>
+        <pre><code>fun &lt;T&gt; List&lt;T&gt;.secondOrNull(): T? =
+    if (size >= 2) this[1] else null
+
+listOf(1,2,3).secondOrNull() // 2</code></pre>
+        <p>Расширения могут быть объявлены для generic-типов. Это позволяет добавлять методы к целым семействам типов. Например, расширение <code>List&lt;T&gt;.secondOrNull()</code> работает для любого списка, независимо от типа элементов.</p>
+    </div>
+
+    <div class="step slide" data-x="12000" data-y="-1500">
+        <h1>Extension properties</h1>
+        <pre><code>val String.isPalindrome: Boolean
+    get() = this == this.reversed()
+
+"radar".isPalindrome // true</code></pre>
+        <p>Помимо функций, можно объявлять расширения-свойства. Они не могут иметь поле для хранения значения, но могут определять геттер и сеттер. Это удобно для вычисляемых свойств, которые зависят от receiver.</p>
+    </div>
+
+    <div class="step slide" data-x="13000" data-y="-1500">
+        <h1>Companion object extensions</h1>
+        <pre><code>class MyClass {
+    companion object { }
+}
+
+fun MyClass.Companion.create() = MyClass()
+
+MyClass.create()</code></pre>
+        <p>Можно расширять companion object класса. Это позволяет добавлять статические методы к классу, не изменяя его исходный код. Особенно полезно, когда вы не можете изменить класс, но хотите добавить фабричные методы или другие статические функции.</p>
+    </div>
+
+    <!-- БЛОК 2: СПЕЦИАЛЬНЫЕ СЛУЧАИ -->
+
+    <div class="step slide section" data-x="14000" data-y="-1500">
+        <div class="num">2</div>
+        <h1>Специальные случаи</h1>
+        <ul>
+            <li>Вложенные классы</li>
+            <li>Enum</li>
+            <li>Интерфейсы</li>
+            <li>Импорт и конфликты</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="15000" data-y="-1500">
+        <h1>Расширения для вложенных классов</h1>
+        <pre><code>class Outer {
+    class Inner {
+        fun existing() = "Inner method"
+    }
+}
+
+// Расширение для Inner
+fun Outer.Inner.newExtension() = "Extension for Inner"
+
+// Использование
+val inner = Outer.Inner()
+inner.newExtension() // "Extension for Inner"</code></pre>
+        <p>Вложенные классы (nested classes) можно расширять так же, как и обычные. Синтаксис расширения использует полное имя вложенного класса: <code>Outer.Inner</code>. Это работает одинаково для статических вложенных классов.</p>
+    </div>
+
+    <div class="step slide" data-x="16000" data-y="-1500">
+        <h1>Расширения для inner (внутренних) классов</h1>
+        <pre><code>class Outer {
+    inner class Inner {
+        fun existing() = "Inner method"
+    }
+}
+
+// Расширение для Inner
+fun Outer.Inner.newExtension() = "Extension for Inner"
+
+// Использование
+val outer = Outer()
+val inner = outer.Inner()
+inner.newExtension() // "Extension for Inner"</code></pre>
+        <p>Внутренние классы (inner classes) также можно расширять. Синтаксис тот же — <code>Outer.Inner</code>. Разница лишь в создании экземпляра: для inner класса нужен экземпляр внешнего класса.</p>
+    </div>
+
+    <div class="step slide" data-x="17000" data-y="-1500">
+        <h1>Разница между nested и inner</h1>
+        <table>
+            <tr><th>Критерий</th><th>Nested (static)</th><th>Inner</th></tr>
+            <tr><td>Создание</td><td><code>Outer.Inner()</code></td><td><code>outer.Inner()</code></td></tr>
+            <tr><td>Доступ к Outer</td><td>Нет</td><td>Через <code>this@Outer</code></td></tr>
+            <tr><td>Расширение</td><td><code>fun Outer.Inner.f()</code></td><td><code>fun Outer.Inner.f()</code></td></tr>
+            <tr><td>Синтаксис</td><td colspan="2">Одинаковый</td></tr>
+        </table>
+        <p>С точки зрения расширений, синтаксис одинаков для обоих типов вложенных классов. Разница проявляется только при создании экземпляров и доступе к внешнему классу.</p>
+    </div>
+
+    <div class="step slide" data-x="18000" data-y="-1500">
+        <h1>Расширения для enum классов</h1>
+        <pre><code>enum class Color {
+    RED, GREEN, BLUE
+}
+
+// Расширение для enum
+fun Color.isWarm(): Boolean = this == Color.RED
+
+// Добавление свойства
+val Color.hexCode: String
+    get() = when (this) {
+        Color.RED -> "#FF0000"
+        Color.GREEN -> "#00FF00"
+        Color.BLUE -> "#0000FF"
+    }
+
+Color.RED.isWarm() // true
+Color.BLUE.hexCode // "#0000FF"</code></pre>
+        <p>Enum-классы можно расширять точно так же, как обычные. Это удобно, когда вы не можете изменить сам enum (например, он из сторонней библиотеки), но хотите добавить к нему доменные методы или вычисляемые свойства.</p>
+    </div>
+
+    <div class="step slide" data-x="19000" data-y="-1500">
+        <h1>Enum — входные параметры в расширении</h1>
+        <pre><code>enum class Direction {
+    NORTH, SOUTH, EAST, WEST
+}
+
+fun Direction.turn(degrees: Int): Direction {
+    val index = (ordinal + degrees / 90) % entries.size
+    return entries[index]
+}
+
+Direction.NORTH.turn(90) // EAST
+Direction.NORTH.turn(270) // WEST
+
+// Использование в when
+fun Direction.isHorizontal(): Boolean = 
+    this == Direction.EAST || this == Direction.WEST</code></pre>
+        <p>Расширения для enum могут принимать параметры и использовать <code>ordinal</code> и <code>entries</code> для навигации по значениям. Это позволяет реализовывать методы, которые зависят от порядка объявления констант.</p>
+    </div>
+
+    <div class="step slide" data-x="20000" data-y="-1500">
+        <h1>Расширения для интерфейсов</h1>
+        <pre><code>interface Repository {
+    fun findById(id: Int): String?
+}
+
+// Расширение для интерфейса — работает для всех реализаций
+fun Repository.findByIdOrThrow(id: Int): String {
+    return findById(id) ?: throw NoSuchElementException("Not found: $id")
+}
+
+class UserRepository : Repository {
+    override fun findById(id: Int): String? = if (id == 1) "John" else null
+}
+
+val repo = UserRepository()
+repo.findByIdOrThrow(1) // "John"
+repo.findByIdOrThrow(2) // Исключение</code></pre>
+        <p>Расширения для интерфейсов работают для всех реализаций этого интерфейса. Это мощный инструмент: вы можете добавить новые методы к интерфейсу, не изменяя его и не ломая существующие реализации.</p>
+    </div>
+
+    <div class="step slide" data-x="21000" data-y="-1500">
+        <h1>Интерфейс — расширение с дефолтной логикой</h1>
+        <pre><code>interface Logger {
+    fun log(message: String)
+}
+// Расширение с реализацией по умолчанию
+fun Logger.logError(message: String) {
+    log("[ERROR] $message")
+}
+fun Logger.logInfo(message: String) {
+    log("[INFO] $message")
+}
+class ConsoleLogger : Logger {
+    override fun log(message: String) = println(message)
+}
+val logger = ConsoleLogger()
+logger.logError("Something broke") // [ERROR] Something broke
+logger.logInfo("All good") // [INFO] All good</code></pre>
+        <p>Расширения интерфейсов часто используются для добавления вспомогательных методов, которые реализованы через существующие методы интерфейса. Это похоже на default-методы в Java, но с одним важным отличием: расширения не могут быть переопределены в реализациях.</p>
+    </div>
+
+    <div class="step slide" data-x="22000" data-y="-1500">
+        <h1>Импорт расширений</h1>
+        <pre><code>// Файл: StringUtils.kt
+package com.example.utils
+
+fun String.reverse(): String = this.reversed()
+
+// Файл: Main.kt
+package com.example.app
+
+import com.example.utils.reverse // Импортируем расширение
+
+fun main() {
+    "Hello".reverse() // "olleH"
+}</code></pre>
+        <p>Расширения нужно импортировать так же, как и обычные функции. Без импорта расширение не будет видно в другом файле. Это позволяет контролировать, какие расширения доступны в конкретном файле, и избегать случайных конфликтов.</p>
+    </div>
+
+    <div class="step slide" data-x="23000" data-y="-1500">
+        <h1>Конфликты имен</h1>
+        <pre><code>// Файл: StringUtils1.kt
+package com.example.utils1
+fun String.reverse(): String = this.reversed()
+
+// Файл: StringUtils2.kt
+package com.example.utils2
+fun String.reverse(): String = this.reversed().uppercase()</code></pre>
+        <p>Если два разных пакета содержат расширения с одинаковой сигнатурой, возникает конфликт имен. Компилятор не позволит импортировать оба без явного разрешения. Это защита от неоднозначности.</p>
+    </div>
+
+    <div class="step slide" data-x="24000" data-y="-1500">
+        <h1>Решение — import as</h1>
+        <pre><code>package com.example.app
+
+import com.example.utils1.reverse as reverseSimple
+import com.example.utils2.reverse as reverseUppercase
+
+fun main() {
+    "Hello".reverseSimple() // "olleH"
+    "Hello".reverseUppercase() // "OLLEH"
+}</code></pre>
+        <p>Ключевое слово <code>as</code> позволяет переименовать импортируемое расширение. Это решает конфликты имен и делает код более читаемым, когда вы используете несколько версий одного и того же расширения из разных источников.</p>
+    </div>
+
+    <div class="step slide" data-x="25000" data-y="-1500">
+        <h1>Приоритет разрешения</h1>
+        <ol>
+            <li>Член класса — всегда выигрывает</li>
+            <li>Расширение из того же файла/пакета</li>
+            <li>Импортированное расширение</li>
+            <li>Расширение из другого пакета (если импортировано)</li>
+        </ol>
+        <p>Понимание приоритета разрешения важно для предсказуемости кода. Если вы объявили расширение в том же файле, где оно используется, оно будет иметь приоритет над импортированными. Член класса всегда побеждает любое расширение.</p>
+    </div>
+
+    <!-- БЛОК 3: КАСТОМИЗАЦИЯ ОПЕРАТОРОВ -->
+
+    <div class="step slide section" data-x="26000" data-y="-1500">
+        <div class="num">3</div>
+        <h1>Кастомизация операторов</h1>
+        <ul>
+            <li>Арифметические</li>
+            <li>Сравнения</li>
+            <li>Доступ</li>
+            <li>Invoke</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="27000" data-y="-1500">
+        <h1>Арифметические операторы</h1>
+        <table>
+            <tr><th>Оператор</th><th>Функция</th></tr>
+            <tr><td><code>+</code></td><td><code>plus</code></td></tr>
+            <tr><td><code>-</code></td><td><code>minus</code></td></tr>
+            <tr><td><code>*</code></td><td><code>times</code></td></tr>
+            <tr><td><code>/</code></td><td><code>div</code></td></tr>
+            <tr><td><code>%</code></td><td><code>rem</code></td></tr>
+        </table>
+        <p>Kotlin позволяет перегружать арифметические операторы через функции с ключевым словом <code>operator</code>. Каждый оператор соответствует определенной функции. Это работает как для членов класса, так и для расширений.</p>
+    </div>
+
+    <div class="step slide" data-x="28000" data-y="-1500">
+        <h1>Пример: работа с деньгами</h1>
+        <pre><code>data class Money(val amount: BigDecimal, val currency: String)
+
+operator fun Money.plus(other: Money): Money {
+    require(currency == other.currency) { "Currency mismatch" }
+    return Money(amount + other.amount, currency)
+}
+
+operator fun Money.times(factor: Double): Money =
+    Money(amount * factor.toBigDecimal(), currency)
+
+val salary = Money(1000.toBigDecimal(), "USD")
+val bonus = Money(500.toBigDecimal(), "USD")
+val total = salary + bonus // Money(1500, "USD")
+val doubled = salary * 2.0 // Money(2000, "USD")</code></pre>
+        <p>Перегрузка операторов позволяет сделать доменные операции естественными. Вместо <code>salary.plus(bonus)</code> можно писать <code>salary + bonus</code>. При этом оператор <code>+</code> проверяет соответствие валют и выбрасывает исключение при несоответствии — это логика, которая была бы неуклюжей в обычном методе.</p>
+    </div>
+
+    <div class="step slide" data-x="29000" data-y="-1500">
+        <h1>Пример: работа с временем</h1>
+        <pre><code>data class Time(val hours: Int, val minutes: Int)
+operator fun Time.plus(other: Time): Time {
+    val totalMinutes = hours * 60 + minutes +
+        other.hours * 60 + other.minutes
+    return Time(totalMinutes / 60, totalMinutes % 60)
+}
+operator fun Time.times(factor: Int): Time {
+    val totalMinutes = (hours * 60 + minutes) * factor
+    return Time(totalMinutes / 60, totalMinutes % 60)
+}
+val workDay = Time(8, 30)
+val break = Time(0, 45)
+val fullDay = workDay + break // Time(9, 15)
+val week = workDay * 5 // Time(42, 30)</code></pre>
+        <p>Операторы <code>+</code> и <code>*</code> для времени делают код более выразительным. <code>workDay + break</code> читается как "рабочий день плюс перерыв", а <code>workDay * 5</code> — как "рабочий день, умноженный на пять". Без перегрузки пришлось бы писать громоздкие вызовы методов.</p>
+    </div>
+
+    <div class="step slide" data-x="30000" data-y="-1500">
+        <h1>Пример: повторение строк</h1>
+        <pre><code>operator fun Int.times(str: String) = str.repeat(this)
+
+3 * "ab" // "ababab"
+
+// DSL для генерации разделителей
+fun separator(count: Int) = count * "-"
+separator(10) // "----------"</code></pre>
+        <p>Перегрузка оператора <code>*</code> для <code>Int</code> и <code>String</code> позволяет писать <code>3 * "ab"</code> вместо <code>"ab".repeat(3)</code>. Это особенно удобно в DSL для генерации повторяющихся строк, например, разделителей или отступов.</p>
+    </div>
+
+    <div class="step slide" data-x="31000" data-y="-1500">
+        <h1>Операторы сравнения</h1>
+        <table>
+            <tr><th>Оператор</th><th>Функция</th></tr>
+            <tr><td><code>&gt;</code> <code>&lt;</code> <code>&gt;=</code> <code>&lt;=</code></td><td><code>compareTo</code></td></tr>
+            <tr><td><code>==</code></td><td><code>equals</code> (нельзя через extension)</td></tr>
+        </table>
+        <p>Операторы сравнения <code>&gt;</code>, <code>&lt;</code>, <code>&gt;=</code>, <code>&lt;=</code> отображаются на функцию <code>compareTo</code>, которая возвращает <code>Int</code>: отрицательное число, ноль или положительное. Оператор <code>==</code> работает через <code>equals</code> и не может быть перегружен через расширение — только через член класса.</p>
+    </div>
+
+    <div class="step slide" data-x="32000" data-y="-1500">
+        <h1>Пример: сравнение версий</h1>
+        <pre><code>data class Version(val major: Int, val minor: Int, val patch: Int = 0)
+
+operator fun Version.compareTo(other: Version): Int {
+    return compareValuesBy(this, other,
+        { it.major },
+        { it.minor },
+        { it.patch })
+}
+
+val v1 = Version(2, 1, 0)
+val v2 = Version(2, 2, 0)
+v1 &lt; v2 // true
+
+val versions = listOf(v2, v1)
+versions.sorted() // [Version(2,1,0), Version(2,2,0)]</code></pre>
+        <p>Перегрузка <code>compareTo</code> позволяет использовать операторы сравнения для доменных типов. Это также дает возможность сортировать объекты с помощью стандартных функций, таких как <code>sorted()</code>, без дополнительных компараторов.</p>
+    </div>
+
+    <div class="step slide" data-x="33000" data-y="-1500">
+        <h1>Операторы доступа</h1>
+        <table>
+            <tr><th>Оператор</th><th>Функция</th></tr>
+            <tr><td><code>[]</code></td><td><code>get</code> / <code>set</code></td></tr>
+            <tr><td><code>in</code></td><td><code>contains</code></td></tr>
+            <tr><td><code>..</code></td><td><code>rangeTo</code></td></tr>
+            <tr><td><code>()</code></td><td><code>invoke</code></td></tr>
+        </table>
+        <p>Операторы доступа позволяют использовать синтаксис индексации, проверки принадлежности, создания диапазонов и вызова объекта как функции. Это основа для создания выразительных DSL.</p>
+    </div>
+
+    <div class="step slide" data-x="34000" data-y="-1500">
+        <h1>Пример: матрица</h1>
+        <pre><code>class Matrix(private val data: List&lt;List&lt;Int&gt;&gt;) {
+    operator fun get(i: Int, j: Int): Int = data[i][j]
+    operator fun set(i: Int, j: Int, value: Int) {
+        // mutable implementation
+    }
+}
+
+val m = Matrix(listOf(listOf(1,2), listOf(3,4)))
+val value = m[0,1] // 2
+m[0,1] = 10 // set</code></pre>
+        <p>Перегрузка <code>get</code> и <code>set</code> позволяет использовать синтаксис индексации для многомерных структур. <code>m[0,1]</code> читается естественнее, чем <code>m.get(0,1)</code>, особенно в математических вычислениях.</p>
+    </div>
+
+    <div class="step slide" data-x="35000" data-y="-1500">
+        <h1>Пример: DSL для JSON</h1>
+        <pre><code>class JsonObject {
+    private val map = mutableMapOf&lt;String, Any&gt;()
+    
+    operator fun get(key: String): Any? = map[key]
+    operator fun set(key: String, value: Any) { map[key] = value }
+    operator fun contains(key: String) = key in map
+}
+
+val json = JsonObject()
+json["name"] = "John"
+json["age"] = 30
+
+val name = json["name"] // "John"
+"age" in json // true</code></pre>
+        <p>Операторы <code>get</code>, <code>set</code> и <code>contains</code> позволяют работать с объектом как с ассоциативным массивом. Это основа для построения DSL, где синтаксис <code>json["key"] = value</code> выглядит естественно и знакомо.</p>
+    </div>
+
+    <!-- БЛОК 4: INVOKE -->
+
+    <div class="step slide section" data-x="36000" data-y="-1500">
+        <div class="num">4</div>
+        <h1>Invoke и дуализм объект/функция</h1>
+    </div>
+
+    <div class="step slide" data-x="37000" data-y="-1500">
+        <h1>Что такое invoke</h1>
+        <ul>
+            <li>Позволяет вызывать объект как функцию</li>
+            <li><code>obj()</code> → <code>obj.invoke()</code></li>
+            <li>Открывает тему дуализма: объект ↔ функция</li>
+        </ul>
+        <p>Оператор <code>invoke</code> позволяет объекту быть вызванным как функция. Это стирает грань между объектом и функцией: объект может хранить состояние и при этом вызываться как функция. Это мощный инструмент для создания фабрик, замыканий с состоянием и DSL.</p>
+    </div>
+
+    <div class="step slide" data-x="38000" data-y="-1500">
+        <h1>Callable object (объект с состоянием)</h1>
+        <ul>
+            <li>Объект, который ведет себя как функция</li>
+            <li>Сохраняет состояние между вызовами</li>
+            <li>Уместен, когда нужно <b>сохранять контекст</b></li>
+        </ul>
+        <pre><code>class Counter(private val start: Int = 0) {
+    private var count = start
+    
+    operator fun invoke(): Int = count++
+}
+
+val counter = Counter(10)
+counter() // 10
+counter() // 11
+counter() // 12</code></pre>
+        <p>Callable object — это объект с оператором <code>invoke</code>. Он может хранить состояние в полях и предоставлять дополнительные методы. Это полноценный объект, который ведет себя как функция.</p>
+    </div>
+
+    <div class="step slide" data-x="39000" data-y="-1500">
+        <h1>Замыкание (функция с захваченным состоянием)</h1>
+        <ul>
+            <li>Функция, которая захватывает переменные из внешней области</li>
+            <li>Не имеет свойств, но хранит состояние через замыкание</li>
+            <li>Уместен, когда состояние <b>локально</b> и не требует инкапсуляции</li>
+        </ul>
+        <pre><code>fun createCounter(start: Int = 0): () -&gt; Int {
+    var count = start
+    return { count++ }
+}
+val counter = createCounter(10)
+counter() // 10
+counter() // 11</code></pre>
+        <p>Замыкание — это функция, которая захватывает переменные из окружающей области видимости. Оно не имеет полей и методов, но хранит состояние в захваченных переменных. Это легковесная альтернатива callable object.</p>
+    </div>
+
+    <div class="step slide" data-x="40000" data-y="-1500">
+        <h1>Сравнение: когда что использовать</h1>
+        <table>
+            <tr><th>Критерий</th><th>Callable object</th><th>Замыкание</th></tr>
+            <tr><td>Состояние</td><td>Поля класса</td><td>Захваченные переменные</td></tr>
+            <tr><td>Инкапсуляция</td><td>Приватные поля</td><td>Локальные переменные</td></tr>
+            <tr><td>Доп. методы</td><td>Можно добавить</td><td>Нельзя</td></tr>
+            <tr><td>Наследование</td><td>Можно</td><td>Нельзя</td></tr>
+            <tr><td>Тестирование</td><td>Легче (mock)</td><td>Сложнее</td></tr>
+        </table>
+        <p>Выбор между callable object и замыканием зависит от потребностей. Если нужны дополнительные методы, наследование или инкапсуляция — выбирайте callable object. Если состояние простое и локальное — замыкание будет легче и короче.</p>
+    </div>
+
+    <div class="step slide" data-x="41000" data-y="-1500">
+        <h1>Примеры выбора</h1>
+        <pre><code>// 1. Нужны доп. методы → callable object
+class Validator(private val rules: List&lt;(String) -&gt; Boolean&gt;) {
+    operator fun invoke(value: String): Boolean =
+        rules.all { it(value) }
+    
+    fun addRule(rule: (String) -&gt; Boolean) { ... }
+    fun clearRules() { ... }
+}
+
+// 2. Простое состояние → замыкание
+fun createValidator(rules: List&lt;(String) -&gt; Boolean&gt;): (String) -&gt; Boolean {
+    return { value -&gt; rules.all { it(value) } }
+}</code></pre>
+        <p>В первом случае нужны методы <code>addRule</code> и <code>clearRules</code> — это требует callable object. Во втором случае достаточно просто проверки — замыкание короче и не требует создания класса.</p>
+    </div>
+
+    <div class="step slide" data-x="42000" data-y="-1500">
+        <h1>DSL с invoke и замыканиями</h1>
+        <pre><code>// Callable object для DSL
+class RouteHandler(private val handler: (Request) -&gt; Response) {
+    operator fun invoke(request: Request): Response = handler(request)
+    
+    fun before(block: (Request) -&gt; Unit) { ... }
+    fun after(block: (Response) -&gt; Unit) { ... }
+}
+
+// Замыкание для простых случаев
+fun route(handler: (Request) -&gt; Response): (Request) -&gt; Response = handler
+
+val getUsers = RouteHandler { req -&gt;
+    Response(200, "Users list")
+}
+getUsers.before { println("Logging request") }
+
+val getHealth = route { req -&gt; Response(200, "OK") }</code></pre>
+        <p>В DSL выбор между callable object и замыканием зависит от сложности. Если нужны хуки <code>before</code>/<code>after</code> — нужен callable object. Если достаточно простой обработки — замыкание проще.</p>
+    </div>
+
+    <!-- БЛОК 5: ЛЕГАСИ -->
+
+    <div class="step slide section" data-x="43000" data-y="-1500">
+        <div class="num">5</div>
+        <h1>Причесывание легаси</h1>
+    </div>
+
+    <div class="step slide" data-x="44000" data-y="-1500">
+        <h1>Пример 1: java.util.Date</h1>
+        <pre><code>// Легаси: Date — куча deprecated методов
+val date = Date()
+date.year // deprecated
+date.month // deprecated
+date.date // deprecated
+
+// Причесываем расширениями
+fun Date.toLocalDate(): LocalDate =
+    Instant.ofEpochMilli(this.time)
+        .atZone(ZoneId.systemDefault())
+        .toLocalDate()
+
+fun Date.isWeekend(): Boolean {
+    val day = this.toLocalDate().dayOfWeek
+    return day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY
+}
+
+fun Date.plusDays(days: Long): Date =
+    Date(this.time + days * 24 * 60 * 60 * 1000)
+
+// Использование
+val today = Date()
+today.toLocalDate() // 2026-01-15
+today.isWeekend() // false
+today.plusDays(3) // Date + 3 дня</code></pre>
+        <p><code>java.util.Date</code> — классический пример легаси-класса с устаревшими методами. Расширения позволяют добавить современный API поверх старого класса, не изменяя его. Вместо deprecated-методов <code>getYear()</code>, <code>getMonth()</code> мы получаем чистые <code>toLocalDate()</code>, <code>isWeekend()</code>, <code>plusDays()</code>.</p>
+    </div>
+
+    <div class="step slide" data-x="45000" data-y="-1500">
+        <h1>Пример 2: java.io.File</h1>
+        <pre><code>// Легаси: File — громоздкий API
+val file = File("/tmp/data.txt")
+file.exists() // boolean
+file.length() // long
+file.listFiles() // File[]?
+
+// Причесываем расширениями
+fun File.readText(): String = this.readBytes().toString(Charsets.UTF_8)
+
+fun File.writeText(text: String) {
+    this.writeBytes(text.toByteArray(Charsets.UTF_8))
+}
+
+fun File.extension(): String =
+    this.name.substringAfterLast('.', "")
+
+fun File.isImage(): Boolean =
+    extension() in setOf("jpg", "png", "gif", "bmp")
+
+// Использование
+val config = File("/etc/app/config.txt")
+config.readText() // "server=localhost"
+config.isImage() // false</code></pre>
+        <p><code>java.io.File</code> — громоздкий API, где даже простое чтение файла требует нескольких строк. Расширения добавляют современные методы <code>readText()</code>, <code>writeText()</code>, а также доменные проверки вроде <code>isImage()</code>.</p>
+    </div>
+
+    <div class="step slide" data-x="46000" data-y="-1500">
+        <h1>Пример 3: java.sql.ResultSet</h1>
+        <pre><code>// Легаси: ResultSet — индексы вместо имен
+val rs = stmt.executeQuery("SELECT id, name FROM users")
+rs.getInt(1) // магическое число
+rs.getString(2) // магическое число
+
+// Причесываем расширениями
+fun ResultSet.getInt(name: String): Int = this.getInt(this.findColumn(name))
+fun ResultSet.getString(name: String): String = this.getString(this.findColumn(name))
+
+fun &lt;T&gt; ResultSet.map(transform: ResultSet.() -&gt; T): List&lt;T&gt; {
+    val result = mutableListOf&lt;T&gt;()
+    while (this.next()) {
+        result.add(transform())
+    }
+    return result
+}
+
+// Использование
+val users = rs.map {
+    User(
+        id = getInt("id"),
+        name = getString("name")
+    )
+}</code></pre>
+        <p><code>java.sql.ResultSet</code> — пример API, где приходится работать с магическими числами вместо имен колонок. Расширения добавляют перегрузки с именами, а метод <code>map()</code> позволяет функционально преобразовывать строки результата в объекты.</p>
+    </div>
+
+    <div class="step slide" data-x="47000" data-y="-1500">
+        <h1>Пример 4: java.net.HttpURLConnection</h1>
+        <pre><code>// Легаси: HttpURLConnection — многословный
+val conn = URL("https://api.example.com").openConnection() as HttpURLConnection
+conn.requestMethod = "GET"
+conn.connect()
+val code = conn.responseCode
+val body = conn.inputStream.bufferedReader().readText()
+conn.disconnect()
+
+// Причесываем расширениями
+fun HttpURLConnection.getResponseBody(): String =
+    this.inputStream.bufferedReader().use { it.readText() }
+
+fun HttpURLConnection.setJsonBody(json: String) {
+    this.doOutput = true
+    this.setRequestProperty("Content-Type", "application/json")
+    this.outputStream.use { it.write(json.toByteArray()) }
+}
+
+// Использование
+val conn = URL("https://api.example.com").openConnection() as HttpURLConnection
+conn.requestMethod = "POST"
+conn.setJsonBody("""{"name": "John"}""")
+val response = conn.getResponseBody()</code></pre>
+        <p><code>HttpURLConnection</code> — многословный API, где даже простой GET-запрос требует 5-6 строк. Расширения <code>getResponseBody()</code> и <code>setJsonBody()</code> скрывают детали работы с потоками и заголовками, делая код чище.</p>
+    </div>
+
+    <div class="step slide" data-x="48000" data-y="-1500">
+        <h1>Итог: что дают расширения для легаси</h1>
+        <ul>
+            <li>Не меняя исходный код, добавляем современный API</li>
+            <li>Скрываем громоздкие конструкции</li>
+            <li>Даем типизацию там, где были магические числа</li>
+            <li>Улучшаем читаемость без риска сломать существующий код</li>
+        </ul>
+        <p>Расширения — идеальный инструмент для работы с легаси-кодом. Вы не можете изменить старые классы, но можете добавить к ним современные методы, которые делают код чище и безопаснее. При этом существующий код продолжает работать без изменений.</p>
+    </div>
+
+    <!-- ЗАКЛЮЧЕНИЕ -->
+
+    <div class="step slide" data-x="49000" data-y="-1500">
+        <h1>Ограничения операторов</h1>
+        <ul>
+            <li>Нельзя создать новый оператор (только из фиксированного набора)</li>
+            <li>Нельзя изменить приоритет операторов</li>
+            <li>Нельзя перегрузить оператор, если он уже есть в классе (член класса выигрывает)</li>
+        </ul>
+        <p>Kotlin предоставляет фиксированный набор операторов, которые можно перегружать. Вы не можете создать свой собственный оператор или изменить приоритет существующих. Также, если в классе уже есть метод с сигнатурой оператора, расширение не сможет его переопределить.</p>
+    </div>
+
+    <div class="step slide" data-x="50000" data-y="-1500">
+        <h1>Анти-паттерны</h1>
+        <ul>
+            <li>Использовать расширения для полиморфизма — статическое разрешение ломает ожидания</li>
+            <li>Создавать расширения, конфликтующие с членами класса — член всегда выигрывает</li>
+            <li>Злоупотреблять операторами — страдает читаемость</li>
+            <li>Менять семантику операторов — плюс должен означать сложение, минус — вычитание</li>
+        </ul>
+        <p>Расширения — мощный инструмент, но важно использовать их с умом. Не пытайтесь реализовать полиморфизм через расширения — для этого есть open-функции и интерфейсы. Не перегружайте операторы без необходимости — код должен оставаться читаемым и предсказуемым.</p>
+    </div>
+
+    <div class="step slide" data-x="51000" data-y="-1500">
+        <h1>Практика</h1>
+        <ol>
+            <li><code>operator fun Int.times(list: List&lt;String&gt;)</code> — повторить список N раз</li>
+            <li><code>operator fun String.div(n: Int)</code> — разделить строку на N частей</li>
+            <li>Реализуйте <code>RetryHandler</code> как callable object (счетчик попыток)</li>
+            <li>Реализуйте тот же <code>RetryHandler</code> через замыкание</li>
+            <li>Расширение для <code>enum class Direction</code> — метод <code>isHorizontal()</code></li>
+            <li>Расширение для <code>interface List&lt;T&gt;</code> — метод <code>secondOrNull()</code></li>
+            <li>Импортируйте два конфликтующих расширения с <code>as</code></li>
+            <li>Расширение для <code>java.util.Random</code> — метод <code>nextIntRange(from, to)</code></li>
+            <li>Расширение для <code>java.util.Properties</code> — метод <code>getInt(key, default)</code></li>
+            <li>Расширение для <code>java.net.URL</code> — метод <code>readText()</code></li>
+        </ol>
+    </div>
+
+    <div class="step slide" data-x="52000" data-y="-1500">
+        <h1>Итоги</h1>
+        <ul>
+            <li>Расширения = статические утилиты с синтаксическим сахаром</li>
+            <li>Статическое разрешение — главное ограничение</li>
+            <li>Из Java — через сгенерированный класс</li>
+            <li>Операторы позволяют строить DSL</li>
+            <li>Invoke — мост между объектом и функцией</li>
+            <li>Расширения причесывают легаси-код</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="53000" data-y="-1500">
+        <h1>Вопросы</h1>
+    </div>
+
+</div>
+
+<div class="impress-progressbar"><div></div></div>
+<div class="impress-progress"></div>
+<a class="ov" href="#/overview">Обзор</a>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<script>
+    if (window.hljs) {
+        hljs.highlightAll();
+    }
+</script>
+<script src="js/impress.js"></script>
+<script>
+    impress().init();
+</script>
+</body>
+</html>
+
