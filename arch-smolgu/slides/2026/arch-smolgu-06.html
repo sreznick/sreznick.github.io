@@ -1,0 +1,645 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1024" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <title>Загрузка ЭВМ: от включения питания до работающей ОС | Лекция</title>
+    
+    <meta name="description" content="Загрузка ЭВМ: от включения питания до работающей ОС" />
+    <meta name="author" content="Лектор" />
+
+    <link href="//fonts.googleapis.com/css?family=Open+Sans:regular,semibold,italic,italicsemibold|PT+Sans:400,700,400italic,700italic|PT+Serif:400,700,400italic,700italic" rel="stylesheet" />
+
+    <link href="css/impress-demo.css" rel="stylesheet" />
+    <link href="css/impress-common.css" rel="stylesheet" />
+    
+    <link rel="shortcut icon" href="favicon.png" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/default.min.css">
+
+</head>
+
+<body class="impress-not-supported">
+
+<div class="fallback-message">
+    <p>Your browser <b>doesn't support the features required</b> by impress.js, so you are presented with a simplified version of this presentation.</p>
+    <p>For the best experience please use the latest <b>Chrome</b>, <b>Safari</b> or <b>Firefox</b> browser.</p>
+</div>
+
+<div id="impress"
+    data-transition-duration="1000"
+    
+    data-width="1024"
+    data-height="768"
+    data-max-scale="3"
+    data-min-scale="0"
+    data-perspective="1000"
+    >
+
+    <!-- ==================== ЧАСТЬ 1: Введение (5 слайдов) ==================== -->
+    <div class="step slide" data-x="-1000" data-y="-1500">
+        <h1>Загрузка ЭВМ</h1>
+        <h2>От включения питания до работающей ОС</h2>
+        <ul>
+            <li>Что происходит между нажатием кнопки Power и рабочим столом</li>
+            <li>Каждый этап — отдельная программа со своей задачей</li>
+            <li>Почему этапов так много и что было бы без каждого</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="0" data-y="-1500">
+        <h1>Карта пути</h1>
+        <ul>
+            <li>ПЗУ (Reset Vector) → код вендора</li>
+            <li>BIOS/UEFI → поиск загрузчика</li>
+            <li>MBR → загрузчик (GRUB)</li>
+            <li>Загрузчик → ядро ОС</li>
+            <li>Ядро → первый процесс (PID 1)</li>
+            <li>PID 1 → все остальные процессы</li>
+        </ul>
+        <p style="text-align:center; margin-top:20px;"><b>Это лестница: каждый этап передаёт управление следующему</b></p>
+    </div>
+
+    <div class="step slide" data-x="2000" data-y="-1500">
+        <h1>Принцип: каждый этап продолжает работу предыдущего</h1>
+        <ul>
+            <li>ПЗУ не знает про ОС</li>
+            <li>BIOS не знает про загрузчики</li>
+            <li>MBR не знает про ядро</li>
+            <li>Каждый слой — интерфейс, скрывающий сложность</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="3000" data-y="-1500">
+        <h1>Структура лекции</h1>
+        <ul>
+            <li>Часть 1: Общий путь крупными шагами</li>
+            <li>Часть 2: Диски и разделы</li>
+            <li>Часть 3: Каждый этап с QEMU</li>
+            <li>Часть 4: Отладка без GDB</li>
+            <li>Часть 5: Три кита ОС</li>
+        </ul>
+    </div>
+
+    <!-- ==================== ЧАСТЬ 2: Общий путь (10 слайдов) ==================== -->
+    <div class="step slide" data-x="4000" data-y="-1500">
+        <h1>Этап 0: Reset Vector</h1>
+        <ul>
+            <li><b>Что:</b> процессор включается и исполняет код по фиксированному адресу (0xFFFFFFF0)</li>
+            <li><b>Зачем:</b> процессору нужно сказать, где первая инструкция</li>
+            <li><b>Без него:</b> процессор не знает, что исполнять — компьютер просто висит</li>
+        </ul>
+        <pre><code># Аппаратно зашитый адрес
+# 0xFFFFFFF0 — последние 16 байт 4 ГБ
+# Туда отображается ПЗУ с кодом вендора</code></pre>
+    </div>
+
+    <div class="step slide" data-x="5000" data-y="-1500">
+        <h1>Этап 1: Код вендора (BIOS/UEFI)</h1>
+        <ul>
+            <li><b>Что:</b> программа из ПЗУ инициализирует железо: память, контроллеры, видео, диски</li>
+            <li><b>Зачем:</b> ОС слишком сложная, чтобы стартовать с нуля — ей нужен рабочий компьютер</li>
+            <li><b>Без него:</b> ОС должна знать все детали конкретной материнки — жёсткая связка железо-ОС</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="6000" data-y="-1500">
+        <h1>Этап 2: Поиск загрузчика</h1>
+        <ul>
+            <li><b>Что:</b> BIOS/UEFI ищут устройство с загрузочным кодом (диск, USB, сеть)</li>
+            <li><b>Зачем:</b> BIOS не знает про ОС — он только находит код и передаёт управление</li>
+            <li><b>Без него:</b> BIOS должен уметь грузить все ОС — распух бы до размера ОС</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="7000" data-y="-1500">
+        <h1>Этап 3: MBR</h1>
+        <ul>
+            <li><b>Что:</b> первый сектор диска (512 байт): код (446) + таблица разделов (64) + сигнатура (2)</li>
+            <li><b>Зачем:</b> стандартный интерфейс: BIOS проверяет сигнатуру 0xAA55 и прыгает на код</li>
+            <li><b>Без него:</b> BIOS должен знать про каждый загрузчик в мире</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="8000" data-y="-1500">
+        <h1>Этап 4: Загрузчик (Bootloader)</h1>
+        <ul>
+            <li><b>Что:</b> программа, которая умеет грузить ядро ОС (GRUB, Windows Boot Manager)</li>
+            <li><b>Зачем:</b> ядро не помещается в 512 байт MBR — нужен посредник</li>
+            <li><b>Без него:</b> MBR-код должен сам переключать режимы, читать ФС, грузить ELF</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="9000" data-y="-1500">
+        <h1>Этап 5: Ядро ОС</h1>
+        <ul>
+            <li><b>Что:</b> получает управление от загрузчика, инициализирует драйверы, память, планировщик</li>
+            <li><b>Зачем:</b> точка входа в ОС — всё до этого было подготовкой</li>
+            <li><b>Без него:</b> загрузчик передал бы управление в никуда</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="10000" data-y="-1500">
+        <h1>Этап 6: Userspace</h1>
+        <ul>
+            <li><b>Что:</b> PID 1 (init/systemd) запускает службы, появляется логин, shell, рабочий стол</li>
+            <li><b>Зачем:</b> ядро — менеджер ресурсов, пользователю нужны программы</li>
+            <li><b>Без него:</b> система загрузилась, но ничего не делает</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="11000" data-y="-1500">
+        <h1>Итоговая схема</h1>
+        <pre><code>ПЗУ → BIOS/UEFI → MBR → Загрузчик → Ядро → PID 1 → Userspace
+ │         │         │        │         │        │
+ │         │         │        │         │        └─ без него: нет программ
+ │         │         │        │         └─ без него: нечего запускать
+ │         │         │        └─ без него: ядро не влезает в 512 байт
+ │         │         └─ без него: BIOS не знает про загрузчики
+ │         └─ без него: ОС привязана к железу
+ └─ без него: процессор не знает, что исполнять</code></pre>
+    </div>
+
+    <div class="step slide" data-x="12000" data-y="-1500">
+        <h1>Ключевая мысль</h1>
+        <ul>
+            <li>Каждый этап — интерфейс</li>
+            <li>Каждый скрывает сложность нижележащего</li>
+            <li>Каждый решает проблему предыдущего</li>
+            <li>Убираете любой — всё разваливается</li>
+        </ul>
+    </div>
+
+    <!-- ==================== ЧАСТЬ 3: Диски и разделы (8 слайдов) ==================== -->
+    <div class="step slide" data-x="13000" data-y="-1500">
+        <h1>Диски: базовые понятия</h1>
+        <ul>
+            <li>Диск — массив секторов</li>
+            <li>Сектор — минимальная адресуемая единица (512 байт)</li>
+            <li>LBA (Logical Block Address) — просто номер сектора от 0 до N</li>
+            <li>BIOS читает сектора по номеру</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="14000" data-y="-1500">
+        <h1>MBR: структура (512 байт)</h1>
+        <pre><code>┌─────────────────────────────────────────┐
+│ 446 байт — код загрузчика               │
+├─────────────────────────────────────────┤
+│ 64 байта — таблица разделов (4 × 16)    │
+├─────────────────────────────────────────┤
+│ 2 байта — сигнатура 0xAA55              │
+└─────────────────────────────────────────┘</code></pre>
+        <ul>
+            <li>Сигнатура — признак загрузочного сектора</li>
+            <li>BIOS проверяет её перед передачей управления</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="15000" data-y="-1500">
+        <h1>Разделы (Partitions)</h1>
+        <ul>
+            <li>Диск делится на разделы (C:, D:, /dev/sda1...)</li>
+            <li>Каждый раздел — непрерывная область секторов</li>
+            <li>Внутри раздела — файловая система (NTFS, ext4, FAT32)</li>
+            <li>Один раздел помечается как активный (загрузочный)</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="16000" data-y="-1500">
+        <h1>VBR (Volume Boot Record)</h1>
+        <ul>
+            <li>Первый сектор раздела</li>
+            <li>MBR-код читает его и передаёт управление</li>
+            <li>VBR — вторая стадия загрузки</li>
+            <li>Умеет больше, чем MBR (может читать ФС)</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="17000" data-y="-1500">
+        <h1>GPT: замена MBR</h1>
+        <ul>
+            <li>Таблица разделов не в первом секторе, а после него</li>
+            <li>Поддерживает диски больше 2 ТБ</li>
+            <li>Не ограничена 4 разделами</li>
+            <li>Резервная копия таблицы в конце диска</li>
+            <li>Используется с UEFI</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="18000" data-y="-1500">
+        <h1>EFI System Partition (ESP)</h1>
+        <ul>
+            <li>Раздел с файловой системой FAT32</li>
+            <li>Содержит загрузчики (.efi файлы)</li>
+            <li>UEFI читает его напрямую</li>
+            <li>Не нужен классический MBR</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="19000" data-y="-1500">
+        <h1>QEMU: пустой диск</h1>
+        <pre><code># Создаём пустой образ
+dd if=/dev/zero of=disk.img bs=512 count=2048
+
+# Запускаем — BIOS не находит загрузчик
+qemu-system-x86_64 -drive format=raw,file=disk.img
+
+# Результат: "No bootable device"</code></pre>
+        <p>BIOS прошёл все устройства, ничего не нашёл — и остановился.</p>
+    </div>
+
+    <div class="step slide" data-x="20000" data-y="-1500">
+        <h1>QEMU: диск с сигнатурой, но без кода</h1>
+        <pre><code># Записываем сигнатуру 0xAA55 в конец первого сектора
+printf '\x55\xAA' | dd of=disk.img bs=1 seek=510 conv=notrunc
+
+# Запускаем
+qemu-system-x86_64 -drive format=raw,file=disk.img
+
+# BIOS нашёл сигнатуру, прыгнул на 0x7C00
+# А там нули — процессор исполняет мусор и падает</code></pre>
+    </div>
+
+    <!-- ==================== ЧАСТЬ 4: Каждый этап с QEMU (14 слайдов) ==================== -->
+    <div class="step slide" data-x="21000" data-y="-1500">
+        <h1>QEMU: Reset Vector</h1>
+        <pre><code># Лог первых инструкций процессора
+qemu-system-x86_64 -d int,cpu_reset -D qemu.log
+
+# В логе:
+# CS=0xF000 IP=0xFFF0
+# Первая инструкция — из ПЗУ по адресу 0xFFFFFFF0</code></pre>
+        <p>Процессор «просыпается» в 16-битном режиме, даже если он 64-битный.</p>
+    </div>
+
+    <div class="step slide" data-x="22000" data-y="-1500">
+        <h1>QEMU: свой код в ПЗУ</h1>
+        <pre><code># Собираем свой firmware
+nasm -f bin my_firmware.asm -o my_firmware.bin
+
+# Запускаем с нашим ПЗУ
+qemu-system-x86_64 -bios my_firmware.bin</code></pre>
+        <pre><code>; my_firmware.asm
+[bits 16]
+mov ah, 0x0E
+mov al, 'F'
+int 0x10
+jmp $</code></pre>
+    </div>
+
+    <div class="step slide" data-x="23000" data-y="-1500">
+        <h1>Linker script для ПЗУ</h1>
+        <pre><code>OUTPUT_FORMAT(binary)
+ENTRY(_start)
+
+SECTIONS
+{
+    . = 0xFFFF0000;  /* адрес, куда QEMU поместит ПЗУ */
+    .text : {
+        *(.text)
+    }
+}</code></pre>
+        <p>Настоящий код вендора занимает мегабайты. Наш — 64 КБ, для демонстрации достаточно.</p>
+    </div>
+
+    <div class="step slide" data-x="24000" data-y="-1500">
+        <h1>QEMU: BIOS (SeaBIOS)</h1>
+        <pre><code># Дефолтный BIOS от QEMU
+qemu-system-x86_64 -d int,cpu_reset -D qemu.log
+
+# В логе видно, как SeaBIOS:
+# 1. Инициализирует память
+# 2. Ищет видео
+# 3. Проверяет клавиатуру
+# 4. Ищет загрузочные устройства</code></pre>
+        <p>Это и есть «код вендора» — он исполняется до вашей ОС.</p>
+    </div>
+
+    <div class="step slide" data-x="25000" data-y="-1500">
+        <h1>QEMU: рабочий MBR</h1>
+        <pre><code>; mbr.asm
+[org 0x7C00]
+mov ah, 0x0E
+mov al, 'M'
+int 0x10
+jmp $
+times 510-($-$$) db 0
+dw 0xAA55
+
+# Сборка и запуск
+nasm -f bin mbr.asm -o mbr.bin
+dd if=mbr.bin of=disk.img conv=notrunc
+qemu-system-x86_64 -drive format=raw,file=disk.img</code></pre>
+        <p>На экране — буква 'M'. BIOS передал управление нашему коду.</p>
+    </div>
+
+    <div class="step slide" data-x="26000" data-y="-1500">
+        <h1>Linker script для MBR</h1>
+        <pre><code>OUTPUT_FORMAT(binary)
+ENTRY(_start)
+
+SECTIONS
+{
+    . = 0x7C00;  /* адрес, куда BIOS загружает MBR */
+    .text : {
+        *(.text)
+    }
+    . = 0x7DFE;  /* сигнатура в конце сектора */
+    .sig : {
+        SHORT(0xAA55)
+    }
+}</code></pre>
+    </div>
+
+    <div class="step slide" data-x="27000" data-y="-1500">
+        <h1>Чтение диска: int 0x13</h1>
+        <pre><code>; Чтение сектора 2 (LBA 1) в память по адресу 0x8000
+mov ah, 0x02        ; функция: чтение секторов
+mov al, 0x01        ; количество: 1
+mov ch, 0x00        ; цилиндр 0
+mov cl, 0x02        ; сектор 2
+mov dh, 0x00        ; головка 0
+mov dl, 0x80        ; диск: первый жёсткий
+mov bx, 0x8000      ; адрес буфера
+mov es, bx
+mov bx, 0x0000
+int 0x13            ; вызов BIOS
+jc .error           ; CF=1 — ошибка</code></pre>
+        <p>Это делает код в MBR: читает следующий сектор и передаёт управление.</p>
+    </div>
+
+    <div class="step slide" data-x="28000" data-y="-1500">
+        <h1>Цепочка загрузки</h1>
+        <pre><code>MBR (446 байт)
+  │
+  │ читает VBR (первый сектор раздела)
+  ▼
+VBR (512 байт)
+  │
+  │ читает следующий кусок загрузчика
+  ▼
+GRUB stage 2 (несколько КБ)
+  │
+  │ читает ядро с файловой системы
+  ▼
+Ядро ОС</code></pre>
+        <p>Каждый этап — чуть больше возможностей, чуть больше кода.</p>
+    </div>
+
+    <div class="step slide" data-x="29000" data-y="-1500">
+        <h1>QEMU: ядро напрямую</h1>
+        <pre><code># QEMU сам загружает ядро, минуя BIOS/MBR/загрузчик
+qemu-system-x86_64 -kernel vmlinuz -initrd initrd.img \
+    -append "console=ttyS0" -nographic
+
+# Удобно для отладки, но скрывает весь путь загрузки</code></pre>
+        <p>QEMU делает работу загрузчика: грузит ядро в память и передаёт управление.</p>
+    </div>
+
+    <div class="step slide" data-x="30000" data-y="-1500">
+        <h1>Linker script для ядра</h1>
+        <pre><code>OUTPUT_FORMAT(binary)
+ENTRY(_start)
+
+SECTIONS
+{
+    . = 0x100000;  /* 1 МБ — стандартный адрес загрузки ядра */
+    .text : {
+        *(.text)
+    }
+    .rodata : {
+        *(.rodata)
+    }
+    .data : {
+        *(.data)
+    }
+    .bss : {
+        *(.bss)
+    }
+}</code></pre>
+    </div>
+
+    <div class="step slide" data-x="31000" data-y="-1500">
+        <h1>QEMU: userspace</h1>
+        <pre><code># Ядро монтирует initramfs и запускает /bin/sh как PID 1
+qemu-system-x86_64 -kernel vmlinuz -initrd initramfs.cpio.gz \
+    -append "rdinit=/bin/sh console=ttyS0" -nographic
+
+# Сразу shell, без единого диска</code></pre>
+        <p>Всё в памяти. Нет жёсткого диска, нет разделов — только ядро и initramfs.</p>
+    </div>
+
+    <div class="step slide" data-x="32000" data-y="-1500">
+        <h1>Сводная таблица QEMU-команд</h1>
+        <pre><code>┌──────────────────┬──────────────────────────────────┐
+│ Этап             │ QEMU-команда                     │
+├──────────────────┼──────────────────────────────────┤
+│ Reset Vector     │ -d int,cpu_reset -D qemu.log     │
+│ Свой код в ПЗУ   │ -bios my_firmware.bin            │
+│ BIOS (SeaBIOS)   │ -d int,cpu_reset -D qemu.log     │
+│ MBR              │ -drive format=raw,file=disk.img  │
+│ Ядро             │ -kernel vmlinuz -initrd initrd   │
+│ Userspace        │ rdinit=/bin/sh                   │
+└──────────────────┴──────────────────────────────────┘</code></pre>
+    </div>
+
+    <!-- ==================== ЧАСТЬ 5: Отладка без GDB (6 слайдов) ==================== -->
+    <div class="step slide" data-x="33000" data-y="-1500">
+        <h1>Отладка: видеобуфер</h1>
+        <pre><code>; Видеопамять по адресу 0xB8000
+; Каждые 2 байта = символ + атрибут (цвет)
+
+mov ax, 0xB800
+mov es, ax
+mov byte [es:0x00], 'A'   ; символ
+mov byte [es:0x01], 0x07  ; белый на чёрном
+jmp $</code></pre>
+        <p>Не нужны прерывания BIOS. Просто запись в память — символ появляется на экране.</p>
+    </div>
+
+    <div class="step slide" data-x="34000" data-y="-1500">
+        <h1>Отладка: семафоры</h1>
+        <pre><code>; Точка A
+mov byte [es:0x00], 'A'
+; ... какой-то код ...
+; Точка B
+mov byte [es:0x02], 'B'
+; ... какой-то код ...
+; Точка C
+mov byte [es:0x04], 'C'</code></pre>
+        <p>Если на экране 'AB', но нет 'C' — падение между B и C.</p>
+    </div>
+
+    <div class="step slide" data-x="35000" data-y="-1500">
+        <h1>Отладка: лог инструкций</h1>
+        <pre><code># Каждая исполненная инструкция с адресом и байтами
+qemu-system-x86_64 -d in_asm -D qemu.log \
+    -drive format=raw,file=disk.img
+
+# С регистрами:
+qemu-system-x86_64 -d in_asm,int,cpu_reset -D qemu.log \
+    -drive format=raw,file=disk.img</code></pre>
+        <p>Видно, что именно исполняет процессор и какие значения в регистрах.</p>
+    </div>
+
+    <div class="step slide" data-x="36000" data-y="-1500">
+        <h1>Отладка: звуковой сигнал</h1>
+        <pre><code>; Щелчок динамиком через порт 0x61
+in al, 0x61
+or al, 0x03
+out 0x61, al
+
+; Работает даже если видео сломано</code></pre>
+    </div>
+
+    <div class="step slide" data-x="37000" data-y="-1500">
+        <h1>Отладка: сравнение методов</h1>
+        <pre><code>┌─────────────────┬──────────────────────────────────┐
+│ Метод           │ Когда использовать               │
+├─────────────────┼──────────────────────────────────┤
+│ Видеобуфер      │ Всегда, это просто                │
+│ Семафоры        │ Когда нужно найти точку падения   │
+│ Лог инструкций  │ Когда нужно понять, что исполняется│
+│ Звук            │ Когда видео не работает           │
+└─────────────────┴──────────────────────────────────┘</code></pre>
+    </div>
+
+    <!-- ==================== ЧАСТЬ 6: Три кита ОС (8 слайдов) ==================== -->
+    <div class="step slide" data-x="38000" data-y="-1500">
+        <h1>Три кита ОС</h1>
+        <ul>
+            <li>Прерывания — как железо сообщает процессору о событиях</li>
+            <li>Защищённый режим — изоляция программ друг от друга</li>
+            <li>Таблицы страниц — виртуальная память</li>
+        </ul>
+        <p>Без этих трёх механизмов современная ОС невозможна.</p>
+    </div>
+
+    <div class="step slide" data-x="39000" data-y="-1500">
+        <h1>Прерывания: зачем</h1>
+        <ul>
+            <li>Таймер, клавиатура, диск — генерируют прерывания</li>
+            <li>Процессор откладывает текущую задачу и вызывает обработчик</li>
+            <li>Адреса обработчиков — в таблице IDT</li>
+            <li>Без прерываний: процессор должен сам опрашивать устройства (polling)</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="40000" data-y="-1500">
+        <h1>Прерывания: QEMU</h1>
+        <pre><code># Лог прерываний
+qemu-system-x86_64 -d int -D qemu.log \
+    -drive format=raw,file=disk.img
+
+# В логе: interrupt 0x20 (таймер) снова и снова
+# Это ядро получает управление от таймера</code></pre>
+    </div>
+
+    <div class="step slide" data-x="41000" data-y="-1500">
+        <h1>Защищённый режим: зачем</h1>
+        <ul>
+            <li>В реальном режиме любая программа может писать куда угодно</li>
+            <li>Защищённый режим: кольца защиты (ring 0 — ядро, ring 3 — пользователь)</li>
+            <li>Программа из ring 3 не может трогать память ядра</li>
+            <li>Без него: любая программа может перезаписать ОС</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="42000" data-y="-1500">
+        <h1>Защищённый режим: QEMU</h1>
+        <pre><code># После перехода в защищённый режим
+# появляются исключения при попытке доступа к памяти
+qemu-system-x86_64 -d int,cpu_reset -D qemu.log \
+    -drive format=raw,file=disk.img
+
+# В логе: interrupt 0x0D (general protection fault)</code></pre>
+    </div>
+
+    <div class="step slide" data-x="43000" data-y="-1500">
+        <h1>Таблицы страниц: зачем</h1>
+        <ul>
+            <li>Виртуальная память: программа думает, что у неё вся память</li>
+            <li>Процессор транслирует виртуальные адреса в физические</li>
+            <li>Изоляция: программа не видит память другой программы</li>
+            <li>Swap: неиспользуемые страницы выгружаются на диск</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="44000" data-y="-1500">
+        <h1>Таблицы страниц: QEMU</h1>
+        <pre><code># Page fault при обращении к несуществующей странице
+qemu-system-x86_64 -d int -D qemu.log \
+    -drive format=raw,file=disk.img
+
+# В логе: interrupt 0x0E (page fault)
+# С адресом, к которому обратились</code></pre>
+    </div>
+
+    <!-- ==================== ЧАСТЬ 7: Итоги (4 слайда) ==================== -->
+    <div class="step slide" data-x="45000" data-y="-1500">
+        <h1>Карта пути (с QEMU)</h1>
+        <pre><code>ПЗУ → BIOS/UEFI → MBR → Загрузчик → Ядро → PID 1
+ │         │         │        │         │
+ │         │         │        │         └─ rdinit=/bin/sh
+ │         │         │        └─ -kernel vmlinuz
+ │         │         └─ -drive format=raw,file=disk.img
+ │         └─ -bios my_firmware.bin
+ └─ -d int,cpu_reset -D qemu.log</code></pre>
+    </div>
+
+    <div class="step slide" data-x="46000" data-y="-1500">
+        <h1>Ключевые мысли</h1>
+        <ul>
+            <li>Каждый этап — интерфейс, скрывающий сложность</li>
+            <li>Каждый решает проблему предыдущего</li>
+            <li>QEMU — единственный способ увидеть весь путь</li>
+            <li>Отладка без GDB: видеобуфер, семафоры, логи</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="47000" data-y="-1500">
+        <h1>Материалы</h1>
+        <ul>
+            <li>OSDev Wiki — подробности по каждой стадии</li>
+            <li>Спецификация Multiboot</li>
+            <li>Исходники GRUB</li>
+            <li>Практика: соберите свой MBR и запустите в QEMU</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="48000" data-y="-1500">
+        <h1>Спасибо</h1>
+        <p>Вопросы?</p>
+    </div>
+
+    <div id="overview" class="step" data-x="3000" data-y="1500" data-z="0" data-scale="10">
+    </div>
+
+</div>
+
+<div id="impress-toolbar"></div>
+
+<div class="hint">
+    <p>Use a spacebar or arrow keys to navigate. <br/>
+       Press 'P' to launch speaker console.</p>
+</div>
+<script>
+if ("ontouchstart" in document.documentElement) { 
+    document.querySelector(".hint").innerHTML = "<p>Swipe left or right to navigate</p>";
+}
+</script>
+
+<script src="js/impress.js"></script>
+<script>impress().init();</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/python.min.js"></script>
+
+<script>hljs.highlightAll();</script>
+
+</body>
+</html>
+
