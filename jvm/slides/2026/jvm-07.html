@@ -1,0 +1,1303 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1024" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <title>Функции и замыкания в Kotlin</title>
+
+    <link href="//fonts.googleapis.com/css?family=Open+Sans:regular,semibold,italic,italicsemibold|PT+Sans:400,700,400italic,700italic|PT+Serif:400,700,400italic,700italic" rel="stylesheet" />
+
+    <link href="css/impress-demo.css" rel="stylesheet" />
+    <link href="css/impress-common.css" rel="stylesheet" />
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/default.min.css">
+
+    <style>
+        .slide {
+            font-size: 27px;
+            line-height: 1.3;
+            letter-spacing: -.5px;
+        }
+
+        .slide h1 {
+            font-size: 40px;
+            line-height: 1.15;
+            margin: 0 0 .5em;
+            text-align: left;
+        }
+
+        .slide ul,
+        .slide ol {
+            margin: 0;
+            padding-left: 1.1em;
+        }
+
+        .slide li {
+            margin: .25em 0;
+        }
+
+        .slide p {
+            margin: .6em 0 0;
+        }
+
+        .slide pre {
+            margin: 0 0 12px;
+            letter-spacing: 0;
+            text-shadow: none;
+        }
+
+        .slide pre code.hljs {
+            padding: 12px 16px;
+            font-size: 17px;
+            line-height: 1.35;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .slide pre.small code.hljs {
+            font-size: 15.5px;
+        }
+
+        .slide code:not(.hljs) {
+            background: #e2e8f0;
+            color: #1e293b;
+            padding: 0 .3em;
+            border-radius: 4px;
+            font-size: .85em;
+            letter-spacing: 0;
+        }
+
+        .slide.section code:not(.hljs),
+        .slide.title code:not(.hljs) {
+            background: rgba(255,255,255,.28);
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .slide table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 22px;
+            line-height: 1.25;
+        }
+
+        .slide th,
+        .slide td {
+            border-bottom: 1px solid #ccc;
+            padding: 6px 10px;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .slide th {
+            background: #e2e8f0;
+            color: #1e293b;
+        }
+
+        .slide .hl {
+            color: #b91c1c;
+        }
+
+        .slide.section {
+            background: linear-gradient(135deg,#7c3aed,#db2777);
+            color: #fff;
+            text-shadow: none;
+        }
+
+        .slide.section h1 {
+            color: #fff;
+            font-size: 50px;
+        }
+
+        .slide.section .num {
+            position: absolute;
+            right: 40px;
+            top: 0;
+            font-size: 200px;
+            font-weight: 700;
+            opacity: .18;
+            line-height: 1;
+        }
+
+        .slide.title .hint {
+            font-size: 20px;
+            color: #999;
+            margin-top: 40px;
+        }
+
+        .notes {
+            display: none;
+        }
+
+        .ov {
+            position: fixed;
+            left: 14px;
+            bottom: 12px;
+            color: #93c5fd;
+            font-size: 14px;
+            text-decoration: none;
+            z-index: 10;
+        }
+
+        #overview {
+            background: none!important;
+            border: 0!important;
+            box-shadow: none!important;
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body class="impress-not-supported">
+
+<div class="fallback-message">
+    <p>Ваш браузер <b>не поддерживает возможности, необходимые для impress.js</b>, поэтому показана упрощённая версия презентации.</p>
+    <p>Лучше всего использовать свежие <b>Chrome</b>, <b>Safari</b> или <b>Firefox</b>.</p>
+</div>
+
+<div id="impress"
+    data-transition-duration="1000"
+    data-width="1024"
+    data-height="768"
+    data-max-scale="3"
+    data-min-scale="0"
+    data-perspective="1000"
+    >
+
+    <!-- ============================================ -->
+    <!-- БЛОК 1: ВВЕДЕНИЕ (слайды 1-2) -->
+    <!-- ============================================ -->
+
+    <div class="step slide title" data-x="-1000" data-y="-1500">
+        <h1>Функции и замыкания в Kotlin</h1>
+        <ul>
+            <li>Функции и методы</li>
+            <li>Вложенные функции</li>
+            <li>Замыкания</li>
+            <li>Анонимные функции</li>
+            <li>Лямбда-расширения</li>
+            <li>DSL на практике</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="0" data-y="-1500">
+        <h1>Цели занятия</h1>
+        <ul>
+            <li>Понять функции как объекты первого класса</li>
+            <li>Освоить вложенные функции и область видимости</li>
+            <li>Изучить механизм замыканий</li>
+            <li>Разобрать анонимные функции</li>
+            <li>Научиться строить DSL через лямбда-расширения</li>
+        </ul>
+        <p>Сегодня мы рассмотрим, как Kotlin превращает функции в мощный инструмент для создания выразительного и лаконичного кода.</p>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- БЛОК 2: ФУНКЦИИ И МЕТОДЫ (слайды 3-9) -->
+    <!-- ============================================ -->
+
+    <div class="step slide section" data-x="1000" data-y="-1500">
+        <div class="num">1</div>
+        <h1>Функции и методы</h1>
+        <ul>
+            <li>Базовый синтаксис</li>
+            <li>Параметры по умолчанию</li>
+            <li>Именованные аргументы</li>
+            <li>Методы классов</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="2000" data-y="-1500">
+        <h1>Базовый синтаксис функции</h1>
+        <pre><code>fun add(a: Int, b: Int): Int {
+    return a + b
+}
+
+// Сокращенный синтаксис (expression body)
+fun addShort(a: Int, b: Int) = a + b
+
+// Вызов
+val sum = add(2, 3) // 5</code></pre>
+        <p>Ключевое слово <code>fun</code> объявляет функцию. Тип возвращаемого значения указывается после параметров через двоеточие.</p>
+    </div>
+
+    <div class="step slide" data-x="3000" data-y="-1500">
+        <h1>Параметры по умолчанию</h1>
+        <pre><code>fun greet(name: String, prefix: String = "Hello") {
+    println("$prefix, $name!")
+}
+
+greet("Alice")          // "Hello, Alice!"
+greet("Bob", "Hi")      // "Hi, Bob!"
+greet(prefix = "Hey", name = "Charlie") // "Hey, Charlie!"</code></pre>
+        <p>Параметры по умолчанию заменяют перегрузку функций из Java.</p>
+    </div>
+
+    <div class="step slide" data-x="4000" data-y="-1500">
+        <h1>Именованные аргументы</h1>
+        <pre><code>fun configure(
+    host: String,
+    port: Int = 80,
+    useTls: Boolean = false
+) { ... }
+
+// Вызов с именованными аргументами
+configure(host = "example.com", useTls = true)
+configure(host = "localhost", port = 8080)</code></pre>
+        <p>Именованные аргументы улучшают читаемость, порядок не важен.</p>
+    </div>
+
+    <div class="step slide" data-x="5000" data-y="-1500">
+        <h1>Методы классов</h1>
+        <pre><code>class User(val name: String, val age: Int) {
+    fun introduce(): String = "My name is $name, I'm $age"
+    
+    fun isAdult(): Boolean = age >= 18
+}
+
+val user = User("Alice", 25)
+user.introduce() // "My name is Alice, I'm 25"
+user.isAdult() // true</code></pre>
+        <p>Методы — функции внутри класса, имеют доступ к <code>this</code>.</p>
+    </div>
+
+    <div class="step slide" data-x="6000" data-y="-1500">
+        <h1>Функция как объект (часть 1)</h1>
+        <ul>
+            <li>Функции — объекты первого класса</li>
+            <li>Хранятся в переменных</li>
+            <li>Передаются как параметры</li>
+        </ul>
+        <pre><code>// Функция хранится в переменной
+val sum: (Int, Int) -> Int = { a, b -> a + b }
+
+// Передается в другую функцию
+fun applyOperation(
+    a: Int, 
+    b: Int, 
+    op: (Int, Int) -> Int
+): Int {
+    return op(a, b)
+}
+
+val result = applyOperation(3, 4, sum) // 7</code></pre>
+        <p>Тип функции: <code>(Параметры) -> Результат</code></p>
+    </div>
+
+    <div class="step slide" data-x="6500" data-y="-1500">
+        <h1>Функция как объект (часть 2)</h1>
+        <ul>
+            <li>Возвращаются из функций</li>
+            <li>Хранятся в коллекциях</li>
+        </ul>
+        <pre><code>// Функция возвращает функцию
+fun createMultiplier(factor: Int): (Int) -> Int {
+    return { value -> value * factor }
+}
+
+val double = createMultiplier(2)
+val triple = createMultiplier(3)
+
+double(5) // 10
+triple(5) // 15
+
+// Коллекция функций
+val operations = listOf(
+    { x: Int -> x + 1 },
+    { x: Int -> x * 2 },
+    { x: Int -> x * x }
+)</code></pre>
+    </div>
+
+    <div class="step slide" data-x="7000" data-y="-1500">
+        <h1>Резюме: функции и методы</h1>
+        <ul>
+            <li><code>fun</code> — объявление функции</li>
+            <li>Параметры по умолчанию и именованные аргументы</li>
+            <li>Методы — функции внутри классов</li>
+            <li>Функции — объекты первого класса</li>
+        </ul>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- БЛОК 3: ВЛОЖЕННЫЕ ФУНКЦИИ (слайды 10-16) -->
+    <!-- ============================================ -->
+
+    <div class="step slide section" data-x="8000" data-y="-1500">
+        <div class="num">2</div>
+        <h1>Вложенные функции</h1>
+        <ul>
+            <li>Определение</li>
+            <li>Область видимости</li>
+            <li>Практическое применение</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="9000" data-y="-1500">
+        <h1>Что такое вложенные функции</h1>
+        <ul>
+            <li>Функция, объявленная внутри другой функции</li>
+            <li>Видна только внутри внешней функции</li>
+            <li>Имеет доступ к параметрам и переменным внешней функции</li>
+        </ul>
+        <pre><code>fun outer() {
+    fun inner() {
+        println("Inside inner function")
+    }
+    
+    inner() // вызов
+}
+outer()</code></pre>
+        <p>Вложенные функции инкапсулируют логику, не загрязняя пространство имен.</p>
+    </div>
+
+    <div class="step slide" data-x="10000" data-y="-1500">
+        <h1>Доступ к внешним переменным (часть 1)</h1>
+        <pre><code>fun calculateTotal(
+    price: Double, 
+    taxRate: Double
+): Double {
+    
+    fun applyTax(amount: Double): Double {
+        return amount * (1 + taxRate) // доступ к taxRate
+    }
+    
+    fun applyDiscount(amount: Double): Double {
+        return amount * 0.9 // фиксированная скидка
+    }
+    
+    val withTax = applyTax(price)
+    return applyDiscount(withTax)
+}
+
+calculateTotal(100.0, 0.2) // 108.0</code></pre>
+        <p>Вложенные функции видят параметры внешней функции.</p>
+    </div>
+
+    <div class="step slide" data-x="10500" data-y="-1500">
+        <h1>Доступ к внешним переменным (часть 2)</h1>
+        <pre><code>fun processOrder(
+    items: List&lt;Double&gt;, 
+    discount: Double
+): Double {
+    
+    fun applyDiscount(amount: Double): Double {
+        // Доступ к параметру discount
+        return amount * (1 - discount)
+    }
+    
+    fun formatPrice(amount: Double): Double {
+        // Доступ к локальной переменной
+        val precision = 2
+        return Math.round(amount * 100.0) / 100.0
+    }
+    
+    val subtotal = items.sum()
+    val total = applyDiscount(subtotal)
+    return formatPrice(total)
+}
+
+processOrder(listOf(10.0, 20.0, 30.0), 0.1) // 54.0</code></pre>
+        <p>Доступ к параметрам и локальным переменным.</p>
+    </div>
+
+    <div class="step slide" data-x="11000" data-y="-1500">
+        <h1>Практический пример: валидация</h1>
+        <pre><code>fun processUser(name: String, age: Int, email: String) {
+    fun validateName(n: String) = n.isNotBlank() && n.length >= 2
+    fun validateAge(a: Int) = a in 18..120
+    fun validateEmail(e: String) = '@' in e && '.' in e
+    
+    if (!validateName(name)) {
+        println("Invalid name")
+        return
+    }
+    if (!validateAge(age)) {
+        println("Invalid age")
+        return
+    }
+    if (!validateEmail(email)) {
+        println("Invalid email")
+        return
+    }
+    println("User $name processed")
+}</code></pre>
+        <p>Вложенные функции группируют проверки локально.</p>
+    </div>
+
+    <div class="step slide" data-x="12000" data-y="-1500">
+        <h1>Пример: генерация матрицы</h1>
+        <pre><code>fun createMultiplicationTable(size: Int): List&lt;List&lt;Int&gt;&gt; {
+    fun row(i: Int): List&lt;Int&gt; {
+        return (1..size).map { j -> i * j }
+    }
+    
+    return (1..size).map { row(it) }
+}
+
+val table = createMultiplicationTable(3)
+// [[1, 2, 3], [2, 4, 6], [3, 6, 9]]</code></pre>
+        <p>Вложенные функции разбивают сложную логику на простые шаги.</p>
+    </div>
+
+    <div class="step slide" data-x="13000" data-y="-1500">
+        <h1>Резюме: вложенные функции</h1>
+        <ul>
+            <li>Объявляются внутри другой функции</li>
+            <li>Имеют доступ к внешнему контексту</li>
+            <li>Инкапсулируют логику</li>
+            <li>Улучшают читаемость и структуру кода</li>
+        </ul>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- БЛОК 4: ЗАМЫКАНИЯ (слайды 17-24) -->
+    <!-- ============================================ -->
+
+    <div class="step slide section" data-x="14000" data-y="-1500">
+        <div class="num">3</div>
+        <h1>Замыкания</h1>
+        <ul>
+            <li>Определение</li>
+            <li>Захват переменных</li>
+            <li>Состояние между вызовами</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="15000" data-y="-1500">
+        <h1>Что такое замыкание (часть 1)</h1>
+        <ul>
+            <li>Функция, которая <b>захватывает</b> переменные</li>
+            <li>«Замкнута» на внешние переменные</li>
+            <li>Сохраняет доступ после выхода из внешней функции</li>
+        </ul>
+        <pre><code>fun createCounter(): () -> Int {
+    var count = 0  // захваченная переменная
+    return { count++ }
+}
+
+val counter = createCounter()
+counter() // 0
+counter() // 1
+counter() // 2</code></pre>
+        <p>Переменная <code>count</code> сохраняется в памяти.</p>
+    </div>
+
+    <div class="step slide" data-x="15500" data-y="-1500">
+        <h1>Что такое замыкание (часть 2)</h1>
+        <pre><code>// Замыкание с параметром
+fun createGreeter(prefix: String): (String) -> String {
+    return { name -> "$prefix, $name!" }
+}
+
+val helloGreeter = createGreeter("Hello")
+val hiGreeter = createGreeter("Hi")
+
+helloGreeter("Alice") // "Hello, Alice!"
+hiGreeter("Bob")      // "Hi, Bob!"
+
+// Каждое замыкание хранит СВОЮ копию prefix
+// helloGreeter и hiGreeter — независимы</code></pre>
+        <p>Каждый вызов createGreeter создает новое замыкание.</p>
+    </div>
+
+    <div class="step slide" data-x="16000" data-y="-1500">
+        <h1>Как работает захват</h1>
+        <pre><code>fun multiplier(factor: Int): (Int) -> Int {
+    return { value -> value * factor }
+}
+
+val double = multiplier(2)
+val triple = multiplier(3)
+
+double(5) // 10
+triple(5) // 15</code></pre>
+        <p>Каждое замыкание захватывает <b>свою копию</b> переменных.</p>
+    </div>
+
+    <div class="step slide" data-x="17000" data-y="-1500">
+        <h1>Замыкания и var vs val</h1>
+        <pre><code>// Захват var (изменяемая)
+fun counter(): () -> Int {
+    var count = 0
+    return { count++ }
+}
+
+// Захват val (неизменяемая)
+fun greetWith(prefix: String): (String) -> String {
+    return { name -> "$prefix, $name!" }
+}
+
+val greet = greetWith("Hello")
+greet("Alice") // "Hello, Alice!"</code></pre>
+        <p>Замыкания могут захватывать <code>var</code> и <code>val</code>.</p>
+    </div>
+
+    <div class="step slide" data-x="18000" data-y="-1500">
+        <h1>Практика: генератор ID</h1>
+        <pre><code>fun createIdGenerator(prefix: String): () -> String {
+    var id = 0
+    return { "${prefix}_${id++}" }
+}
+
+val userIdGen = createIdGenerator("user")
+val orderIdGen = createIdGenerator("order")
+
+userIdGen() // "user_0"
+userIdGen() // "user_1"
+orderIdGen() // "order_0"</code></pre>
+        <p>Замыкания идеальны для генераторов уникальных значений.</p>
+    </div>
+
+    <div class="step slide" data-x="19000" data-y="-1500">
+        <h1>Замыкания в коллекциях</h1>
+        <pre><code>val numbers = listOf(1, 2, 3, 4, 5)
+var sum = 0
+var count = 0
+
+numbers.forEach { 
+    sum += it
+    count++
+}
+
+println("Sum: $sum, Count: $count") // Sum: 15, Count: 5</code></pre>
+        <p>Лямбда в <code>forEach</code> захватывает <code>sum</code> и <code>count</code>.</p>
+    </div>
+
+    <div class="step slide" data-x="20000" data-y="-1500">
+        <h1>Сравнение: замыкание vs класс</h1>
+        <table>
+            <tr><th>Критерий</th><th>Замыкание</th><th>Класс</th></tr>
+            <tr><td>Состояние</td><td>Захваченные переменные</td><td>Поля класса</td></tr>
+            <tr><td>Инкапсуляция</td><td>Локальные переменные</td><td>Приватные поля</td></tr>
+            <tr><td>Доп. методы</td><td>Нельзя добавить</td><td>Можно добавить</td></tr>
+            <tr><td>Наследование</td><td>Не поддерживается</td><td>Поддерживается</td></tr>
+            <tr><td>Лаконичность</td><td>Высокая</td><td>Низкая</td></tr>
+        </table>
+        <p>Замыкания — легковесная альтернатива классам для простых случаев.</p>
+    </div>
+
+    <div class="step slide" data-x="21000" data-y="-1500">
+        <h1>Резюме: замыкания</h1>
+        <ul>
+            <li>Функция + окружение = замыкание</li>
+            <li>Захватывают переменные из внешней области</li>
+            <li>Сохраняют состояние между вызовами</li>
+            <li>Используются для генераторов, счетчиков, конфигураций</li>
+        </ul>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- БЛОК 5: АНОНИМНЫЕ ФУНКЦИИ (слайды 25-32) -->
+    <!-- ============================================ -->
+
+    <div class="step slide section" data-x="22000" data-y="-1500">
+        <div class="num">4</div>
+        <h1>Анонимные функции</h1>
+        <ul>
+            <li>Синтаксис</li>
+            <li>Отличия от лямбд</li>
+            <li>Применение</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="23000" data-y="-1500">
+        <h1>Что такое анонимная функция</h1>
+        <ul>
+            <li>Функция без имени</li>
+            <li>Объявляется с ключевым словом <code>fun</code></li>
+            <li>Может иметь явный <code>return</code></li>
+        </ul>
+        <pre><code>// Анонимная функция
+val double = fun(x: Int): Int {
+    return x * 2
+}
+
+// Лямбда (для сравнения)
+val doubleLambda = { x: Int -> x * 2 }
+
+double(5) // 10
+doubleLambda(5) // 10</code></pre>
+        <p>Анонимные функции похожи на лямбды, но имеют более гибкий синтаксис.</p>
+    </div>
+
+    <div class="step slide" data-x="24000" data-y="-1500">
+        <h1>Синтаксис анонимной функции</h1>
+        <pre><code>// Полный синтаксис
+val isEven = fun(x: Int): Boolean {
+    return x % 2 == 0
+}
+
+// Сокращенный (expression body)
+val isOdd = fun(x: Int): Boolean = x % 2 != 0
+
+// Без указания типа возврата
+val isPositive = fun(x: Int) = x > 0</code></pre>
+        <p>Анонимные функции поддерживают все возможности обычных функций.</p>
+    </div>
+
+    <div class="step slide" data-x="25000" data-y="-1500">
+        <h1>Отличия от лямбд (часть 1)</h1>
+        <table>
+            <tr><th>Критерий</th><th>Анонимная</th><th>Лямбда</th></tr>
+            <tr><td>Синтаксис</td><td><code>fun(x: Int): Int { return x }</code></td><td><code>{ x: Int -> x }</code></td></tr>
+            <tr><td>return</td><td>Явный</td><td>Неявный</td></tr>
+            <tr><td>Тип возврата</td><td>Можно указать</td><td>Выводится</td></tr>
+            <tr><td>Параметры по умолч.</td><td>Да</td><td>Нет</td></tr>
+        </table>
+        <p>Главное отличие — поведение <code>return</code>.</p>
+    </div>
+
+    <div class="step slide" data-x="25500" data-y="-1500">
+        <h1>Отличия от лямбд (часть 2)</h1>
+        <pre><code>// Анонимная функция — return из функции
+val process = fun(list: List&lt;Int&gt;): List&lt;Int&gt; {
+    val result = mutableListOf&lt;Int&gt;()
+    for (x in list) {
+        if (x < 0) return result // выход из функции
+        result.add(x * 2)
+    }
+    return result
+}
+
+// Лямбда — return из ВНЕШНЕЙ функции
+fun processWithLambda(list: List&lt;Int&gt;): List&lt;Int&gt; {
+    val result = mutableListOf&lt;Int&gt;()
+    list.forEach { x ->
+        if (x < 0) return emptyList() // return из processWithLambda!
+        result.add(x * 2)
+    }
+    return result
+}</code></pre>
+        <p>В лямбде <code>return</code> выходит из внешней функции.</p>
+    </div>
+
+    <div class="step slide" data-x="26000" data-y="-1500">
+        <h1>Использование с коллекциями</h1>
+        <pre><code>val numbers = listOf(1, 2, 3, 4, 5)
+
+// Анонимная функция в filter
+val evens = numbers.filter(fun(x: Int): Boolean {
+    return x % 2 == 0
+})
+
+// Анонимная функция в map
+val doubled = numbers.map(fun(x: Int): Int = x * 2)
+
+println(evens) // [2, 4]
+println(doubled) // [2, 4, 6, 8, 10]</code></pre>
+        <p>Анонимные функции можно передавать в функции коллекций.</p>
+    </div>
+
+    <div class="step slide" data-x="27000" data-y="-1500">
+        <h1>Анонимная функция с receiver</h1>
+        <pre><code>// Анонимная функция с receiver
+val buildString = fun StringBuilder.(): String {
+    append("Hello")
+    append(" ")
+    append("World")
+    return toString()
+}
+
+val result = StringBuilder().buildString()
+// "Hello World"</code></pre>
+        <p>Анонимные функции могут иметь receiver — мост к лямбда-расширениям.</p>
+    </div>
+
+    <div class="step slide" data-x="28000" data-y="-1500">
+        <h1>Резюме: анонимные функции</h1>
+        <ul>
+            <li>Функции без имени с ключевым словом <code>fun</code></li>
+            <li>Поддерживают явный <code>return</code></li>
+            <li>Могут иметь receiver</li>
+            <li>Альтернатива лямбдам для сложной логики</li>
+        </ul>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- БЛОК 6: ЛЯМБДА-РАСШИРЕНИЯ (слайды 33-42) -->
+    <!-- ============================================ -->
+
+    <div class="step slide section" data-x="29000" data-y="-1500">
+        <div class="num">5</div>
+        <h1>Лямбда-расширения</h1>
+        <ul>
+            <li>Определение</li>
+            <li>Receiver и this</li>
+            <li>Стандартные функции</li>
+            <li>Построение DSL</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="30000" data-y="-1500">
+        <h1>Что такое лямбда-расширение</h1>
+        <ul>
+            <li>Лямбда с receiver</li>
+            <li>Синтаксис: <code>Тип.() -> Результат</code></li>
+            <li>Внутри лямбды <code>this</code> — receiver</li>
+        </ul>
+        <pre><code>// Лямбда-расширение для String
+val printInfo: String.() -> Unit = {
+    println(this) // this — строка
+    println(length) // доступ к членам receiver
+}
+
+"Hello".printInfo() // Вызов</code></pre>
+        <p>Внутри лямбды <code>this</code> ссылается на объект receiver.</p>
+    </div>
+
+    <div class="step slide" data-x="31000" data-y="-1500">
+        <h1>Синтаксис и вызов (часть 1)</h1>
+        <pre><code>// Объявление
+val buildMessage: StringBuilder.() -> Unit = {
+    append("Hello")  // this.append("Hello")
+    append(" ")
+    append("World")
+}
+
+// Вызов через receiver
+val sb = StringBuilder()
+sb.buildMessage()
+println(sb.toString()) // "Hello World"</code></pre>
+        <p><code>this</code> внутри — receiver (StringBuilder).</p>
+    </div>
+
+    <div class="step slide" data-x="31500" data-y="-1500">
+        <h1>Синтаксис и вызов (часть 2)</h1>
+        <pre><code>// Через функцию, принимающую лямбду
+fun createString(
+    block: StringBuilder.() -> Unit
+): String {
+    val builder = StringBuilder()
+    builder.block() // передаем receiver
+    return builder.toString()
+}
+
+val result = createString {
+    append("Kotlin")
+    append(" rocks!")
+}
+
+println(result) // "Kotlin rocks!"
+
+// Параметры в лямбда-расширении
+val repeat: StringBuilder.(Int) -> Unit = { times ->
+    repeat(times) { append("ab") }
+}</code></pre>
+        <p>Лямбда-расширения могут принимать параметры.</p>
+    </div>
+
+    <div class="step slide" data-x="32000" data-y="-1500">
+        <h1>Receiver и this</h1>
+        <pre><code>data class Person(val name: String, val age: Int)
+
+val describe: Person.() -> String = {
+    // this — объект Person
+    "$name is $age years old"
+}
+
+val alice = Person("Alice", 25)
+alice.describe() // "Alice is 25 years old"
+
+// Доступ к членам receiver без this
+val isAdult: Person.() -> Boolean = { age >= 18 }
+alice.isAdult() // true</code></pre>
+        <p>Можно опускать <code>this</code> и обращаться к членам напрямую.</p>
+    </div>
+
+    <div class="step slide" data-x="33000" data-y="-1500">
+        <h1>Стандартные функции с receiver</h1>
+        <table>
+            <tr><th>Функция</th><th>Описание</th><th>Пример</th></tr>
+            <tr><td><code>with</code></td><td>Передает receiver в лямбду</td><td><code>with(sb) { append("Hi") }</code></td></tr>
+            <tr><td><code>apply</code></td><td>Возвращает receiver</td><td><code>person.apply { name = "Bob" }</code></td></tr>
+            <tr><td><code>run</code></td><td>Возвращает результат</td><td><code>str.run { length }</code></td></tr>
+            <tr><td><code>also</code></td><td>Возвращает receiver, лямбда с параметром</td><td><code>list.also { println(it) }</code></td></tr>
+        </table>
+        <p>Kotlin предоставляет стандартные функции с лямбда-расширениями.</p>
+    </div>
+
+    <div class="step slide" data-x="34000" data-y="-1500">
+        <h1>Пример: with</h1>
+        <pre><code>val message = with(StringBuilder()) {
+    append("Hello")
+    append(" ")
+    append("World")
+    toString() // возвращаемое значение
+}
+
+println(message) // "Hello World"
+
+// Без with пришлось бы писать:
+val sb = StringBuilder()
+sb.append("Hello")
+sb.append(" ")
+sb.append("World")
+val msg = sb.toString()</code></pre>
+        <p><code>with</code> принимает объект и лямбда-расширение.</p>
+    </div>
+
+    <div class="step slide" data-x="35000" data-y="-1500">
+        <h1>Пример: apply</h1>
+        <pre><code>class User {
+    var name: String = ""
+    var age: Int = 0
+    var email: String = ""
+}
+
+val user = User().apply {
+    name = "Alice"      // this.name = "Alice"
+    age = 25            // this.age = 25
+    email = "alice@example.com"
+}
+
+// apply возвращает receiver (объект User)
+println(user.name) // "Alice"</code></pre>
+        <p><code>apply</code> выполняет лямбду и возвращает сам receiver.</p>
+    </div>
+
+    <div class="step slide" data-x="36000" data-y="-1500">
+        <h1>Пример: run</h1>
+        <pre><code>val length = "Hello".run {
+    // this — строка "Hello"
+    println("Processing: $this")
+    length // возвращаемое значение
+}
+
+println(length) // 5
+
+// run полезен для вычислений с receiver
+val area = Rectangle(5, 3).run {
+    width * height
+}
+println(area) // 15</code></pre>
+        <p><code>run</code> выполняет лямбду и возвращает результат.</p>
+    </div>
+
+    <div class="step slide" data-x="37000" data-y="-1500">
+        <h1>Сравнение with, apply, run</h1>
+        <table>
+            <tr><th>Функция</th><th>Возвращает</th><th>Вызов</th><th>Использование</th></tr>
+            <tr><td><code>with</code></td><td>Результат лямбды</td><td><code>with(obj) { ... }</code></td><td>Группировка операций</td></tr>
+            <tr><td><code>apply</code></td><td>Receiver</td><td><code>obj.apply { ... }</code></td><td>Инициализация объекта</td></tr>
+            <tr><td><code>run</code></td><td>Результат лямбды</td><td><code>obj.run { ... }</code></td><td>Вычисления с receiver</td></tr>
+        </table>
+        <p>Выбор зависит от того, что нужно вернуть: объект или результат.</p>
+    </div>
+
+    <div class="step slide" data-x="38000" data-y="-1500">
+        <h1>Резюме: лямбда-расширения</h1>
+        <ul>
+            <li>Лямбда с receiver — <code>this</code> внутри</li>
+            <li>Синтаксис: <code>Тип.() -> Результат</code></li>
+            <li>Стандартные функции: <code>with</code>, <code>apply</code>, <code>run</code></li>
+            <li>Основа для построения DSL</li>
+        </ul>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- БЛОК 7: DSL (слайды 43-52) -->
+    <!-- ============================================ -->
+
+    <div class="step slide section" data-x="39000" data-y="-1500">
+        <div class="num">6</div>
+        <h1>DSL на практике</h1>
+        <ul>
+            <li>Что такое DSL</li>
+            <li>Построение DSL с лямбда-расширениями</li>
+            <li>Примеры</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="40000" data-y="-1500">
+        <h1>Что такое DSL</h1>
+        <ul>
+            <li>Domain-Specific Language — предметно-ориентированный язык</li>
+            <li>Позволяет описывать конфигурации естественным синтаксисом</li>
+            <li>Лямбда-расширения — основа DSL в Kotlin</li>
+        </ul>
+        <pre><code>// Пример DSL — конфигурация сервера
+val server = configureServer {
+    port = 8080
+    host = "localhost"
+    useTls = true
+    maxConnections = 100
+}</code></pre>
+        <p>DSL позволяет писать код, который читается как естественный язык.</p>
+    </div>
+
+    <div class="step slide" data-x="41000" data-y="-1500">
+        <h1>Построение DSL: базовый класс</h1>
+        <pre><code>class ServerConfig {
+    var port: Int = 80
+    var host: String = "localhost"
+    var useTls: Boolean = false
+    var maxConnections: Int = 50
+    
+    fun validate() {
+        require(port in 1..65535) { "Invalid port" }
+        require(host.isNotBlank()) { "Host required" }
+    }
+}
+
+// Функция, принимающая лямбда-расширение
+fun configureServer(block: ServerConfig.() -> Unit): ServerConfig {
+    val config = ServerConfig()
+    config.block()
+    config.validate()
+    return config
+}</code></pre>
+        <p>Для DSL нужны: класс с настройками, функция с лямбдой, валидация.</p>
+    </div>
+
+    <div class="step slide" data-x="42000" data-y="-1500">
+        <h1>Использование DSL</h1>
+        <pre><code>val server = configureServer {
+    port = 8080
+    host = "api.example.com"
+    useTls = true
+    maxConnections = 200
+}
+
+// Без DSL пришлось бы писать:
+val config = ServerConfig()
+config.port = 8080
+config.host = "api.example.com"
+config.useTls = true
+config.maxConnections = 200
+config.validate()</code></pre>
+        <p>DSL делает код чище и выразительнее.</p>
+    </div>
+
+    <div class="step slide" data-x="43000" data-y="-1500">
+        <h1>Пример: HTML DSL (часть 1)</h1>
+        <pre><code>class HtmlBuilder {
+    private val content = StringBuilder()
+    
+    fun head(block: HeadBuilder.() -> Unit) {
+        val head = HeadBuilder()
+        head.block()
+        content.append(head.build())
+    }
+    
+    fun body(block: BodyBuilder.() -> Unit) {
+        val body = BodyBuilder()
+        body.block()
+        content.append(body.build())
+    }
+    
+    fun build(): String = "&lt;html&gt;$content&lt;/html&gt;"
+}</code></pre>
+        <p>Каждый тег — класс-билдер с методами для вложенных тегов.</p>
+    </div>
+
+    <div class="step slide" data-x="43500" data-y="-1500">
+        <h1>Пример: HTML DSL (часть 2)</h1>
+        <pre><code>class HeadBuilder {
+    private val content = StringBuilder()
+    
+    fun title(text: String) { 
+        content.append("&lt;title&gt;$text&lt;/title&gt;") 
+    }
+    
+    fun build() = "&lt;head&gt;$content&lt;/head&gt;"
+}
+
+class BodyBuilder {
+    private val content = StringBuilder()
+    
+    fun text(text: String) { 
+        content.append("&lt;p&gt;$text&lt;/p&gt;") 
+    }
+    
+    fun build() = "&lt;body&gt;$content&lt;/body&gt;"
+}
+
+// Использование
+val page = html {
+    head { title("My Page") }
+    body { text("Hello!") }
+}</code></pre>
+        <p>Структура проверяется компилятором.</p>
+    </div>
+
+    <div class="step slide" data-x="44000" data-y="-1500">
+        <h1>Использование HTML DSL</h1>
+        <pre><code>fun html(block: HtmlBuilder.() -> Unit): String {
+    val builder = HtmlBuilder()
+    builder.block()
+    return builder.build()
+}
+
+val page = html {
+    head {
+        title("My Page")
+    }
+    body {
+        text("Hello, World!")
+        text("Welcome to Kotlin")
+    }
+}
+
+println(page)
+// &lt;html&gt;&lt;head&gt;&lt;title&gt;My Page&lt;/title&gt;&lt;/head&gt;
+// &lt;body&gt;&lt;p&gt;Hello, World!&lt;/p&gt;&lt;p&gt;Welcome to Kotlin&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</code></pre>
+        <p>Использование DSL выглядит как разметка HTML, но это валидный Kotlin.</p>
+    </div>
+
+    <div class="step slide" data-x="45000" data-y="-1500">
+        <h1>HTTP-запрос DSL (часть 1)</h1>
+        <pre><code>class HttpRequestBuilder {
+    var method: String = "GET"
+    var url: String = ""
+    val headers = mutableMapOf&lt;String, String&gt;()
+    var body: String? = null
+    
+    fun header(key: String, value: String) {
+        headers[key] = value
+    }
+    
+    fun build(): HttpRequest {
+        require(url.isNotBlank()) { "URL required" }
+        return HttpRequest(method, url, headers, body)
+    }
+}
+
+fun httpRequest(
+    block: HttpRequestBuilder.() -> Unit
+): HttpRequest {
+    val builder = HttpRequestBuilder()
+    builder.block()
+    return builder.build()
+}</code></pre>
+    </div>
+
+    <div class="step slide" data-x="45500" data-y="-1500">
+        <h1>HTTP-запрос DSL (часть 2)</h1>
+        <pre><code>// Использование DSL
+val request = httpRequest {
+    method = "POST"
+    url = "https://api.example.com/users"
+    
+    header("Content-Type", "application/json")
+    header("Authorization", "Bearer token123")
+    
+    body = """{"name": "Alice"}"""
+}
+
+// Без DSL — громоздко
+val builder = HttpRequestBuilder()
+builder.method = "POST"
+builder.url = "https://api.example.com/users"
+builder.header("Content-Type", "application/json")
+builder.header("Authorization", "Bearer token123")
+builder.body = """{"name": "Alice"}"""
+val req = builder.build()</code></pre>
+        <p>DSL делает код чище и выразительнее.</p>
+    </div>
+
+    <div class="step slide" data-x="46000" data-y="-1500">
+        <h1>Преимущества DSL (часть 1)</h1>
+        <ul>
+            <li><b>Читаемость:</b> код как естественный язык</li>
+            <li><b>Безопасность:</b> компилятор проверяет структуру</li>
+            <li><b>Инкапсуляция:</b> сложная логика скрыта</li>
+        </ul>
+        <pre><code>// Читаемость
+val server = configureServer {
+    port = 8080
+    host = "api.example.com"
+    useTls = true
+}
+
+// Безопасность — компилятор не даст:
+// configureServer { port = "8080" } // Ошибка типа</code></pre>
+    </div>
+
+    <div class="step slide" data-x="46500" data-y="-1500">
+        <h1>Преимущества DSL (часть 2)</h1>
+        <ul>
+            <li><b>Переиспользование:</b> DSL в разных местах</li>
+            <li><b>Валидация:</b> проверки автоматически</li>
+            <li><b>Тестируемость:</b> DSL легко тестировать</li>
+        </ul>
+        <pre><code>// Валидация в DSL
+fun configureServer(
+    block: ServerConfig.() -> Unit
+): ServerConfig {
+    val config = ServerConfig()
+    config.block()
+    
+    // Автоматическая валидация
+    require(config.port in 1..65535) { "Invalid port" }
+    require(config.host.isNotBlank()) { "Host required" }
+    
+    return config
+}
+
+// Тестирование DSL
+@Test
+fun testServerConfig() {
+    val config = configureServer {
+        port = 8080
+        host = "localhost"
+    }
+    assertEquals(8080, config.port)
+}</code></pre>
+    </div>
+
+    <div class="step slide" data-x="47000" data-y="-1500">
+        <h1>Ограничения лямбда-расширений</h1>
+        <ul>
+            <li>Нельзя переопределить — только статическое разрешение</li>
+            <li>Нельзя использовать как член класса</li>
+            <li>Receiver доступен только внутри лямбды</li>
+            <li>Нельзя сохранить receiver для последующего использования</li>
+        </ul>
+        <p>Лямбда-расширения — статические конструкции, разрешаются на этапе компиляции.</p>
+    </div>
+
+    <div class="step slide" data-x="48000" data-y="-1500">
+        <h1>Анти-паттерны</h1>
+        <ul>
+            <li>Использовать DSL для простых операций — избыточно</li>
+            <li>Создавать слишком сложные DSL — трудно поддерживать</li>
+            <li>Игнорировать валидацию в DSL — риск ошибок</li>
+            <li>Смешивать DSL с бизнес-логикой — нарушение SRP</li>
+        </ul>
+        <p>DSL — мощный инструмент, но его нужно использовать с умом.</p>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- БЛОК 8: ПРАКТИКА И ИТОГИ (слайды 53-55) -->
+    <!-- ============================================ -->
+
+    <div class="step slide section" data-x="49000" data-y="-1500">
+        <div class="num">7</div>
+        <h1>Практика и итоги</h1>
+    </div>
+
+    <div class="step slide" data-x="50000" data-y="-1500">
+        <h1>Практические задания</h1>
+        <ol>
+            <li>Создайте функцию <code>buildString</code>, принимающую лямбда-расширение <code>StringBuilder.() -> Unit</code></li>
+            <li>Реализуйте счетчик через замыкание</li>
+            <li>Создайте анонимную функцию для фильтрации списка</li>
+            <li>Напишите DSL для конфигурации базы данных (host, port, user, password)</li>
+            <li>Используйте <code>apply</code> для инициализации объекта</li>
+        </ol>
+    </div>
+
+    <div class="step slide" data-x="51000" data-y="-1500">
+        <h1>Пример: buildString</h1>
+        <pre><code>fun buildString(block: StringBuilder.() -> Unit): String {
+    val sb = StringBuilder()
+    sb.block()
+    return sb.toString()
+}
+
+val message = buildString {
+    append("Hello")
+    append(" ")
+    append("World")
+    append("!")
+}
+
+println(message) // "Hello World!"</code></pre>
+        <p>Функция <code>buildString</code> — простейший пример лямбда-расширений.</p>
+    </div>
+
+    <div class="step slide" data-x="52000" data-y="-1500">
+        <h1>Пример: счетчик через замыкание</h1>
+        <pre><code>fun createCounter(start: Int = 0): () -> Int {
+    var count = start
+    return {
+        count++
+    }
+}
+
+val counter = createCounter(10)
+println(counter()) // 10
+println(counter()) // 11
+println(counter()) // 12
+
+// Каждый счетчик независим
+val counter2 = createCounter()
+println(counter2()) // 0
+println(counter2()) // 1</code></pre>
+        <p>Замыкание позволяет создать счетчик с сохранением состояния.</p>
+    </div>
+
+    <div class="step slide" data-x="53000" data-y="-1500">
+        <h1>Итоги занятия (часть 1)</h1>
+        <ul>
+            <li>Функции — объекты первого класса</li>
+            <li>Вложенные функции инкапсулируют логику</li>
+            <li>Замыкания сохраняют состояние</li>
+            <li>Анонимные функции — гибкая альтернатива</li>
+        </ul>
+        <pre><code>// Функция как объект
+val sum = { a: Int, b: Int -> a + b }
+
+// Вложенная функция
+fun outer() {
+    fun inner() = "nested"
+}
+
+// Замыкание
+fun counter() = { var c = 0; c++ }
+
+// Анонимная функция
+val double = fun(x: Int) = x * 2</code></pre>
+    </div>
+
+    <div class="step slide" data-x="53500" data-y="-1500">
+        <h1>Итоги занятия (часть 2)</h1>
+        <ul>
+            <li>Лямбда-расширения — основа DSL</li>
+            <li>DSL делают код выразительным</li>
+            <li>Все концепции работают вместе</li>
+        </ul>
+        <pre><code>// Лямбда-расширения
+val build: StringBuilder.() -> Unit = {
+    append("Hello")
+}
+
+// DSL на основе лямбда-расширений
+fun buildString(block: StringBuilder.() -> Unit): String {
+    val sb = StringBuilder()
+    sb.block()
+    return sb.toString()
+}
+
+// Комбинация всех концепций
+fun createApiClient(config: ApiConfig.() -> Unit) {
+    val cfg = ApiConfig().apply(config)
+    // ...
+}</code></pre>
+    </div>
+
+    <div class="step slide" data-x="54000" data-y="-1500">
+        <h1>Вопросы</h1>
+    </div>
+
+</div>
+
+<div class="impress-progressbar"><div></div></div>
+<div class="impress-progress"></div>
+<a class="ov" href="#/overview">Обзор</a>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<script>
+    if (window.hljs) {
+        hljs.highlightAll();
+    }
+</script>
+<script src="js/impress.js"></script>
+<script>
+    impress().init();
+</script>
+</body>
+</html>
+
