@@ -1,0 +1,1959 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1024" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <title>Лекция 1: От бита до float | Числа в процессорах Intel</title>
+    
+    <meta name="description" content="Лекция 1: Форматы целочисленных и вещественных представлений чисел в процессорах Intel" />
+    <meta name="author" content="Лектор" />
+
+    <link href="//fonts.googleapis.com/css?family=Open+Sans:regular,semibold,italic,italicsemibold|PT+Sans:400,700,400italic,700italic|PT+Serif:400,700,400italic,700italic" rel="stylesheet" />
+
+    <link href="css/impress-demo.css" rel="stylesheet" />
+    <link href="css/impress-common.css" rel="stylesheet" />
+    
+    <link rel="shortcut icon" href="favicon.png" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/default.min.css">
+
+    <style>
+        /* ===== Дополнительные стили ===== */
+        body {
+            background: #1a1a2e;
+        }
+        
+        .step {
+            opacity: 0.3;
+            transition: opacity 0.5s;
+        }
+        .step.active {
+            opacity: 1;
+        }
+
+        pre {
+            font-size: 0.65em;
+            line-height: 1.4;
+            margin: 8px 0;
+            background: #f8f8f8;
+            border-radius: 4px;
+            padding: 8px;
+        }
+
+        table {
+            border-collapse: collapse;
+            margin: 10px auto;
+            font-size: 0.75em;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 4px 8px;
+            text-align: center;
+        }
+        th {
+            background: #e0e0e0;
+        }
+
+        .formula {
+            text-align: center;
+            font-size: 1.2em;
+            margin: 15px 0;
+            padding: 10px;
+            background: #f0f8ff;
+            border-left: 4px solid #4CAF50;
+            border-radius: 4px;
+        }
+
+        .warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 8px;
+            margin: 8px 0;
+            border-radius: 4px;
+        }
+        .tip {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 8px;
+            margin: 8px 0;
+            border-radius: 4px;
+        }
+        .danger {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 8px;
+            margin: 8px 0;
+            border-radius: 4px;
+        }
+
+        /* ===== Интерактивные демо ===== */
+        .demo-box {
+            background: #2d2d44;
+            color: #fff;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 0.8em;
+        }
+        .demo-box input {
+            background: #1a1a2e;
+            color: #fff;
+            border: 1px solid #4CAF50;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-family: monospace;
+            font-size: 1em;
+            margin: 4px;
+        }
+        .demo-box button {
+            background: #4CAF50;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            padding: 6px 12px;
+            font-size: 0.9em;
+            cursor: pointer;
+            margin: 4px;
+        }
+        .demo-box button:hover {
+            background: #45a049;
+        }
+        .demo-result {
+            margin-top: 10px;
+            padding: 8px;
+            background: #1a1a2e;
+            border-radius: 4px;
+            border: 1px solid #4CAF50;
+            min-height: 20px;
+        }
+
+        /* ===== Анимации ===== */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes highlight {
+            0% { background-color: #ffff00; }
+            100% { background-color: transparent; }
+        }
+        .highlight-anim {
+            animation: highlight 1.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(-50px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .slide-in {
+            animation: slideIn 0.5s ease-out;
+        }
+
+        /* Битовая анимация */
+        .bit-display {
+            display: flex;
+            justify-content: center;
+            gap: 4px;
+            margin: 10px 0;
+        }
+        .bit {
+            width: 30px;
+            height: 30px;
+            border: 2px solid #4CAF50;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.8em;
+            transition: background-color 0.3s, transform 0.3s;
+        }
+        .bit.one {
+            background: #4CAF50;
+            color: #fff;
+        }
+        .bit.zero {
+            background: #f0f0f0;
+            color: #333;
+        }
+        .bit.active {
+            transform: scale(1.2);
+            box-shadow: 0 0 10px #4CAF50;
+        }
+
+        /* Слайдер для демо */
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .slider-container input[type="range"] {
+            flex: 1;
+        }
+    </style>
+</head>
+
+<body class="impress-not-supported">
+
+<div class="fallback-message">
+    <p>Your browser <b>doesn't support the features required</b> by impress.js, so you are presented with a simplified version of this presentation.</p>
+    <p>For the best experience please use the latest <b>Chrome</b>, <b>Safari</b> or <b>Firefox</b> browser.</p>
+</div>
+
+<div id="impress"
+    data-transition-duration="1000"
+    
+    data-width="1024"
+    data-height="768"
+    data-max-scale="3"
+    data-min-scale="0"
+    data-perspective="1000"
+    >
+
+    <!-- ================================================================ -->
+    <!-- МОДУЛЬ 1: ВВЕДЕНИЕ (5 слайдов)                                  -->
+    <!-- ================================================================ -->
+
+    <!-- Слайд 1: Титульный -->
+    <div class="step slide" data-x="-1000" data-y="-1500">
+        <h1>Лекция 1</h1>
+        <h2>От бита до float: как процессор хранит числа</h2>
+        <ul>
+            <li>Битовая магия: приемы работы с битами</li>
+            <li>Порядок байт и выравнивание</li>
+            <li>Целые числа: дополнительный код, переполнение</li>
+            <li>Двоичные дроби: почему 0.1 + 0.2 ≠ 0.3</li>
+            <li>IEEE 754: структура float и double</li>
+            <li>Практика: среднее двух чисел без переполнения</li>
+        </ul>
+        <div class="tip" style="margin-top:20px;">
+            <b>Цель:</b> понять, как число хранится в памяти и как с этим работать.
+        </div>
+    </div>
+
+    <!-- Слайд 2: Зачем это знать -->
+    <div class="step slide" data-x="0" data-y="-1500">
+        <h1>Зачем это знать?</h1>
+        <ul>
+            <li><b>Отладка:</b> читать дампы памяти, понимать баги</li>
+            <li><b>Оптимизация:</b> битовые операции быстрее арифметики</li>
+            <li><b>Понимание UB:</b> переполнение, NaN, сдвиги</li>
+            <li><b>Сеть и файлы:</b> порядок байт, сериализация</li>
+            <li><b>Криптография:</b> работа с битами, хэши</li>
+        </ul>
+        <div class="warning">
+            <b>Пример:</b> ошибка в бинарном поиске из-за переполнения — баг в Java SDK, живший 9 лет!
+        </div>
+    </div>
+
+    <!-- Слайд 3: Структура лекции -->
+    <div class="step slide" data-x="1000" data-y="-1500">
+        <h1>Структура лекции</h1>
+        <table>
+            <tr>
+                <th>Модуль</th>
+                <th>Тема</th>
+                <th>Время</th>
+            </tr>
+            <tr>
+                <td>1</td>
+                <td>Введение</td>
+                <td>5 мин</td>
+            </tr>
+            <tr>
+                <td>2</td>
+                <td>Битовая магия</td>
+                <td>30 мин</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Порядок байт</td>
+                <td>15 мин</td>
+            </tr>
+            <tr>
+                <td>4</td>
+                <td>Целые числа</td>
+                <td>30 мин</td>
+            </tr>
+            <tr>
+                <td>5</td>
+                <td>Двоичные дроби</td>
+                <td>20 мин</td>
+            </tr>
+            <tr>
+                <td>6</td>
+                <td>IEEE 754</td>
+                <td>30 мин</td>
+            </tr>
+            <tr>
+                <td>7</td>
+                <td>Практика</td>
+                <td>20 мин</td>
+            </tr>
+        </table>
+        <p style="text-align:center; margin-top:10px;"><b>Итого: 2 часа 30 минут</b></p>
+    </div>
+
+    <!-- Слайд 4: Как устроен компьютер -->
+    <div class="step slide" data-x="2000" data-y="-1500">
+        <h1>Напоминание: как процессор видит числа</h1>
+        <pre><code>Процессор не знает, что такое "число 5".
+Он знает только биты: 00000000 00000000 00000000 00000101
+
+Тип (int, float, char) — это ДОГОВОРЕННОСТЬ:
+- int 0x00000005 = 5
+- float 0x00000005 = 7.006e-45 (мусор!)
+- char 0x05 = управляющий символ
+
+Один и тот же набор битов — разные значения в зависимости от типа!</code></pre>
+        <div class="danger">
+            <b>Ключевая идея:</b> тип определяет, КАК интерпретировать биты.
+        </div>
+    </div>
+
+    <!-- Слайд 5: Анонс интерактивных демо -->
+    <div class="step slide" data-x="3000" data-y="-1500">
+        <h1>Интерактивные демо</h1>
+        <ul>
+            <li>Калькулятор битовых операций</li>
+            <li>Визуализация двоичных дробей</li>
+            <li>Разбор float на компоненты</li>
+            <li>Проверка переполнения</li>
+        </ul>
+        <p style="text-align:center; margin-top:20px;">Нажимайте кнопки и меняйте значения!</p>
+        <div class="demo-box" style="text-align:center;">
+            <span style="font-size:2em;">⚡</span>
+        </div>
+    </div>
+
+    <!-- ================================================================ -->
+    <!-- МОДУЛЬ 2: БИТОВАЯ МАГИЯ (15 слайдов)                            -->
+    <!-- ================================================================ -->
+
+    <!-- Слайд 6: Битовые операции -->
+    <div class="step slide" data-x="4000" data-y="-1500">
+        <h1>Битовые операции: AND, OR, XOR, NOT</h1>
+        <pre><code>AND:  1011 & 0110 = 0010    // оба = 1
+OR:   1011 | 0110 = 1111    // хотя бы один = 1
+XOR:  1011 ^ 0110 = 1101    // разные
+NOT:  ~1011 = ...0100       // инверсия</code></pre>
+        
+        <!-- Интерактивное демо: битовые операции -->
+        <div class="demo-box">
+            <b>Интерактив:</b> введите два числа (0-15)
+            <div class="slider-container">
+                <label>A:</label>
+                <input type="range" id="bitA" min="0" max="15" value="5" oninput="updateBitDemo()">
+                <span id="bitAVal">5 (0101)</span>
+            </div>
+            <div class="slider-container">
+                <label>B:</label>
+                <input type="range" id="bitB" min="0" max="15" value="3" oninput="updateBitDemo()">
+                <span id="bitBVal">3 (0011)</span>
+            </div>
+            <div style="margin-top:10px;">
+                <button onclick="showBitOp('AND')">AND</button>
+                <button onclick="showBitOp('OR')">OR</button>
+                <button onclick="showBitOp('XOR')">XOR</button>
+            </div>
+            <div class="demo-result" id="bitResult">
+                Результат: A & B = 1 (0001)
+            </div>
+        </div>
+    </div>
+
+    <!-- Слайд 7: Сдвиги -->
+    <div class="step slide" data-x="5000" data-y="-1500">
+        <h1>Сдвиги: SHL, SHR, SAR</h1>
+        <pre><code>SHL:  1011 << 1 = 10110     // умножение на 2
+SHR:  1011 >> 1 = 0101      // деление на 2 (беззнаковое)
+SAR:  1011 >> 1 = 1101      // деление на 2 (знаковое)
+
+// Логический сдвиг (SHR): старший бит = 0
+// Арифметический сдвиг (SAR): старший бит сохраняется</code></pre>
+        
+        <div class="demo-box">
+            <b>Интерактив:</b> сдвиг числа
+            <div class="slider-container">
+                <label>Число:</label>
+                <input type="range" id="shiftNum" min="0" max="255" value="8" oninput="updateShiftDemo()">
+                <span id="shiftNumVal">8 (00001000)</span>
+            </div>
+            <div class="slider-container">
+                <label>Сдвиг:</label>
+                <input type="range" id="shiftAmt" min="0" max="7" value="1" oninput="updateShiftDemo()">
+                <span id="shiftAmtVal">1</span>
+            </div>
+            <div style="margin-top:10px;">
+                <button onclick="showShift('SHL')">SHL (×2)</button>
+                <button onclick="showShift('SHR')">SHR (÷2)</button>
+                <button onclick="showShift('SAR')">SAR (÷2, знак)</button>
+            </div>
+            <div class="demo-result" id="shiftResult">
+                Результат: 8 << 1 = 16
+            </div>
+        </div>
+    </div>
+
+    <!-- Слайд 8: Прием 1 - степень двойки -->
+    <div class="step slide" data-x="6000" data-y="-1500">
+        <h1>Прием 1: Проверка на степень двойки</h1>
+        <pre><code>// Классика: x & (x - 1) == 0
+int is_power_of_two(unsigned int x) {
+    return x && !(x & (x - 1));
+}
+
+// 16 = 10000 → 16 & 15 = 0 → true
+// 12 = 01100 → 12 & 11 = 8 → false</code></pre>
+        
+        <div class="demo-box">
+            <b>Интерактив:</b> проверьте число
+            <input type="number" id="pow2Input" value="16" min="0" max="1000" oninput="checkPow2()">
+            <button onclick="checkPow2()">Проверить</button>
+            <div class="demo-result" id="pow2Result">
+                16 — степень двойки ✓
+            </div>
+        </div>
+    </div>
+
+    <!-- Слайд 9: Прием 2 - popcount -->
+    <div class="step slide" data-x="7000" data-y="-1500">
+        <h1>Прием 2: Подсчет единичных битов (Popcount)</h1>
+        <pre><code>// Без инструкции POPCNT:
+int popcount(unsigned int x) {
+    x = x - ((x >> 1) & 0x55555555);
+    x = (x & 0x33333333) + ((x >> 2) & 0x33333333);
+    x = (x + (x >> 4)) & 0x0F0F0F0F;
+    return (x * 0x01010101) >> 24;
+}
+// 0xFFFFFFFF → 32
+// 0x00000001 → 1</code></pre>
+        
+        <div class="demo-box">
+            <b>Интерактив:</b> подсчет битов
+            <input type="number" id="popcountInput" value="255" min="0" max="4294967295" oninput="checkPopcount()">
+            <button onclick="checkPopcount()">Подсчитать</button>
+            <div class="demo-result" id="popcountResult">
+                popcount(255) = 8
+            </div>
+        </div>
+    </div>
+
+    <!-- Слайд 10: Прием 3 - округление до степени двойки -->
+    <div class="step slide" data-x="8000" data-y="-1500">
+        <h1>Прием 3: Округление вверх до степени двойки</h1>
+        <pre><code>// Классика из аллокаторов памяти:
+unsigned int round_up_pow2(unsigned int x) {
+    x--;
+    x |= x >> 1;
+    x |= x >> 2;
+    x |= x >> 4;
+    x |= x >> 8;
+    x |= x >> 16;
+    return x + 1;
+}
+// 5 → 8, 7 → 8, 9 → 16</code></pre>
+        
+        <div class="demo-box">
+            <b>Интерактив:</b> округление
+            <input type="number" id="roundInput" value="5" min="1" max="1000" oninput="checkRound()">
+            <button onclick="checkRound()">Округлить</button>
+            <div class="demo-result" id="roundResult">
+                round_up_pow2(5) = 8
+            </div>
+        </div>
+    </div>
+
+    <!-- Слайд 11: Прием 4 - XOR-своп -->
+    <div class="step slide" data-x="9000" data-y="-1500">
+        <h1>Прием 4: XOR-своп</h1>
+        <pre><code>// Обмен без временной переменной:
+void swap(int *a, int *b) {
+    *a ^= *b;
+    *b ^= *a;
+    *a ^= *b;
+}
+// a=5 (101), b=7 (111)
+// a = 101 ^ 111 = 010 (2)
+// b = 010 ^ 111 = 101 (5)
+// a = 010 ^ 101 = 111 (7) → a=7, b=5</code></pre>
+        
+        <!-- Анимация XOR-свопа -->
+        <div class="demo-box">
+            <b>Анимация:</b> XOR-своп
+            <div style="display:flex; justify-content:center; gap:20px; margin:10px 0;">
+                <div style="text-align:center;">
+                    <div style="font-size:2em; color:#4CAF50;" id="swapA">5</div>
+                    <div>a</div>
+                </div>
+                <div style="text-align:center; font-size:2em;">⇄</div>
+                <div style="text-align:center;">
+                    <div style="font-size:2em; color:#2196F3;" id="swapB">7</div>
+                    <div>b</div>
+                </div>
+            </div>
+            <button onclick="animateSwap()">Анимировать своп</button>
+        </div>
+    </div>
+
+    <!-- Слайд 12: Прием 5 - быстрое ABS -->
+    <div class="step slide" data-x="10000" data-y="-1500">
+        <h1>Прием 5: Быстрое абсолютное значение</h1>
+        <pre><code>// Без ветвления:
+int abs(int x) {
+    int mask = x >> 31;  // все 1, если x < 0
+    return (x + mask) ^ mask;
+}
+// -5 (11111011)
+// mask = 11111111
+// x + mask = 11111010
+// ^ mask = 00000101 (5) ✓</code></pre>
+        
+        <div class="demo-box">
+            <b>Интерактив:</b> |x|
+            <input type="number" id="absInput" value="-5" oninput="checkAbs()">
+            <button onclick="checkAbs()">Вычислить |x|</button>
+            <div class="demo-result" id="absResult">
+                |−5| = 5
+            </div>
+        </div>
+    </div>
+
+    <!-- Слайд 13: Прием 6 - младший/старший бит -->
+    <div class="step slide" data-x="11000" data-y="-1500">
+        <h1>Прием 6: Младший и старший установленный бит</h1>
+        <pre><code>// Младший установленный бит:
+int lowest_set_bit(int x) {
+    return x & (-x);  // x & (~x + 1)
+}
+// 12 (1100) → 4 (0100)
+
+// Старший установленный бит:
+int highest_set_bit(unsigned int x) {
+    x |= x >> 1;  x |= x >> 2;
+    x |= x >> 4;  x |= x >> 8;
+    x |= x >> 16;
+    return x - (x >> 1);
+}
+// 12 (1100) → 8 (1000)</code></pre>
+        
+        <!-- Визуализация битов -->
+        <div class="demo-box">
+            <b>Визуализация:</b> биты числа 12
+            <div class="bit-display" id="bitDisplay12">
+                <div class="bit one">1</div>
+                <div class="bit one">1</div>
+                <div class="bit zero">0</div>
+                <div class="bit zero">0</div>
+            </div>
+            <div style="display:flex; justify-content:center; gap:10px;">
+                <span style="color:#4CAF50;">Младший: 4</span>
+                <span style="color:#2196F3;">Старший: 8</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Слайд 14: Прием 7 - проверка знака -->
+    <div class="step slide" data-x="12000" data-y="-1500">
+        <h1>Прием 7: Проверка знака и другие</h1>
+        <pre><code>// Проверка знака:
+int is_negative(int x) {
+    return (x >> 31) & 1;  // для 32-бит
+}
+
+// Проверка на четность:
+int is_odd(int x) {
+    return x & 1;
+}
+
+// Разные знаки:
+int opposite_signs(int a, int b) {
+    return (a ^ b) < 0;
+}
+
+// Умножение на 3:
+int mul3(int x) {
+    return (x << 1) + x;
+}</code></pre>
+    </div>
+
+    <!-- Слайд 15: Сводка приемов -->
+    <div class="step slide" data-x="13000" data-y="-1500">
+        <h1>Сводка: битовая магия</h1>
+        <table>
+            <tr>
+                <th>Прием</th>
+                <th>Формула</th>
+                <th>Пример</th>
+            </tr>
+            <tr>
+                <td>Степень двойки</td>
+                <td><code>x & (x-1) == 0</code></td>
+                <td>16 → true</td>
+            </tr>
+            <tr>
+                <td>Popcount</td>
+                <td><code>сложный алгоритм</code></td>
+                <td>0xFF → 8</td>
+            </tr>
+            <tr>
+                <td>Округление до 2^n</td>
+                <td><code>x--; x|=x>>1; ...</code></td>
+                <td>5 → 8</td>
+            </tr>
+            <tr>
+                <td>XOR-своп</td>
+                <td><code>a^=b; b^=a; a^=b;</code></td>
+                <td>5,7 → 7,5</td>
+            </tr>
+            <tr>
+                <td>Быстрый ABS</td>
+                <td><code>(x + (x>>31)) ^ (x>>31)</code></td>
+                <td>|-5| → 5</td>
+            </tr>
+            <tr>
+                <td>Младший бит</td>
+                <td><code>x & (-x)</code></td>
+                <td>12 → 4</td>
+            </tr>
+            <tr>
+                <td>Старший бит</td>
+                <td><code>x - (x>>1)</code></td>
+                <td>12 → 8</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- ================================================================ -->
+    <!-- МОДУЛЬ 3: ПОРЯДОК БАЙТ (8 слайдов)                              -->
+    <!-- ================================================================ -->
+
+    <!-- Слайд 16: Little-Endian -->
+    <div class="step slide" data-x="14000" data-y="-1500">
+        <h1>Little-Endian: почему Intel хранит байты задом наперед</h1>
+        <pre><code>Число 0x12345678 в памяти:
+
+Адрес:    0x00  0x01  0x02  0x03
+Little:   78    56    34    12    ← Intel
+Big:      12    34    56    78    ← PowerPC, ARM
+
+// Почему так?
+// В Little-Endian: байт по младшему адресу — младший.
+// Упрощает сложение: начинаем с младших байт.</code></pre>
+        
+        <!-- Анимация порядка байт -->
+        <div class="demo-box">
+            <b>Анимация:</b> число 0x12345678 в памяти
+            <div style="display:flex; justify-content:center; gap:5px; margin:10px 0;">
+                <div style="background:#4CAF50; color:#fff; padding:8px; border-radius:4px;">78</div>
+                <div style="background:#4CAF50; color:#fff; padding:8px; border-radius:4px;">56</div>
+                <div style="background:#4CAF50; color:#fff; padding:8px; border-radius:4px;">34</div>
+                <div style="background:#4CAF50; color:#fff; padding:8px; border-radius:4px;">12</div>
+            </div>
+            <div style="display:flex; justify-content:center; gap:5px;">
+                <span style="font-size:0.8em;">адрес 0</span>
+                <span style="font-size:0.8em;">адрес 1</span>
+                <span style="font-size:0.8em;">адрес 2</span>
+                <span style="font-size:0.8em;">адрес 3</span>
+            </div>
+            <p style="text-align:center; margin-top:10px;">Младший байт (78) — по младшему адресу!</p>
+        </div>
+    </div>
+
+    <!-- Слайд 17: Почему Little-Endian -->
+    <div class="step slide" data-x="15000" data-y="-1500">
+        <h1>Почему Little-Endian удобен</h1>
+        <ul>
+            <li><b>Сложение:</b> начинаем с младших байт, перенос идет в старшие</li>
+            <li><b>Приведение типов:</b> int → short берет первые 2 байта</li>
+            <li><b>Чтение:</b> процессор читает байт по адресу и сразу знает его вес</li>
+        </ul>
+        <pre><code>// Пример: приведение int → char
+int x = 0x12345678;
+char c = *(char*)&x;  // c = 0x78 (младший байт)
+
+// На Big-Endian c = 0x12 (старший байт)
+// Это ломает сериализацию!</code></pre>
+    </div>
+
+    <!-- Слайд 18: Big-Endian -->
+    <div class="step slide" data-x="16000" data-y="-1500">
+        <h1>Big-Endian: где используется</h1>
+        <ul>
+            <li><b>Сеть:</b> TCP/IP, HTTP — всегда Big-Endian</li>
+            <li><b>Java:</b> виртуальная машина использует Big-Endian</li>
+            <li><b>Старые CPU:</b> PowerPC, SPARC, Motorola 68k</li>
+            <li><b>Форматы:</b> JPEG, PNG, MP3 — Big-Endian</li>
+        </ul>
+        <pre><code>// Сетевой порядок байт:
+// htonl() — host to network long
+// ntohl() — network to host long
+
+uint32_t x = 0x12345678;
+uint32_t net = htonl(x);  // 0x78563412 на x86</code></pre>
+    </div>
+
+    <!-- Слайд 19: Выравнивание -->
+    <div class="step slide" data-x="17000" data-y="-1500">
+        <h1>Выравнивание (Alignment)</h1>
+        <pre><code>// int должен быть по адресу, кратному 4
+// double — по адресу, кратному 8
+
+struct Example {
+    char c;      // 1 байт (адрес 0)
+    // 3 байта padding
+    int i;       // 4 байта (адрес 4)
+    double d;    // 8 байт (адрес 8)
+};
+// sizeof(struct Example) = 16 (не 13!)</code></pre>
+        <div class="warning">
+            <b>Почему?</b> CPU читает int за одну операцию, если он выровнен. Невыровненный доступ — медленнее или fault.
+        </div>
+    </div>
+
+    <!-- Слайд 20: Padding в структурах -->
+    <div class="step slide" data-x="18000" data-y="-1500">
+        <h1>Padding: визуализация</h1>
+        <pre><code>struct Example {
+    char c;      // [0]     — 1 байт
+                 // [1-3]   — padding (пусто)
+    int i;       // [4-7]   — 4 байта
+    double d;    // [8-15]  — 8 байт
+};
+// Итого: 16 байт
+
+// Если переставить поля:
+struct Better {
+    double d;    // [0-7]   — 8 байт
+    int i;       // [8-11]  — 4 байта
+    char c;      // [12]    — 1 байт
+                 // [13-15] — padding
+};
+// Итого: 16 байт (то же самое)
+
+// Но если так:
+struct Compact {
+    char c;      // [0]     — 1 байт
+    int i;       // [4-7]   — 4 байта (нужен padding)
+    double d;    // [8-15]  — 8 байт
+};
+// Итого: 16 байт</code></pre>
+    </div>
+
+    <!-- Слайд 21: #pragma pack -->
+    <div class="step slide" data-x="19000" data-y="-1500">
+        <h1>#pragma pack: отключение выравнивания</h1>
+        <pre><code>#pragma pack(push, 1)  // выравнивание по 1 байту
+struct Packed {
+    char c;      // [0]     — 1 байт
+    int i;       // [1-4]   — 4 байта
+    double d;    // [5-12]  — 8 байт
+};
+#pragma pack(pop)
+// sizeof(Packed) = 13 (без padding!)
+
+// Когда нужно:
+// - Сетевые протоколы
+// - Файловые форматы
+// - Работа с железом (регистры)
+
+// Когда НЕ нужно:
+// - Обычные структуры (медленнее доступ!)</code></pre>
+    </div>
+
+    <!-- Слайд 22: Дамп памяти -->
+    <div class="step slide" data-x="20000" data-y="-1500">
+        <h1>Дамп памяти: пример</h1>
+        <pre><code>int i = 0x12345678;
+// Память: 78 56 34 12
+
+float f = 2.5f;
+// 2.5 = 0x40200000
+// Память: 00 00 20 40
+
+double d = 3.14;
+// 3.14 = 0x40091EB851EB851F
+// Память: 1F 85 EB 51 B8 1E 09 40</code></pre>
+        
+        <!-- Интерактивный дамп -->
+        <div class="demo-box">
+            <b>Интерактив:</b> дамп памяти
+            <select id="dumpType" onchange="updateDump()">
+                <option value="int">int</option>
+                <option value="float">float</option>
+                <option value="double">double</option>
+            </select>
+            <input type="text" id="dumpValue" value="0x12345678" oninput="updateDump()">
+            <div class="demo-result" id="dumpResult">
+                int 0x12345678 → 78 56 34 12
+            </div>
+        </div>
+    </div>
+
+    <!-- Слайд 23: Практический пример -->
+    <div class="step slide" data-x="21000" data-y="-1500">
+        <h1>Практика: чтение дампа</h1>
+        <pre><code>// Дан дамп: 00 00 80 3F
+// Что это?
+
+// Вариант 1: int
+// 0x3F800000 = 1065353216
+
+// Вариант 2: float
+// 0x3F800000 = 1.0
+
+// Вариант 3: 4 char
+// 0x00, 0x00, 0x80, 0x3F — управляющие символы
+
+// Ответ зависит от типа!</code></pre>
+        <div class="tip">
+            <b>Вывод:</b> без знания типа дамп бесполезен.
+        </div>
+    </div>
+
+    <!-- ================================================================ -->
+    <!-- МОДУЛЬ 4: ЦЕЛЫЕ ЧИСЛА (12 слайдов)                              -->
+    <!-- ================================================================ -->
+
+    <!-- Слайд 24: Беззнаковые -->
+    <div class="step slide" data-x="22000" data-y="-1500">
+        <h1>Беззнаковые целые (Unsigned)</h1>
+        <pre><code>// Диапазоны:
+// unsigned char:  0 .. 255
+// unsigned short: 0 .. 65535
+// unsigned int:   0 .. 4,294,967,295
+// unsigned long:  0 .. 18,446,744,073,709,551,615
+
+// Все биты — значение:
+// 00000000 = 0
+// 00000001 = 1
+// 11111111 = 255
+
+// Переполнение: обертывание (wrap-around)
+unsigned char u = 255;
+u = u + 1;  // 0 (не UB!)</code></pre>
+    </div>
+
+    <!-- Слайд 25: Знаковые -->
+    <div class="step slide" data-x="23000" data-y="-1500">
+        <h1>Знаковые целые (Signed) — дополнительный код</h1>
+        <pre><code>// Как представить -5 в 8 битах:
+// 1. Берем 5:          00000101
+// 2. Инвертируем:      11111010
+// 3. Добавляем 1:      11111011  → это -5
+
+// Правило: -x = ~x + 1
+
+// Диапазоны:
+// signed char:  -128 .. 127
+// signed short: -32768 .. 32767
+// signed int:   -2147483648 .. 2147483647</code></pre>
+        <div class="formula">
+            -1 в 32 битах = 0xFFFFFFFF
+        </div>
+    </div>
+
+    <!-- Слайд 26: Почему дополнительный код -->
+    <div class="step slide" data-x="24000" data-y="-1500">
+        <h1>Почему дополнительный код?</h1>
+        <ul>
+            <li><b>Одно сложение</b> для знаковых и беззнаковых</li>
+            <li><b>Нет отрицательного нуля</b> (есть только +0)</li>
+            <li><b>Простое сравнение</b> (старший бит = знак)</li>
+        </ul>
+        <pre><code>// Пример: 5 + (-3) = 2
+//  00000101 (5)
+// +11111101 (-3)
+// =00000010 (2)  ✓ (перенос отбрасываем)
+
+// Одна и та же схема для int и unsigned!</code></pre>
+    </div>
+
+    <!-- Слайд 27: Расширение знака -->
+    <div class="step slide" data-x="25000" data-y="-1500">
+        <h1>Расширение знака (Sign Extension)</h1>
+        <pre><code>// char → int:
+char c = -5;  // 11111011 (8 бит)
+int i = c;    // 11111111 11111111 11111111 11111011
+              // = -5 (знак сохраняется!)
+
+// unsigned char → int:
+unsigned char uc = 200;  // 11001000
+int ui = uc;             // 00000000 00000000 00000000 11001000
+                         // = 200 (ноль расширение!)
+
+// Ассемблер:
+// MOVSX — mov with sign extension
+// MOVZX — mov with zero extension</code></pre>
+    </div>
+
+    <!-- Слайд 28: Переполнение -->
+    <div class="step slide" data-x="26000" data-y="-1500">
+        <h1>Переполнение (Overflow)</h1>
+        <pre><code>// Беззнаковое переполнение — обертывание:
+unsigned char u = 255;
+u = u + 1;  // 0 (определено!)
+
+// Знаковое переполнение — UB!
+int x = INT_MAX;
+x = x + 1;  // НЕОПРЕДЕЛЕННОЕ ПОВЕДЕНИЕ
+
+// Флаги процессора:
+// CF (Carry Flag) — для беззнаковых
+// OF (Overflow Flag) — для знаковых</code></pre>
+        <div class="danger">
+            <b>Важно:</b> знаковое переполнение — это UB в C/C++. Компилятор может удалить ваш код!
+        </div>
+    </div>
+
+    <!-- Слайд 29: Демо переполнения -->
+    <div class="step slide" data-x="27000" data-y="-1500">
+        <h1>Демо: переполнение</h1>
+        
+        <!-- Интерактивное демо переполнения -->
+        <div class="demo-box">
+            <b>Интерактив:</b> переполнение
+            <div>
+                <select id="overflowType" onchange="updateOverflow()">
+                    <option value="unsigned">unsigned char</option>
+                    <option value="signed">signed char</option>
+                </select>
+            </div>
+            <div class="slider-container">
+                <label>Значение:</label>
+                <input type="range" id="overflowVal" min="0" max="255" value="255" oninput="updateOverflow()">
+                <span id="overflowValDisplay">255</span>
+            </div>
+            <div style="margin-top:10px;">
+                <button onclick="doOverflow()">+1</button>
+            </div>
+            <div class="demo-result" id="overflowResult">
+                unsigned char: 255 + 1 = 0 (обертывание)
+            </div>
+        </div>
+    </div>
+
+    <!-- Слайд 30: Сдвиги -->
+    <div class="step slide" data-x="28000" data-y="-1500">
+        <h1>Сдвиги: SAR vs SHR</h1>
+        <pre><code>// Логический сдвиг (SHR) — для беззнаковых:
+unsigned int u = 0x80000000;  // 10000000...
+u >> 1;  // 01000000... (старший бит = 0)
+
+// Арифметический сдвиг (SAR) — для знаковых:
+int s = -8;  // 11111111 11111111 11111111 11111000
+s >> 1;      // 11111111 11111111 11111111 11111100 = -4
+             // старший бит сохраняется!
+
+// Умножение на 2: x << 1
+// Деление на 2: x >> 1 (для неотрицательных)</code></pre>
+    </div>
+
+    <!-- Слайд 31: Деление на 2 -->
+    <div class="step slide" data-x="29000" data-y="-1500">
+        <h1>Деление на 2: осторожно с отрицательными!</h1>
+        <pre><code>// Целочисленное деление в C: округление к нулю
+int a = -7 / 2;  // -3 (не -4!)
+
+// Сдвиг вправо: округление вниз (к -inf)
+int b = -7 >> 1;  // -4 (не -3!)
+
+// Разница!
+// -7 / 2 = -3 (к нулю)
+// -7 >> 1 = -4 (вниз)
+
+// Как получить деление сдвигом для отрицательных:
+int div2(int x) {
+    return (x + (x >> 31)) >> 1;  // округление к нулю
+}
+// -7 → (-7 + -1) >> 1 = -8 >> 1 = -4? НЕТ!
+// Правильно: (x + (x >> 31)) >> 1
+// -7 → (-7 + -1) >> 1 = -8 >> 1 = -4 (не -3!)</code></pre>
+        <div class="warning">
+            <b>Вывод:</b> для отрицательных чисел x >> 1 ≠ x / 2!
+        </div>
+    </div>
+
+    <!-- Слайд 32: Умножение -->
+    <div class="step slide" data-x="30000" data-y="-1500">
+        <h1>Умножение и деление через сдвиги</h1>
+        <pre><code>// Умножение на степень двойки:
+x * 2   = x << 1
+x * 4   = x << 2
+x * 8   = x << 3
+x * 16  = x << 4
+
+// Деление на степень двойки (беззнаковое):
+x / 2   = x >> 1
+x / 4   = x >> 2
+x / 8   = x >> 3
+
+// Компилятор делает это автоматически:
+// x * 10 = (x << 3) + (x << 1)  // 8x + 2x = 10x
+
+// НО: для отрицательных деление НЕ работает!</code></pre>
+    </div>
+
+    <!-- Слайд 33: Практический пример -->
+    <div class="step slide" data-x="31000" data-y="-1500">
+        <h1>Практика: бинарный поиск с переполнением</h1>
+        <pre><code>// Классическая ошибка (была в Java SDK!):
+int binary_search(int *arr, int n, int target) {
+    int left = 0, right = n - 1;
+    while (left <= right) {
+        int mid = (left + right) / 2;  // ПЕРЕПОЛНЕНИЕ!
+        // ...
+    }
+}
+
+// Проблема: left + right > INT_MAX
+// Решение:
+int mid = left + (right - left) / 2;
+// или:
+int mid = (left & right) + ((left ^ right) >> 1);</code></pre>
+        <div class="danger">
+            <b>Реальный баг:</b> в Java Arrays.binarySearch() жил 9 лет!
+        </div>
+    </div>
+
+    <!-- Слайд 34: Целые: сводка -->
+    <div class="step slide" data-x="32000" data-y="-1500">
+        <h1>Целые числа: сводка</h1>
+        <table>
+            <tr>
+                <th>Тип</th>
+                <th>Размер</th>
+                <th>Диапазон</th>
+            </tr>
+            <tr>
+                <td>char</td>
+                <td>1 байт</td>
+                <td>-128 .. 127</td>
+            </tr>
+            <tr>
+                <td>unsigned char</td>
+                <td>1 байт</td>
+                <td>0 .. 255</td>
+            </tr>
+            <tr>
+                <td>short</td>
+                <td>2 байта</td>
+                <td>-32768 .. 32767</td>
+            </tr>
+            <tr>
+                <td>unsigned short</td>
+                <td>2 байта</td>
+                <td>0 .. 65535</td>
+            </tr>
+            <tr>
+                <td>int</td>
+                <td>4 байта</td>
+                <td>-2^31 .. 2^31-1</td>
+            </tr>
+            <tr>
+                <td>unsigned int</td>
+                <td>4 байта</td>
+                <td>0 .. 2^32-1</td>
+            </tr>
+            <tr>
+                <td>long long</td>
+                <td>8 байт</td>
+                <td>-2^63 .. 2^63-1</td>
+            </tr>
+            <tr>
+                <td>unsigned long long</td>
+                <td>8 байт</td>
+                <td>0 .. 2^64-1</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- ================================================================ -->
+    <!-- МОДУЛЬ 5: ДВОИЧНЫЕ ДРОБИ (10 слайдов)                           -->
+    <!-- ================================================================ -->
+
+    <!-- Слайд 35: Аналогия -->
+    <div class="step slide" data-x="33000" data-y="-1500">
+        <h1>Двоичные дроби: аналогия с десятичными</h1>
+        <pre><code>Десятичная система (основание 10):
+  12.34 = 1*10^1 + 2*10^0 + 3*10^-1 + 4*10^-2
+         = 10     + 2      + 0.3     + 0.04
+
+Двоичная система (основание 2):
+  101.11 = 1*2^2 + 0*2^1 + 1*2^0 + 1*2^-1 + 1*2^-2
+         = 4     + 0     + 1     + 0.5    + 0.25
+         = 5.75</code></pre>
+        <p>После запятой — отрицательные степени двойки: 1/2, 1/4, 1/8...</p>
+    </div>
+
+    <!-- Слайд 36: Таблица степеней -->
+    <div class="step slide" data-x="34000" data-y="-1500">
+        <h1>Таблица двоичных разрядов</h1>
+        <table>
+            <tr>
+                <th>Степень</th>
+                <th>Значение</th>
+                <th>Десятичная дробь</th>
+            </tr>
+            <tr><td>2^-1</td><td>1/2</td><td>0.5</td></tr>
+            <tr><td>2^-2</td><td>1/4</td><td>0.25</td></tr>
+            <tr><td>2^-3</td><td>1/8</td><td>0.125</td></tr>
+            <tr><td>2^-4</td><td>1/16</td><td>0.0625</td></tr>
+            <tr><td>2^-5</td><td>1/32</td><td>0.03125</td></tr>
+            <tr><td>2^-6</td><td>1/64</td><td>0.015625</td></tr>
+            <tr><td>2^-7</td><td>1/128</td><td>0.0078125</td></tr>
+            <tr><td>2^-8</td><td>1/256</td><td>0.00390625</td></tr>
+        </table>
+    </div>
+
+    <!-- Слайд 37: Перевод 0.625 -->
+    <div class="step slide" data-x="35000" data-y="-1500">
+        <h1>Перевод дробей: 0.625</h1>
+        <pre><code>0.625 * 2 = 1.25  → бит = 1, остаток = 0.25
+0.25  * 2 = 0.5   → бит = 0, остаток = 0.5
+0.5   * 2 = 1.0   → бит = 1, остаток = 0
+
+Результат: 0.101₂ = 1/2 + 1/8 = 0.625 ✓</code></pre>
+        
+        <!-- Анимация перевода -->
+        <div class="demo-box">
+            <b>Анимация:</b> перевод 0.625
+            <div id="fracAnim" style="font-family:monospace; font-size:0.9em;">
+                0.625 × 2 = 1.25 → бит = 1
+            </div>
+            <button onclick="animateFraction()">Анимировать</button>
+        </div>
+    </div>
+
+    <!-- Слайд 38: Перевод 0.1 -->
+    <div class="step slide" data-x="36000" data-y="-1500">
+        <h1>Перевод дробей: 0.1 (бесконечная!)</h1>
+        <pre><code>0.1 * 2 = 0.2 → бит = 0
+0.2 * 2 = 0.4 → бит = 0
+0.4 * 2 = 0.8 → бит = 0
+0.8 * 2 = 1.6 → бит = 1, остаток = 0.6
+0.6 * 2 = 1.2 → бит = 1, остаток = 0.2
+0.2 * 2 = 0.4 → бит = 0
+... (цикл!)
+
+Результат: 0.00011001100110011...₂ (периодическая!)</code></pre>
+        <div class="danger">
+            <b>0.1 невозможно точно представить в двоичной системе!</b>
+        </div>
+    </div>
+
+    <!-- Слайд 39: Интерактивный перевод -->
+    <div class="step slide" data-x="37000" data-y="-1500">
+        <h1>Интерактив: перевод дроби</h1>
+        
+        <div class="demo-box">
+            <b>Интерактив:</b> перевод десятичной дроби в двоичную
+            <input type="number" id="fracInput" value="0.625" step="0.001" min="0" max="1" oninput="convertFraction()">
+            <button onclick="convertFraction()">Перевести</button>
+            <div class="demo-result" id="fracResult">
+                0.625 = 0.101₂
+            </div>
+            <div style="margin-top:10px; font-size:0.8em; color:#aaa;">
+                Попробуйте: 0.1, 0.2, 0.3, 0.5, 0.25, 0.75
+            </div>
+        </div>
+    </div>
+
+    <!-- Слайд 40: Почему 0.1 + 0.2 != 0.3 -->
+    <div class="step slide" data-x="38000" data-y="-1500">
+        <h1>Почему 0.1 + 0.2 ≠ 0.3</h1>
+        <pre><code>0.1 ≈ 0.1000000000000000055511151231257827
+0.2 ≈ 0.2000000000000000111022302462515654
+0.3 ≈ 0.2999999999999999888977697537484346
+
+0.1 + 0.2 = 0.3000000000000000444089209850062616
+0.3       = 0.2999999999999999888977697537484346
+
+Разница: 0.000000000000000055511151231257827</code></pre>
+        <div class="warning">
+            <b>Вывод:</b> никогда не сравнивайте float через ==. Используйте epsilon.
+        </div>
+    </div>
+
+    <!-- Слайд 41: Какие дроби точные -->
+    <div class="step slide" data-x="39000" data-y="-1500">
+        <h1>Какие дроби точные, а какие нет</h1>
+        <table>
+            <tr>
+                <th>Дробь</th>
+                <th>Двоичное представление</th>
+                <th>Точное?</th>
+            </tr>
+            <tr>
+                <td>0.5</td>
+                <td>0.1</td>
+                <td style="color:green;">✅ Да</td>
+            </tr>
+            <tr>
+                <td>0.25</td>
+                <td>0.01</td>
+                <td style="color:green;">✅ Да</td>
+            </tr>
+            <tr>
+                <td>0.125</td>
+                <td>0.001</td>
+                <td style="color:green;">✅ Да</td>
+            </tr>
+            <tr>
+                <td>0.75</td>
+                <td>0.11</td>
+                <td style="color:green;">✅ Да</td>
+            </tr>
+            <tr>
+                <td>0.1</td>
+                <td>0.000110011...</td>
+                <td style="color:red;">❌ Нет</td>
+            </tr>
+            <tr>
+                <td>0.2</td>
+                <td>0.001100110...</td>
+                <td style="color:red;">❌ Нет</td>
+            </tr>
+            <tr>
+                <td>0.3</td>
+                <td>0.010011001...</td>
+                <td style="color:red;">❌ Нет</td>
+            </tr>
+        </table>
+        <div class="tip">
+            <b>Правило:</b> точны только дроби со знаменателем-степенью двойки: 1/2, 1/4, 1/8, 3/4, 5/8, 7/8...
+        </div>
+    </div>
+
+    <!-- ================================================================ -->
+    <!-- МОДУЛЬ 6: IEEE 754 (14 слайдов)                                 -->
+    <!-- ================================================================ -->
+
+    <!-- Слайд 42: Структура float -->
+    <div class="step slide" data-x="40000" data-y="-1500">
+        <h1>Структура float (32 бита)</h1>
+        <pre><code>┌──────┬──────────┬─────────────────────┐
+│ 1 бит │ 8 бит    │ 23 бита             │
+│ S    │ E        │ M                   │
+│ знак │ экспонента│ мантисса            │
+└──────┴──────────┴─────────────────────┘
+
+S = 0 (положительное), 1 (отрицательное)
+E = экспонента со смещением +127
+M = дробная часть мантиссы (неявная 1)
+
+Формула: (-1)^S * 1.M * 2^(E - 127)</code></pre>
+    </div>
+
+    <!-- Слайд 43: Структура double -->
+    <div class="step slide" data-x="41000" data-y="-1500">
+        <h1>Структура double (64 бита)</h1>
+        <pre><code>┌──────┬────────────┬──────────────────────────┐
+│ 1 бит │ 11 бит     │ 52 бита                  │
+│ S    │ E          │ M                        │
+│ знак │ экспонента │ мантисса                 │
+└──────┴────────────┴──────────────────────────┘
+
+S = знак
+E = экспонента со смещением +1023
+M = мантисса (неявная 1)
+
+Формула: (-1)^S * 1.M * 2^(E - 1023)
+
+Диапазон: ~10^-308 .. 10^308
+Точность: ~15-16 значащих цифр</code></pre>
+    </div>
+
+    <!-- Слайд 44: Почему bias -->
+    <div class="step slide" data-x="42000" data-y="-1500">
+        <h1>Почему смещение (Bias)?</h1>
+        <pre><code>// Экспонента может быть отрицательной:
+// 1.5 = 1.5 * 2^0 → E = 0
+// 0.75 = 1.5 * 2^-1 → E = -1
+
+// Как хранить отрицательную экспоненту?
+// Добавляем смещение (bias):
+// float: E_хранимое = E_реальное + 127
+// double: E_хранимое = E_реальное + 1023
+
+// Пример:
+// 1.0 = 1.0 * 2^0 → E_реальное = 0
+// E_хранимое = 0 + 127 = 127 = 01111111₂
+
+// Сравнение float как unsigned int — работает!
+// Потому что bias делает экспоненту положительной</code></pre>
+    </div>
+
+    <!-- Слайд 45: Пример 1.0 -->
+    <div class="step slide" data-x="43000" data-y="-1500">
+        <h1>Пример: 1.0 в float</h1>
+        <pre><code>1.0 = 1.0 * 2^0
+
+S = 0 (положительное)
+E = 0 + 127 = 127 = 01111111₂
+M = 0 (все нули, неявная 1)
+
+Биты: 0 01111111 00000000000000000000000
+      0x3F800000</code></pre>
+        <div class="formula">
+            1.0 = 0x3F800000
+        </div>
+    </div>
+
+    <!-- Слайд 46: Пример 2.5 -->
+    <div class="step slide" data-x="44000" data-y="-1500">
+        <h1>Пример: 2.5 в float</h1>
+        <pre><code>2.5 = 1.25 * 2^1 = 1.01₂ * 2^1
+
+S = 0
+E = 1 + 127 = 128 = 10000000₂
+M = 01 (двоичная дробь после запятой)
+
+Биты: 0 10000000 01000000000000000000000
+      0x40200000</code></pre>
+        <div class="formula">
+            2.5 = 0x40200000
+        </div>
+    </div>
+
+    <!-- Слайд 47: Пример -0.0 -->
+    <div class="step slide" data-x="45000" data-y="-1500">
+        <h1>Пример: -0.0</h1>
+        <pre><code>-0.0 = -1.0 * 2^(-127) * 0 (особый случай)
+
+S = 1
+E = 0 (все нули)
+M = 0 (все нули)
+
+Биты: 1 00000000 00000000000000000000000
+      0x80000000
+
+// -0.0 == 0.0 → true!
+// Но 1/-0.0 = -Inf, 1/0.0 = +Inf</code></pre>
+    </div>
+
+    <!-- Слайд 48: Интерактивный разбор float -->
+    <div class="step slide" data-x="46000" data-y="-1500">
+        <h1>Интерактив: разбор float</h1>
+        
+        <div class="demo-box">
+            <b>Интерактив:</b> разбор числа на компоненты
+            <input type="number" id="floatInput" value="2.5" step="0.1" oninput="analyzeFloat()">
+            <button onclick="analyzeFloat()">Разобрать</button>
+            <div class="demo-result" id="floatResult">
+                // Здесь будет разбор
+            </div>
+        </div>
+    </div>
+
+    <!-- Слайд 49: Особые случаи -->
+    <div class="step slide" data-x="47000" data-y="-1500">
+        <h1>Особые случаи: Inf, NaN, -0</h1>
+        <pre><code>// Бесконечность (Infinity):
+// E = все 1, M = 0
+// 0x7F800000 = +Inf
+// 0xFF800000 = -Inf
+
+// NaN (Not a Number):
+// E = все 1, M ≠ 0
+// 0x7FC00000 = NaN
+
+// Отрицательный ноль:
+// S = 1, E = 0, M = 0
+// 0x80000000 = -0.0
+
+// Денормализованные:
+// E = 0, M ≠ 0 → 0.M * 2^(-126)</code></pre>
+    </div>
+
+    <!-- Слайд 50: NaN -->
+    <div class="step slide" data-x="48000" data-y="-1500">
+        <h1>NaN: сравнения</h1>
+        <pre><code>float nan = 0.0f / 0.0f;
+
+nan == nan  → false!  (NaN не равен самому себе)
+nan != nan  → true!
+nan <  x    → false
+nan >  x    → false
+
+// Правильная проверка:
+isnan(nan)  → true
+
+// NaN-пропагация:
+// любая операция с NaN дает NaN
+// 1.0 + NaN = NaN
+// 0.0 * NaN = NaN</code></pre>
+        <div class="danger">
+            <b>Ошибка:</b> if (x == NaN) — НЕ РАБОТАЕТ! Используйте isnan(x).
+        </div>
+    </div>
+
+    <!-- Слайд 51: Диапазоны -->
+    <div class="step slide" data-x="49000" data-y="-1500">
+        <h1>Диапазоны и точность</h1>
+        <table>
+            <tr>
+                <th>Тип</th>
+                <th>Размер</th>
+                <th>Диапазон</th>
+                <th>Точность</th>
+            </tr>
+            <tr>
+                <td>float</td>
+                <td>32 бита</td>
+                <td>±3.4×10^38</td>
+                <td>~7 цифр</td>
+            </tr>
+            <tr>
+                <td>double</td>
+                <td>64 бита</td>
+                <td>±1.8×10^308</td>
+                <td>~15-16 цифр</td>
+            </tr>
+            <tr>
+                <td>long double</td>
+                <td>80 бит</td>
+                <td>±1.2×10^4932</td>
+                <td>~18-19 цифр</td>
+            </tr>
+        </table>
+        <div class="warning">
+            <b>Помните:</b> float — это ~7 значащих цифр. Для денег используйте целые!
+        </div>
+    </div>
+
+    <!-- Слайд 52: Ошибки округления -->
+    <div class="step slide" data-x="50000" data-y="-1500">
+        <h1>Ошибки округления</h1>
+        <pre><code>// Пример: 0.1 + 0.2
+float f = 0.1f + 0.2f;  // 0.30000001 (не 0.3!)
+
+// Пример: накопление ошибки
+double d = 0.0;
+for (int i = 0; i < 10; i++) d += 0.1;
+// d = 0.9999999999999999 (не 1.0!)
+
+// Как избежать:
+// 1. Используйте double вместо float
+// 2. Сравнивайте с epsilon: fabs(a - b) < 1e-9
+// 3. Для денег — целые числа (копейки)</code></pre>
+    </div>
+
+    <!-- Слайд 53: Практический пример -->
+    <div class="step slide" data-x="51000" data-y="-1500">
+        <h1>Практика: сравнение float</h1>
+        <pre><code>// Неправильно:
+if (a == b) { ... }
+
+// Правильно:
+#include &lt;math.h&gt;
+if (fabs(a - b) < 1e-6) { ... }
+
+// Или:
+if (fabs(a - b) < epsilon * fmax(fabs(a), fabs(b))) { ... }
+
+// Для денег:
+int cents = (int)round(dollars * 100);</code></pre>
+    </div>
+
+    <!-- ================================================================ -->
+    <!-- МОДУЛЬ 7: ПРАКТИКА (10 слайдов)                                 -->
+    <!-- ================================================================ -->
+
+    <!-- Слайд 54: Среднее двух чисел -->
+    <div class="step slide" data-x="52000" data-y="-1500">
+        <h1>Практика: Среднее двух чисел</h1>
+        <pre><code>// Наивное решение (ломается!):
+int average_naive(int a, int b) {
+    return (a + b) / 2;
+}
+// INT_MAX + INT_MAX = переполнение!
+
+// Безопасное решение:
+int average_safe(int a, int b) {
+    return (a & b) + ((a ^ b) >> 1);
+}
+// Работает для любых знаковых и беззнаковых!</code></pre>
+        <div class="tip">
+            Формула: (a & b) + ((a ^ b) >> 1) — не переполняется.
+        </div>
+    </div>
+
+    <!-- Слайд 55: Разбор формулы -->
+    <div class="step slide" data-x="53000" data-y="-1500">
+        <h1>Разбор формулы среднего</h1>
+        <pre><code>// (a & b) + ((a ^ b) >> 1)
+
+// a & b — общие биты (учитываются дважды)
+// a ^ b — разные биты (учитываются один раз)
+// >> 1 — делим разницу на 2
+
+// Пример: a = 11 (1011), b = 7 (0111)
+// a & b = 0011 (3)   // общие биты
+// a ^ b = 1100 (12)  // разные биты
+// (a ^ b) >> 1 = 0110 (6)
+
+// Результат: 3 + 6 = 9
+// Проверка: (11 + 7) / 2 = 9 ✓</code></pre>
+    </div>
+
+    <!-- Слайд 56: Интерактив: среднее -->
+    <div class="step slide" data-x="54000" data-y="-1500">
+        <h1>Интерактив: среднее двух чисел</h1>
+        
+        <div class="demo-box">
+            <b>Интерактив:</b> вычислите среднее
+            <div class="slider-container">
+                <label>A:</label>
+                <input type="number" id="avgA" value="11" oninput="calcAverage()">
+            </div>
+            <div class="slider-container">
+                <label>B:</label>
+                <input type="number" id="avgB" value="7" oninput="calcAverage()">
+            </div>
+            <button onclick="calcAverage()">Вычислить</button>
+            <div class="demo-result" id="avgResult">
+                Среднее(11, 7) = 9
+            </div>
+            <div style="margin-top:10px; font-size:0.8em; color:#aaa;">
+                Попробуйте: INT_MAX и INT_MAX
+            </div>
+        </div>
+    </div>
+
+    <!-- Слайд 57: Бинарный поиск -->
+    <div class="step slide" data-x="55000" data-y="-1500">
+        <h1>Практика: Бинарный поиск</h1>
+        <pre><code>// Классическая ошибка:
+int mid = (left + right) / 2;  // переполнение!
+
+// Правильно:
+int mid = left + (right - left) / 2;
+// или:
+int mid = (left & right) + ((left ^ right) >> 1);
+
+// Безопасно для любых left и right</code></pre>
+    </div>
+
+    <!-- Слайд 58: Проверка знаний -->
+    <div class="step slide" data-x="56000" data-y="-1500">
+        <h1>Проверка знаний</h1>
+        <ol>
+            <li>Чему равно -1 в 32-битном int? (0xFFFFFFFF)</li>
+            <li>Сколько бит в float? (32: 1+8+23)</li>
+            <li>Почему 0.1 + 0.2 ≠ 0.3? (бесконечная двоичная дробь)</li>
+            <li>Как проверить, что число — степень двойки? (x & (x-1) == 0)</li>
+            <li>Что будет: unsigned char 255 + 1? (0, обертывание)</li>
+            <li>Как безопасно найти среднее? ((a & b) + ((a ^ b) >> 1))</li>
+        </ol>
+    </div>
+
+    <!-- Слайд 59: Домашнее задание -->
+    <div class="step slide" data-x="57000" data-y="-1500">
+        <h1>Домашнее задание</h1>
+        <ol>
+            <li>Реализовать <code>average</code> для <code>uint64_t</code> и <code>int64_t</code></li>
+            <li>Перевести 0.3 в двоичную дробь (вручную, 10 бит)</li>
+            <li>Разобрать дамп памяти <code>float f = 2.5f;</code> (найти биты)</li>
+            <li>Написать функцию <code>is_power_of_two</code> для <code>uint64_t</code></li>
+            <li>Разобрать дамп памяти <code>struct { char; int; double; }</code></li>
+        </ol>
+    </div>
+
+    <!-- Слайд 60: Итоги -->
+    <div class="step slide" data-x="58000" data-y="-1500">
+        <h1>Лекция 1: Итоги</h1>
+        <ul>
+            <li>Битовые операции — мощный инструмент</li>
+            <li>Intel хранит байты задом наперед (Little-Endian)</li>
+            <li>Отрицательные числа — дополнительный код</li>
+            <li>0.1 нельзя точно представить в двоичной системе</li>
+            <li>float = знак + экспонента + мантисса</li>
+            <li>Среднее двух чисел: (a & b) + ((a ^ b) >> 1)</li>
+        </ul>
+        <div class="tip" style="margin-top:20px;">
+            <b>Следующая лекция:</b> денормализация, SIMD, векторизация, inline asm.
+        </div>
+    </div>
+
+    <!-- Слайд 61: Спасибо -->
+    <div class="step slide" data-x="59000" data-y="-1500">
+        <h1>Спасибо за внимание!</h1>
+        <h2>Вопросы?</h2>
+        <ul>
+            <li>Материалы: <code>bit_magic.c</code>, <code>average.c</code>, <code>ieee754.c</code></li>
+            <li>Домашнее задание — на сайте</li>
+            <li>Следующая лекция: продвинутые темы</li>
+        </ul>
+        <p style="text-align:center; margin-top:30px; font-size:2em;">🎓</p>
+    </div>
+
+    <!-- Обзорный слайд -->
+    <div id="overview" class="step" data-x="3000" data-y="1500" data-z="0" data-scale="10">
+    </div>
+
+</div>
+
+<div id="impress-toolbar"></div>
+
+<div class="hint">
+    <p>Use a spacebar or arrow keys to navigate. <br/>
+       Press 'P' to launch speaker console.</p>
+</div>
+<script>
+if ("ontouchstart" in document.documentElement) { 
+    document.querySelector(".hint").innerHTML = "<p>Swipe left or right to navigate</p>";
+}
+</script>
+
+<script src="js/impress.js"></script>
+<script>impress().init();</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/python.min.js"></script>
+
+<script>hljs.highlightAll();</script>
+
+<!-- ================================================================ -->
+<!-- JAVASCRIPT ДЛЯ ИНТЕРАКТИВНЫХ ДЕМО                                -->
+<!-- ================================================================ -->
+<script>
+// ===== Демо: битовые операции =====
+function updateBitDemo() {
+    let a = parseInt(document.getElementById('bitA').value);
+    let b = parseInt(document.getElementById('bitB').value);
+    document.getElementById('bitAVal').textContent = a + ' (' + a.toString(2).padStart(4, '0') + ')';
+    document.getElementById('bitBVal').textContent = b + ' (' + b.toString(2).padStart(4, '0') + ')';
+    showBitOp('AND');
+}
+
+function showBitOp(op) {
+    let a = parseInt(document.getElementById('bitA').value);
+    let b = parseInt(document.getElementById('bitB').value);
+    let result;
+    let opSymbol;
+    
+    switch(op) {
+        case 'AND': result = a & b; opSymbol = '&'; break;
+        case 'OR': result = a | b; opSymbol = '|'; break;
+        case 'XOR': result = a ^ b; opSymbol = '^'; break;
+    }
+    
+    document.getElementById('bitResult').innerHTML = 
+        `Результат: ${a} ${opSymbol} ${b} = ${result} (${result.toString(2).padStart(4, '0')})`;
+}
+
+// ===== Демо: сдвиги =====
+function updateShiftDemo() {
+    let num = parseInt(document.getElementById('shiftNum').value);
+    let amt = parseInt(document.getElementById('shiftAmt').value);
+    document.getElementById('shiftNumVal').textContent = num + ' (' + num.toString(2).padStart(8, '0') + ')';
+    document.getElementById('shiftAmtVal').textContent = amt;
+    showShift('SHL');
+}
+
+function showShift(op) {
+    let num = parseInt(document.getElementById('shiftNum').value);
+    let amt = parseInt(document.getElementById('shiftAmt').value);
+    let result;
+    let description;
+    
+    switch(op) {
+        case 'SHL':
+            result = num << amt;
+            description = `<<`;
+            break;
+        case 'SHR':
+            result = num >>> amt;
+            description = `>> (логический)`;
+            break;
+        case 'SAR':
+            result = num >> amt;
+            description = `>> (арифметический)`;
+            break;
+    }
+    
+    document.getElementById('shiftResult').innerHTML = 
+        `Результат: ${num} ${description} ${amt} = ${result}`;
+}
+
+// ===== Демо: степень двойки =====
+function checkPow2() {
+    let x = parseInt(document.getElementById('pow2Input').value);
+    let isPow2 = x > 0 && (x & (x - 1)) === 0;
+    document.getElementById('pow2Result').innerHTML = 
+        `${x} — ${isPow2 ? 'степень двойки ✓' : 'НЕ степень двойки ✗'}`;
+}
+
+// ===== Демо: popcount =====
+function checkPopcount() {
+    let x = parseInt(document.getElementById('popcountInput').value);
+    if (isNaN(x)) x = 0;
+    
+    // Простой подсчет (для демо):
+    let count = 0;
+    let temp = x;
+    while (temp) {
+        count += temp & 1;
+        temp >>>= 1;
+    }
+    
+    document.getElementById('popcountResult').innerHTML = 
+        `popcount(${x}) = ${count}`;
+}
+
+// ===== Демо: округление =====
+function checkRound() {
+    let x = parseInt(document.getElementById('roundInput').value);
+    if (isNaN(x) || x < 1) x = 1;
+    
+    let result = x;
+    result--;
+    result |= result >> 1;
+    result |= result >> 2;
+    result |= result >> 4;
+    result |= result >> 8;
+    result |= result >> 16;
+    result++;
+    
+    document.getElementById('roundResult').innerHTML = 
+        `round_up_pow2(${x}) = ${result}`;
+}
+
+// ===== Демо: XOR-своп (анимация) =====
+let swapStep = 0;
+function animateSwap() {
+    let a = 5, b = 7;
+    swapStep = 0;
+    
+    function step() {
+        swapStep++;
+        switch(swapStep) {
+            case 1:
+                document.getElementById('swapA').textContent = a ^ b;
+                document.getElementById('swapA').style.color = '#FF9800';
+                break;
+            case 2:
+                document.getElementById('swapB').textContent = (a ^ b) ^ b;
+                document.getElementById('swapB').style.color = '#FF9800';
+                break;
+            case 3:
+                document.getElementById('swapA').textContent = (a ^ b) ^ ((a ^ b) ^ b);
+                document.getElementById('swapA').style.color = '#4CAF50';
+                document.getElementById('swapB').style.color = '#2196F3';
+                clearInterval(timer);
+                break;
+        }
+    }
+    
+    let timer = setInterval(step, 500);
+}
+
+// ===== Демо: ABS =====
+function checkAbs() {
+    let x = parseInt(document.getElementById('absInput').value);
+    if (isNaN(x)) x = 0;
+    
+    let mask = x >> 31;
+    let result = (x + mask) ^ mask;
+    
+    document.getElementById('absResult').innerHTML = 
+        `|${x}| = ${result}`;
+}
+
+// ===== Демо: переполнение =====
+let currentOverflowVal = 255;
+
+function updateOverflow() {
+    let type = document.getElementById('overflowType').value;
+    let val = parseInt(document.getElementById('overflowVal').value);
+    currentOverflowVal = val;
+    document.getElementById('overflowValDisplay').textContent = val;
+    
+    let result;
+    if (type === 'unsigned') {
+        result = (val + 1) & 0xFF;
+        document.getElementById('overflowResult').innerHTML = 
+            `unsigned char: ${val} + 1 = ${result} (обертывание)`;
+    } else {
+        let signedVal = val > 127 ? val - 256 : val;
+        let signedResult = (signedVal + 1);
+        if (signedResult > 127) signedResult = -128;
+        document.getElementById('overflowResult').innerHTML = 
+            `signed char: ${signedVal} + 1 = ${signedResult} (UB!)`;
+    }
+}
+
+function doOverflow() {
+    let val = currentOverflowVal;
+    document.getElementById('overflowVal').value = (val + 1) & 0xFF;
+    updateOverflow();
+}
+
+// ===== Демо: дамп памяти =====
+function updateDump() {
+    let type = document.getElementById('dumpType').value;
+    let value = document.getElementById('dumpValue').value;
+    
+    let result = '';
+    
+    if (type === 'int') {
+        let num = parseInt(value, 16);
+        if (isNaN(num)) num = 0;
+        let bytes = [
+            (num & 0xFF).toString(16).padStart(2, '0'),
+            ((num >> 8) & 0xFF).toString(16).padStart(2, '0'),
+            ((num >> 16) & 0xFF).toString(16).padStart(2, '0'),
+            ((num >> 24) & 0xFF).toString(16).padStart(2, '0')
+        ];
+        result = `int 0x${value} → ${bytes.join(' ')}`;
+    } else if (type === 'float') {
+        let f = parseFloat(value);
+        if (isNaN(f)) f = 0;
+        let buffer = new ArrayBuffer(4);
+        new Float32Array(buffer)[0] = f;
+        let bytes = Array.from(new Uint8Array(buffer));
+        result = `float ${f} → ${bytes.map(b => b.toString(16).padStart(2, '0')).join(' ')}`;
+    } else if (type === 'double') {
+        let d = parseFloat(value);
+        if (isNaN(d)) d = 0;
+        let buffer = new ArrayBuffer(8);
+        new Float64Array(buffer)[0] = d;
+        let bytes = Array.from(new Uint8Array(buffer));
+        result = `double ${d} → ${bytes.map(b => b.toString(16).padStart(2, '0')).join(' ')}`;
+    }
+    
+    document.getElementById('dumpResult').innerHTML = result;
+}
+
+// ===== Демо: перевод дроби =====
+function convertFraction() {
+    let input = parseFloat(document.getElementById('fracInput').value);
+    if (isNaN(input) || input < 0 || input >= 1) {
+        document.getElementById('fracResult').innerHTML = 'Введите число от 0 до 1';
+        return;
+    }
+    
+    let frac = input;
+    let bits = [];
+    let maxBits = 20;
+    
+    for (let i = 0; i < maxBits && frac > 0; i++) {
+        frac *= 2;
+        let bit = Math.floor(frac);
+        bits.push(bit);
+        frac -= bit;
+    }
+    
+    let result = input + ' = 0.';
+    if (bits.length === 0) {
+        result += '0';
+    } else {
+        result += bits.join('');
+        if (frac > 0) result += '...';
+    }
+    result += '₂';
+    
+    document.getElementById('fracResult').innerHTML = result;
+}
+
+// ===== Демо: анимация перевода дроби =====
+let fracAnimStep = 0;
+function animateFraction() {
+    let steps = [
+        '0.625 × 2 = 1.25 → бит = 1, остаток = 0.25',
+        '0.25 × 2 = 0.5 → бит = 0, остаток = 0.5',
+        '0.5 × 2 = 1.0 → бит = 1, остаток = 0',
+        'Результат: 0.101₂ = 0.625 ✓'
+    ];
+    
+    fracAnimStep = 0;
+    function showStep() {
+        document.getElementById('fracAnim').textContent = steps[fracAnimStep];
+        fracAnimStep++;
+        if (fracAnimStep >= steps.length) {
+            clearInterval(timer);
+        }
+    }
+    
+    let timer = setInterval(showStep, 800);
+}
+
+// ===== Демо: разбор float =====
+function analyzeFloat() {
+    let input = parseFloat(document.getElementById('floatInput').value);
+    if (isNaN(input)) input = 0;
+    
+    let buffer = new ArrayBuffer(4);
+    new Float32Array(buffer)[0] = input;
+    let bits = new Uint32Array(buffer)[0];
+    
+    let sign = (bits >> 31) & 1;
+    let exp = (bits >> 23) & 0xFF;
+    let mantissa = bits & 0x7FFFFF;
+    
+    let result = `
+        <b>Число:</b> ${input}<br>
+        <b>Биты:</b> 0x${bits.toString(16).toUpperCase().padStart(8, '0')}<br>
+        <b>Знак:</b> ${sign}<br>
+        <b>Экспонента:</b> ${exp} (смещенная), ${exp - 127} (реальная)<br>
+        <b>Мантисса:</b> 0x${mantissa.toString(16).toUpperCase().padStart(6, '0')}<br>
+    `;
+    
+    if (exp === 0 && mantissa === 0) {
+        result += `<b>→ Ноль</b>`;
+    } else if (exp === 0) {
+        result += `<b>→ Денормализованное</b>`;
+    } else if (exp === 0xFF && mantissa === 0) {
+        result += `<b>→ Бесконечность</b>`;
+    } else if (exp === 0xFF) {
+        result += `<b>→ NaN</b>`;
+    } else {
+        result += `<b>→ Нормальное: (-1)^${sign} * 1.${mantissa.toString(2).padStart(23, '0')} * 2^${exp - 127}</b>`;
+    }
+    
+    document.getElementById('floatResult').innerHTML = result;
+}
+
+// ===== Демо: среднее =====
+function calcAverage() {
+    let a = parseInt(document.getElementById('avgA').value);
+    let b = parseInt(document.getElementById('avgB').value);
+    
+    if (isNaN(a) || isNaN(b)) {
+        document.getElementById('avgResult').innerHTML = 'Введите числа';
+        return;
+    }
+    
+    // Безопасное среднее:
+    let result = (a & b) + ((a ^ b) >> 1);
+    
+    document.getElementById('avgResult').innerHTML = 
+        `Среднее(${a}, ${b}) = ${result}`;
+}
+
+// Инициализация при загрузке:
+updateBitDemo();
+updateShiftDemo();
+checkPow2();
+checkPopcount();
+checkRound();
+checkAbs();
+updateOverflow();
+updateDump();
+convertFraction();
+analyzeFloat();
+calcAverage();
+</script>
+
+</body>
+</html>
+
