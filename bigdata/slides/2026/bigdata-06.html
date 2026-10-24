@@ -1,0 +1,585 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1024" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <title>Spark: Лекция 1. Архитектура и RDD</title>
+
+    <link href="//fonts.googleapis.com/css?family=Open+Sans:regular,semibold,italic,italicsemibold|PT+Sans:400,700,400italic,700italic|PT+Serif:400,700,400italic,700italic" rel="stylesheet" />
+
+    <link href="css/impress-demo.css" rel="stylesheet" />
+    <link href="css/impress-common.css" rel="stylesheet" />
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/default.min.css">
+
+    <style>
+        /* Базовые стили слайдов */
+        .slide {
+            font-size: 27px;
+            line-height: 1.3;
+            letter-spacing: -.5px;
+        }
+
+        .slide h1 {
+            font-size: 40px;
+            line-height: 1.15;
+            margin: 0 0 .5em;
+            text-align: left;
+        }
+
+        .slide h2 {
+            font-size: 32px;
+            margin: 0 0 .5em;
+        }
+
+        .slide h3 {
+            font-size: 24px;
+            margin: .5em 0 .3em;
+        }
+
+        .slide ul,
+        .slide ol {
+            margin: 0;
+            padding-left: 1.1em;
+        }
+
+        .slide li {
+            margin: .25em 0;
+        }
+
+        .slide p {
+            margin: .6em 0 0;
+        }
+
+        .slide pre {
+            margin: 0 0 12px;
+            letter-spacing: 0;
+            text-shadow: none;
+        }
+
+        .slide pre code.hljs {
+            padding: 12px 16px;
+            font-size: 17px;
+            line-height: 1.35;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .slide pre.small code.hljs {
+            font-size: 15.5px;
+        }
+
+        .slide code:not(.hljs) {
+            background: #e2e8f0;
+            color: #1e293b;
+            padding: 0 .3em;
+            border-radius: 4px;
+            font-size: .85em;
+            letter-spacing: 0;
+        }
+
+        .slide.section code:not(.hljs),
+        .slide.title code:not(.hljs) {
+            background: rgba(255,255,255,.28);
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .slide table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 22px;
+            line-height: 1.25;
+        }
+
+        .slide th,
+        .slide td {
+            border-bottom: 1px solid #ccc;
+            padding: 6px 10px;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .slide th {
+            background: #e2e8f0;
+            color: #1e293b;
+        }
+
+        .slide .hl {
+            color: #b91c1c;
+        }
+
+        /* Секционные слайды */
+        .slide.section {
+            background: linear-gradient(135deg,#0f766e,#1d4ed8);
+            color: #fff;
+            text-shadow: none;
+        }
+
+        .slide.section h1 {
+            color: #fff;
+            font-size: 50px;
+        }
+
+        .slide.section .num {
+            position: absolute;
+            right: 40px;
+            top: 0;
+            font-size: 200px;
+            font-weight: 700;
+            opacity: .18;
+            line-height: 1;
+        }
+
+        .slide.title .hint {
+            font-size: 20px;
+            color: #999;
+            margin-top: 40px;
+        }
+
+        .notes {
+            display: none;
+        }
+
+        .ov {
+            position: fixed;
+            left: 14px;
+            bottom: 12px;
+            color: #93c5fd;
+            font-size: 14px;
+            text-decoration: none;
+            z-index: 10;
+        }
+
+        #overview {
+            background: none!important;
+            border: 0!important;
+            box-shadow: none!important;
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body class="impress-not-supported">
+
+<div class="fallback-message">
+    <p>Ваш браузер <b>не поддерживает возможности, необходимые для impress.js</b>, поэтому показана упрощённая версия презентации.</p>
+    <p>Лучше всего использовать свежие <b>Chrome</b>, <b>Safari</b> или <b>Firefox</b>.</p>
+</div>
+
+<div id="impress"
+    data-transition-duration="1000"
+    data-width="1024"
+    data-height="768"
+    data-max-scale="3"
+    data-min-scale="0"
+    data-perspective="1000"
+    >
+
+<!-- ======================= ТИТУЛ ======================= -->
+<div class="step slide" data-x="-1000" data-y="-1500">
+  <h1>Spark</h1>
+  <h2>Архитектура и RDD</h2>
+  <p>Не просто быстрее MapReduce, а принципиально другой подход к вычислениям</p>
+  <p>In-memory, DAG, ленивые вычисления</p>
+</div>
+
+<!-- ======================= ACTIONS И ТЕРМИНАЛЫ ======================= -->
+<div class="step slide section" data-x="0" data-y="-1500">
+  <h1>Actions и терминалы</h1>
+  <p>Что запускает вычисления и как работать с Spark</p>
+  <div class="num">00</div>
+</div>
+
+<div class="step slide" data-x="1000" data-y="-1500">
+  <h1>Actions: список</h1>
+  <table>
+    <tr><th>Action</th><th>Что возвращает</th><th>Когда использовать</th></tr>
+    <tr><td><code>collect()</code></td><td>Массив всех элементов</td><td>Маленькие данные, отладка</td></tr>
+    <tr><td><code>count()</code></td><td>Количество элементов</td><td>Подсчет записей</td></tr>
+    <tr><td><code>take(n)</code></td><td>Первые n элементов</td><td>Просмотр данных</td></tr>
+    <tr><td><code>reduce(f)</code></td><td>Один элемент (агрегация)</td><td>Сумма, максимум</td></tr>
+    <tr><td><code>foreach(f)</code></td><td>Unit (побочный эффект)</td><td>Запись в БД, логирование</td></tr>
+    <tr><td><code>saveAsTextFile(path)</code></td><td>Unit (запись на диск)</td><td>Сохранение результата</td></tr>
+  </table>
+  <p>Action — это "терминал": запускает вычисления и возвращает результат водителю</p>
+</div>
+
+<div class="step slide" data-x="2000" data-y="-1500">
+  <h1>Терминалы: spark-shell и spark-submit</h1>
+  <table>
+    <tr><th>Инструмент</th><th>Назначение</th><th>Особенности</th></tr>
+    <tr><td><strong>spark-shell</strong></td><td>Интерактивная работа (REPL)</td><td>Удобно для экспериментов и отладки. SparkContext уже создан (sc)</td></tr>
+    <tr><td><strong>spark-submit</strong></td><td>Запуск готового приложения</td><td>Скрипт/класс. Полный контроль над конфигурацией</td></tr>
+    <tr><td><strong>notebook (Jupyter/Zepellin)</strong></td><td>Интерактивная работа с визуализацией</td><td>Удобно для анализа данных</td></tr>
+  </table>
+  <p>Разница: spark-shell — для быстрых экспериментов, spark-submit — для production-задач</p>
+</div>
+
+<div class="step slide" data-x="3000" data-y="-1500">
+  <h1>Пример: spark-shell</h1>
+  <pre><code>$ spark-shell --master local[2]
+
+scala> val rdd = sc.textFile("hdfs://...")
+rdd: org.apache.spark.rdd.RDD[String]
+
+scala> rdd.count()
+res0: Long = 1000
+
+scala> rdd.take(5).foreach(println)
+...первые 5 строк...</code></pre>
+  <p>SparkContext (sc) уже создан. Можно сразу работать с данными</p>
+</div>
+
+<div class="step slide" data-x="4000" data-y="-1500">
+  <h1>Пример: spark-submit</h1>
+  <pre><code>$ spark-submit \
+    --class com.example.WordCount \
+    --master yarn \
+    --executor-memory 4g \
+    --num-executors 10 \
+    myapp.jar</code></pre>
+  <p>Полный контроль: ресурсы, конфигурация, зависимости. Для production</p>
+</div>
+
+<!-- ======================= МОТИВАЦИЯ ======================= -->
+<div class="step slide section" data-x="5000" data-y="-1500">
+  <h1>Мотивация</h1>
+  <p>Почему не MapReduce</p>
+  <div class="num">01</div>
+</div>
+
+<div class="step slide" data-x="6000" data-y="-1500">
+  <h1>Проблемы MapReduce</h1>
+  <ul>
+    <li><strong>Жесткая модель:</strong> map → shuffle → reduce. Нельзя выразить произвольный граф вычислений</li>
+    <li><strong>Промежуточные данные на диск:</strong> каждый шаг пишет в HDFS. Для итеративных алгоритмов — катастрофа</li>
+    <li><strong>Нет in-memory:</strong> даже если данные помещаются в память, MR все равно пишет на диск</li>
+    <li><strong>Сложность кода:</strong> все руками — комбинаторы, партишнеры, счетчики</li>
+  </ul>
+</div>
+
+<div class="step slide" data-x="7000" data-y="-1500">
+  <h1>Итеративный алгоритм: PageRank</h1>
+  <table>
+    <tr><th></th><th>MapReduce</th><th>Spark</th></tr>
+    <tr><td><strong>Итераций</strong></td><td>10</td><td>10</td></tr>
+    <tr><td><strong>Jobs</strong></td><td>10 (каждая итерация = отдельный job)</td><td>1 job с конвейером</td></tr>
+    <tr><td><strong>Промежуточные данные</strong></td><td>На диск (HDFS)</td><td>В памяти (RDD cache)</td></tr>
+    <tr><td><strong>Время</strong></td><td>Часы</td><td>Минуты</td></tr>
+  </table>
+  <p>Ключевое отличие: Spark не пересчитывает данные с нуля, а конвейеризирует операции</p>
+</div>
+
+<div class="step slide" data-x="8000" data-y="-1500">
+  <h1>Решение: Spark</h1>
+  <ul>
+    <li><strong>RDD</strong> — абстракция распределенной памяти (иммутабельная, ленивая, с lineage)</li>
+    <li><strong>Lazy evaluation</strong> — ничего не вычисляется, пока не потребуется результат</li>
+    <li><strong>DAG</strong> — граф зависимостей вместо цепочки jobs</li>
+    <li><strong>In-memory</strong> — данные кэшируются в памяти, а не пишутся на диск</li>
+  </ul>
+  <p>Spark — не про "быстрее", а про "меньше дисковых I/O и меньше кода"</p>
+</div>
+
+<!-- ======================= RDD ======================= -->
+<div class="step slide section" data-x="9000" data-y="-1500">
+  <h1>RDD</h1>
+  <p>Resilient Distributed Dataset</p>
+  <div class="num">02</div>
+</div>
+
+<div class="step slide" data-x="10000" data-y="-1500">
+  <h1>RDD: Определение</h1>
+  <ul>
+    <li><strong>Иммутабельная</strong> — нельзя изменить, только создать новую</li>
+    <li><strong>Распределенная</strong> — данные разбиты на партиции</li>
+    <li><strong>Ленивая</strong> — вычисляется только при вызове action</li>
+    <li><strong>С lineage</strong> — знает свою историю (как восстановиться после сбоя)</li>
+  </ul>
+  <p><strong>Важно:</strong> RDD — это legacy API. DataFrame/Dataset — другая парадигма (декларативная), а не просто "RDD + оптимизации". Но понимание RDD — фундамент</p>
+</div>
+
+<div class="step slide" data-x="11000" data-y="-1500">
+  <h1>Партиционирование</h1>
+  <ul>
+    <li><strong>Partition</strong> — единица параллелизма (аналог split в MR)</li>
+    <li>Один partition = одна задача (task)</li>
+    <li>Количество партиций определяет степень параллелизма</li>
+  </ul>
+  <h3>Пример</h3>
+  <pre><code>// 4 партиции = 4 таска
+val rdd = sc.parallelize(1 to 100, 4)</code></pre>
+  <p>Партиции распределяются по Executor'ам. Каждый Executor может обрабатывать несколько партиций</p>
+</div>
+
+<div class="step slide" data-x="12000" data-y="-1500">
+  <h1>Lineage</h1>
+  <ul>
+    <li>Граф зависимостей (DAG) — как RDD был создан</li>
+    <li>При потере партиции — перевычисление по lineage</li>
+    <li>Не нужно хранить копии данных — достаточно помнить, как они были получены</li>
+  </ul>
+  <h3>Пример</h3>
+  <pre><code>val rdd = sc.textFile("hdfs://...")   // lineage: file
+    .flatMap(_.split(" "))             // lineage: file -> flatMap
+    .map((_, 1))                       // lineage: file -> flatMap -> map
+    .reduceByKey(_ + _)                // lineage: file -> flatMap -> map -> reduceByKey</code></pre>
+  <p>Если партиция потеряна — Spark пересчитает только её, по цепочке</p>
+</div>
+
+<div class="step slide" data-x="13000" data-y="-1500">
+  <h1>Lineage vs Репликация</h1>
+  <table>
+    <tr><th></th><th>Репликация HDFS</th><th>Lineage Spark</th></tr>
+    <tr><td><strong>Что защищает</strong></td><td>Данные на диске</td><td>Партиции RDD во время вычислений</td></tr>
+    <tr><td><strong>Как</strong></td><td>Копии на разных узлах</td><td>Пересчет по графу операций</td></tr>
+    <tr><td><strong>Когда</strong></td><td>Всегда</td><td>Только во время выполнения job</td></tr>
+    <tr><td><strong>Цена</strong></td><td>Дополнительное место на диске</td><td>Дополнительное время на пересчет</td></tr>
+  </table>
+  <p>Это разные механизмы для разных целей. Они не заменяют друг друга</p>
+</div>
+
+<div class="step slide" data-x="14000" data-y="-1500">
+  <h1>Типы операций</h1>
+  <table>
+    <tr><th>Тип</th><th>Операции</th><th>Поведение</th></tr>
+    <tr><td><strong>Transformations</strong> (lazy)</td><td>map, filter, flatMap, groupByKey, reduceByKey, join</td><td>Возвращают новый RDD. Не выполняются сразу</td></tr>
+    <tr><td><strong>Actions</strong> (eager)</td><td>collect, count, reduce, saveAsTextFile</td><td>Запускают вычисления. Возвращают результат</td></tr>
+  </table>
+  <p>Transformations строят DAG. Actions запускают его выполнение</p>
+</div>
+
+<div class="step slide" data-x="15000" data-y="-1500">
+  <h1>Narrow vs Wide зависимости</h1>
+  <table>
+    <tr><th>Тип</th><th>Описание</th><th>Примеры</th><th>Shuffle</th></tr>
+    <tr><td><strong>Narrow</strong></td><td>1 partition → 1 partition</td><td>map, filter, coalesce</td><td>Нет. Pipelining внутри stage</td></tr>
+    <tr><td><strong>Wide</strong></td><td>N partitions → M partitions</td><td>groupByKey, join, repartition</td><td>Да. Граница stage</td></tr>
+  </table>
+  <p>Narrow зависимости позволяют конвейеризировать операции. Wide — требуют shuffle</p>
+</div>
+
+<div class="step slide" data-x="16000" data-y="-1500">
+  <h1>Shuffle в RDD</h1>
+  <ul>
+    <li>Данные перераспределяются между партициями (аналог MR shuffle)</li>
+    <li>Пишутся в shuffle files (на диск), но могут кэшироваться в памяти</li>
+    <li>Граница stage — там, где происходит shuffle</li>
+  </ul>
+  <h3>Проблемы shuffle</h3>
+  <ul>
+    <li>Дорого: запись на диск, передача по сети</li>
+    <li>Может быть узким местом</li>
+    <li>Решение: избегать shuffle, использовать narrow операции</li>
+  </ul>
+</div>
+
+<div class="step slide" data-x="17000" data-y="-1500">
+  <h1>Код: WordCount</h1>
+  <pre><code>val rdd = sc.textFile("hdfs://...")
+    .flatMap(_.split(" "))
+    .map((_, 1))
+    .reduceByKey(_ + _)
+
+// Посмотреть DAG
+rdd.toDebugString
+// (2) ShuffledRDD[3] at reduceByKey at ...
+//  +-(2) MapPartitionsRDD[2] at map at ...
+//  |  MapPartitionsRDD[1] at flatMap at ...
+//  |  HadoopRDD[0] at textFile at ...</code></pre>
+  <p><code>toDebugString</code> показывает lineage. Видно, где shuffle, где narrow операции</p>
+</div>
+
+<div class="step slide" data-x="18000" data-y="-1500">
+  <h1>Кэширование</h1>
+  <ul>
+    <li><code>cache()</code> — ленивая операция. Реально закешируется только после action</li>
+    <li><code>persist(STORAGE_LEVEL)</code> — выбор уровня: memory, disk, off-heap</li>
+    <li><code>unpersist()</code> — убрать из кэша</li>
+  </ul>
+  <h3>Уровни хранения</h3>
+  <table>
+    <tr><th>Уровень</th><th>Где</th><th>Когда</th></tr>
+    <tr><td>MEMORY_ONLY</td><td>Память</td><td>Данные помещаются в память</td></tr>
+    <tr><td>MEMORY_AND_DISK</td><td>Память + диск</td><td>Данные не помещаются</td></tr>
+    <tr><td>DISK_ONLY</td><td>Диск</td><td>Большие данные, редкий доступ</td></tr>
+  </table>
+</div>
+
+<!-- ======================= RUNTIME ======================= -->
+<div class="step slide section" data-x="19000" data-y="-1500">
+  <h1>Spark Runtime</h1>
+  <p>Процессы и планирование</p>
+  <div class="num">03</div>
+</div>
+
+<div class="step slide" data-x="20000" data-y="-1500">
+  <h1>Иерархия процессов</h1>
+  <ul>
+    <li><strong>Driver:</strong> SparkContext, DAGScheduler, TaskScheduler. Точка входа для spark-shell/notebook</li>
+    <li><strong>Cluster Manager:</strong> Standalone / Kubernetes / YARN. Выделяет ресурсы</li>
+    <li><strong>Executors:</strong> JVM-процессы на worker-ах. Выполняют задачи, хранят кэш и shuffle-данные</li>
+  </ul>
+  <p>Driver — не только планировщик, но и точка входа для кода пользователя</p>
+</div>
+
+<div class="step slide" data-x="21000" data-y="-1500">
+  <h1>Cluster Manager</h1>
+  <table>
+    <tr><th>Менеджер</th><th>Статус</th><th>Особенности</th></tr>
+    <tr><td><strong>Standalone</strong></td><td>Актуально</td><td>Простой, встроенный в Spark</td></tr>
+    <tr><td><strong>Kubernetes</strong></td><td>Актуально</td><td>Стандарт де-факто для новых кластеров</td></tr>
+    <tr><td><strong>YARN</strong></td><td>Legacy</td><td>Интеграция с Hadoop</td></tr>
+    <tr><td><strong>Mesos</strong></td><td>Legacy</td><td>Устарел, не рекомендуется</td></tr>
+  </table>
+  <p>Kubernetes — стандарт для новых проектов. Standalone — для простых случаев</p>
+</div>
+
+<div class="step slide" data-x="22000" data-y="-1500">
+  <h1>DAGScheduler</h1>
+  <ul>
+    <li>Разбивает DAG на <strong>stages</strong> по границам shuffle (wide dependencies)</li>
+    <li>Внутри stage — pipeline narrow transformations</li>
+    <li>Stage = набор идентичных <strong>task</strong>-ов (по одному на partition)</li>
+  </ul>
+  <h3>Пример</h3>
+  <pre><code>Stage 1: textFile -> flatMap -> map (narrow, pipeline)
+Stage 2: reduceByKey (shuffle, wide)
+Stage 3: saveAsTextFile (narrow)</code></pre>
+</div>
+
+<div class="step slide" data-x="23000" data-y="-1500">
+  <h1>TaskScheduler</h1>
+  <ul>
+    <li><strong>Data locality:</strong> PROCESS_LOCAL → NODE_LOCAL → RACK_LOCAL → ANY</li>
+    <li>Старается запускать задачу там, где данные (минимизировать сеть)</li>
+    <li><strong>Speculative execution:</strong> запуск дубля для медленных task-ов (аналог MR speculative)</li>
+  </ul>
+  <p>Если задача выполняется дольше, чем другие — Spark запускает её копию на другом Executor'е</p>
+</div>
+
+<div class="step slide" data-x="24000" data-y="-1500">
+  <h1>Memory Management</h1>
+  <ul>
+    <li><code>spark.executor.memory</code> — общий heap Executor'а</li>
+    <li>Делится на:
+      <ul>
+        <li><strong>Storage memory</strong> — RDD cache, broadcast</li>
+        <li><strong>Execution memory</strong> — shuffle, join, aggregation</li>
+        <li><strong>User memory</strong> — объекты UDF</li>
+        <li><strong>Reserved memory</strong> — служебное</li>
+      </ul>
+    </li>
+  </ul>
+  <p>Формула: <code>(Executor Memory - Reserved) * spark.memory.fraction</code> = Storage + Execution</p>
+</div>
+
+<div class="step slide" data-x="25000" data-y="-1500">
+  <h1>UnifiedMemoryManager</h1>
+  <ul>
+    <li>Динамическое заимствование между Storage и Execution</li>
+    <li>Если Execution не хватает — забирает у Storage (и наоборот)</li>
+    <li>Позволяет эффективно использовать память</li>
+  </ul>
+  <h3>Проблема</h3>
+  <ul>
+    <li>Если Execution забрал память у Storage, RDD может быть вытеснен на диск</li>
+    <li>Решение: правильно настраивать <code>spark.memory.fraction</code></li>
+  </ul>
+</div>
+
+<div class="step slide" data-x="26000" data-y="-1500">
+  <h1>Shuffle Internals</h1>
+  <ul>
+    <li><strong>Hash shuffle</strong> — удален (с Spark 2.0). Был медленным</li>
+    <li><strong>Sort shuffle</strong> — текущий стандарт. Сортировка перед записью</li>
+    <li><strong>Tungsten sort shuffle</strong> — off-heap сериализация, bypass merge для small partitions</li>
+  </ul>
+  <p>Не тратьте время на изучение Hash shuffle — его больше нет</p>
+</div>
+
+<!-- ======================= ОТКАЗОУСТОЙЧИВОСТЬ ======================= -->
+<div class="step slide section" data-x="27000" data-y="-1500">
+  <h1>Отказоустойчивость</h1>
+  <p>Как Spark переживает сбои</p>
+  <div class="num">04</div>
+</div>
+
+<div class="step slide" data-x="28000" data-y="-1500">
+  <h1>Lineage Recomputations</h1>
+  <ul>
+    <li>При потере partition — перевычисление по DAG</li>
+    <li>Бесплатно: не нужно хранить копии данных</li>
+    <li>Минус: при длинной цепочке — долго</li>
+  </ul>
+  <h3>Пример</h3>
+  <pre><code>val rdd = sc.textFile("hdfs://...")
+    .flatMap(_.split(" "))
+    .map((_, 1))
+    .reduceByKey(_ + _)
+// Если partition потерян — пересчитаем только его</code></pre>
+</div>
+
+<div class="step slide" data-x="29000" data-y="-1500">
+  <h1>Checkpoint vs Persist</h1>
+  <table>
+    <tr><th></th><th>Lineage</th><th>Checkpoint</th></tr>
+    <tr><td><strong>Стоимость</strong></td><td>Бесплатно</td><td>Дорого (пишем на диск)</td></tr>
+    <tr><td><strong>Граф</strong></td><td>Полный lineage</td><td>Обрезает граф</td></tr>
+    <tr><td><strong>Когда</strong></td><td>Всегда</td><td>Длинная цепочка, сложный граф</td></tr>
+  </table>
+  <p>Checkpoint — материализация в HDFS. Полезен для обрезки длинного lineage</p>
+</div>
+
+<div class="step slide" data-x="30000" data-y="-1500">
+  <h1>Сбой Executor</h1>
+  <ul>
+    <li>TaskScheduler пересылает потерянные partitions на другие Executor'ы</li>
+    <li>Данные пересчитываются по lineage (или берутся из кэша)</li>
+    <li>Если есть <strong>External shuffle service</strong> — shuffle-данные сохраняются</li>
+  </ul>
+  <p>External shuffle service — отдельный процесс на worker-ах. Сохраняет shuffle-данные при падении Executor</p>
+</div>
+
+<div class="step slide" data-x="31000" data-y="-1500">
+  <h1>Сбой Driver</h1>
+  <ul>
+    <li><strong>Полный фейл.</strong> Spark не умеет восстанавливать Driver (в отличие от Flink)</li>
+    <li>SparkContext потерян, все RDD и кэш — уничтожены</li>
+    <li>В YARN — ApplicationMaster перезапустит контейнер, но состояние не восстановится</li>
+  </ul>
+  <p>Это ключевое отличие от MR: там JobTracker был SPOF, но задачи перезапускались</p>
+</div>
+
+<div class="step slide" data-x="32000" data-y="-1500">
+  <h1>Итоги</h1>
+  <ul>
+    <li>Spark — не быстрее MR, а <strong>меньше дисковых операций</strong> и <strong>in-memory pipeline</strong></li>
+    <li>RDD — иммутабельная, ленивая, распределенная коллекция с lineage</li>
+    <li>DAGScheduler разбивает DAG на stages по границам shuffle</li>
+    <li>Отказоустойчивость — через lineage recomputation. Driver — точка отказа</li>
+  </ul>
+  <p>Материалы: Learning Spark (Holden Karau), Spark: The Definitive Guide (Bill Chambers)</p>
+</div>
+
+</div>
+
+<div class="impress-progressbar"><div></div></div>
+<div class="impress-progress"></div>
+<a class="ov" href="#/overview">Обзор</a>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<script>
+    if (window.hljs) {
+        hljs.highlightAll();
+    }
+</script>
+<script src="js/impress.js"></script>
+<script>
+    impress().init();
+</script>
+</body>
+</html>
+
