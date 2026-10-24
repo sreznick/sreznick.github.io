@@ -1,0 +1,999 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1024" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <title>Коллекции Java: от интерфейсов к инженерным решениям</title>
+
+    <link href="//fonts.googleapis.com/css?family=Open+Sans:regular,semibold,italic,italicsemibold|PT+Sans:400,700,400italic,700italic|PT+Serif:400,700,400italic,700italic" rel="stylesheet" />
+
+    <link href="css/impress-demo.css" rel="stylesheet" />
+    <link href="css/impress-common.css" rel="stylesheet" />
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/default.min.css">
+
+    <style>
+        .slide {
+            font-size: 27px;
+            line-height: 1.3;
+            letter-spacing: -.5px;
+        }
+
+        .slide h1 {
+            font-size: 40px;
+            line-height: 1.15;
+            margin: 0 0 .5em;
+            text-align: left;
+        }
+
+        .slide ul,
+        .slide ol {
+            margin: 0;
+            padding-left: 1.1em;
+        }
+
+        .slide li {
+            margin: .25em 0;
+        }
+
+        .slide p {
+            margin: .6em 0 0;
+        }
+
+        .slide pre {
+            margin: 0 0 12px;
+            letter-spacing: 0;
+            text-shadow: none;
+        }
+
+        .slide pre code.hljs {
+            padding: 12px 16px;
+            font-size: 17px;
+            line-height: 1.35;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .slide pre.small code.hljs {
+            font-size: 15.5px;
+        }
+
+        .slide code:not(.hljs) {
+            background: #e2e8f0;
+            color: #1e293b;
+            padding: 0 .3em;
+            border-radius: 4px;
+            font-size: .85em;
+            letter-spacing: 0;
+        }
+
+        .slide.section code:not(.hljs),
+        .slide.title code:not(.hljs) {
+            background: rgba(255,255,255,.28);
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .slide table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 22px;
+            line-height: 1.25;
+        }
+
+        .slide th,
+        .slide td {
+            border-bottom: 1px solid #ccc;
+            padding: 6px 10px;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .slide th {
+            background: #e2e8f0;
+            color: #1e293b;
+        }
+
+        .slide .hl {
+            color: #b91c1c;
+        }
+
+        .slide.section {
+            background: linear-gradient(135deg,#7c3aed,#db2777);
+            color: #fff;
+            text-shadow: none;
+        }
+
+        .slide.section h1 {
+            color: #fff;
+            font-size: 50px;
+        }
+
+        .slide.section .num {
+            position: absolute;
+            right: 40px;
+            top: 0;
+            font-size: 200px;
+            font-weight: 700;
+            opacity: .18;
+            line-height: 1;
+        }
+
+        .slide.title .hint {
+            font-size: 20px;
+            color: #999;
+            margin-top: 40px;
+        }
+
+        .notes {
+            display: none;
+        }
+
+        .ov {
+            position: fixed;
+            left: 14px;
+            bottom: 12px;
+            color: #93c5fd;
+            font-size: 14px;
+            text-decoration: none;
+            z-index: 10;
+        }
+
+        #overview {
+            background: none!important;
+            border: 0!important;
+            box-shadow: none!important;
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body class="impress-not-supported">
+
+<div class="fallback-message">
+    <p>Ваш браузер <b>не поддерживает возможности, необходимые для impress.js</b>, поэтому показана упрощённая версия презентации.</p>
+    <p>Лучше всего использовать свежие <b>Chrome</b>, <b>Safari</b> или <b>Firefox</b>.</p>
+</div>
+
+<div id="impress"
+    data-transition-duration="1000"
+    data-width="1024"
+    data-height="768"
+    data-max-scale="3"
+    data-min-scale="0"
+    data-perspective="1000"
+    >
+
+    <!-- ============================================ -->
+    <!-- БЛОК 1: ВВЕДЕНИЕ (слайды 1-2) -->
+    <!-- ============================================ -->
+
+    <div class="step slide title" data-x="-1000" data-y="-1500">
+        <h1>Коллекции Java: от интерфейсов к инженерным решениям</h1>
+        <ul>
+            <li>Обзор JCF: сильные и слабые стороны</li>
+            <li>Реализации в OpenJDK</li>
+            <li>Своя коллекция в JCF</li>
+            <li>Сторонние библиотеки</li>
+            <li>Стримы: концепции и тонкости</li>
+            <li>Блокирующие коллекции</li>
+            <li>Kotlin Sequence vs Python Generator</li>
+            <li>Параллелизм и Spliterator</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="0" data-y="-1500">
+        <h1>Цели занятия</h1>
+        <ul>
+            <li>Понять архитектуру JCF и её ограничения</li>
+            <li>Ознакомиться с конкретными коллекциями</li>
+            <li>Освоить стримы и их параллельную обработку</li>
+            <li>Сравнить с Kotlin Sequence и Python Generator</li>
+            <li>Научиться проектировать свои коллекции</li>
+        </ul>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- БЛОК 2: ОБЗОР JCF (слайды 3-6) -->
+    <!-- ============================================ -->
+
+    <div class="step slide section" data-x="1000" data-y="-1500">
+        <div class="num">1</div>
+        <h1>Обзор JCF</h1>
+        <ul>
+            <li>Сильные стороны</li>
+            <li>Слабые стороны</li>
+            <li>Иерархия интерфейсов</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="2000" data-y="-1500">
+        <h1>Сильные стороны JCF</h1>
+        <ul>
+            <li>Единый контракт: <code>Collection</code>, <code>Map</code></li>
+            <li>Абстрактные классы: <code>AbstractList</code> — skeleton implementations</li>
+            <li>Функциональные интерфейсы: <code>Comparator</code>, <code>Predicate</code></li>
+            <li>Взаимозаменяемость реализаций</li>
+        </ul>
+        <pre><code>List&lt;String&gt; list = new ArrayList&lt;&gt;();
+// Меняем реализацию — код не меняется
+List&lt;String&gt; list = new LinkedList&lt;&gt;();</code></pre>
+    </div>
+
+    <div class="step slide" data-x="3000" data-y="-1500">
+        <h1>Слабые стороны JCF</h1>
+        <ul>
+            <li>Интерфейсы <b>не специфицируют</b> сложность операций</li>
+            <li><code>null</code>-семантика различается (HashMap допускает, TreeMap нет)</li>
+            <li>Нет value-based коллекций — примитивы требуют boxing</li>
+            <li><code>Iterator.remove()</code> — fail-fast, но не fail-safe</li>
+        </ul>
+        <pre><code>// Нет гарантии сложности!
+list.get(0)        // ArrayList: O(1), LinkedList: O(n)
+map.containsKey(k) // HashMap: O(1), TreeMap: O(log n)</code></pre>
+    </div>
+
+    <div class="step slide" data-x="4000" data-y="-1500">
+        <h1>Иерархия интерфейсов</h1>
+        <pre><code>Iterable
+ └── Collection
+     ├── List          // ArrayList, LinkedList
+     ├── Set           // HashSet, TreeSet
+     └── Queue         // ArrayDeque, PriorityQueue
+
+Map                     // HashMap, TreeMap
+ └── SortedMap          // TreeMap
+     └── NavigableMap   // TreeMap</code></pre>
+        <p>Интерфейсы — контракт, реализации — стратегия.</p>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- БЛОК 3: РЕАЛИЗАЦИИ В OPENJDK (слайды 7-12) -->
+    <!-- ============================================ -->
+
+    <div class="step slide section" data-x="5000" data-y="-1500">
+        <div class="num">2</div>
+        <h1>Реализации в OpenJDK</h1>
+        <ul>
+            <li>ArrayList</li>
+            <li>LinkedList</li>
+            <li>HashMap</li>
+            <li>TreeMap</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="6000" data-y="-1500">
+        <h1>ArrayList</h1>
+        <ul>
+            <li>Growth factor: <b>1.5</b> (не 2!)</li>
+            <li><code>System.arraycopy</code> — нативный memmove</li>
+            <li>Cache locality — элементы рядом в памяти</li>
+        </ul>
+        <pre><code>// Рост массива
+int newCapacity = oldCapacity + (oldCapacity >> 1);
+
+// Удаление — сдвиг через arraycopy
+System.arraycopy(elementData, index+1, elementData, index, size-index-1);</code></pre>
+        <p>1.5x — меньше аллокаций, чем 2x, лучше cache locality.</p>
+    </div>
+
+    <div class="step slide" data-x="7000" data-y="-1500">
+        <h1>LinkedList</h1>
+        <ul>
+            <li>Двусвязный список — Node с prev/next</li>
+            <li>Pointer chasing — плохая cache locality</li>
+            <li>Не использует Node pooling (в отличие от Caffeine)</li>
+        </ul>
+        <pre><code>private static class Node&lt;E&gt; {
+    E item;
+    Node&lt;E&gt; next;
+    Node&lt;E&gt; prev;
+}</code></pre>
+        <p>Почти всегда проигрывает ArrayList — даже для вставки в середину.</p>
+    </div>
+
+    <div class="step slide" data-x="8000" data-y="-1500">
+        <h1>HashMap: структура</h1>
+        <ul>
+            <li>Массив бакетов + цепочки (chaining)</li>
+            <li>Load factor: 0.75</li>
+            <li>Resize: <code>(e.hash & oldCap)</code> — битовая маска вместо modulo</li>
+        </ul>
+        <pre><code>// Resize: элемент останется или переедет
+if ((e.hash & oldCap) == 0) {
+    // останется на месте
+} else {
+    // переедет на oldCap + index
+}</code></pre>
+    </div>
+
+    <div class="step slide" data-x="9000" data-y="-1500">
+        <h1>HashMap: дерево в бакете</h1>
+        <ul>
+            <li>Порог: <b>8</b> элементов →链表 → красно-черное дерево</li>
+            <li>Вероятность 8 коллизий: ~0.00000006 (Пуассон)</li>
+            <li>Гистерезис: дерево →链表 при <b>6</b> элементах</li>
+        </ul>
+        <pre><code>// TreeNode наследует Node — сохраняет связь с链表
+static final class TreeNode&lt;K,V&gt; extends LinkedHashMap.Entry&lt;K,V&gt; {
+    TreeNode&lt;K,V&gt; parent;
+    TreeNode&lt;K,V&gt; left;
+    TreeNode&lt;K,V&gt; right;
+    TreeNode&lt;K,V&gt; prev; // для быстрого удаления
+    boolean red;
+}</code></pre>
+        <p>Дерево спасает от DoS-атак (подбор ключей с одинаковым hash).</p>
+    </div>
+
+    <div class="step slide" data-x="10000" data-y="-1500">
+        <h1>TreeMap</h1>
+        <ul>
+            <li>Красно-черное дерево — O(log n)</li>
+            <li><code>NavigableMap</code>: lowerEntry, floorEntry, ceilingEntry</li>
+            <li>Несоответствие: <code>Comparator</code> для навигации, <code>equals</code> для поиска</li>
+        </ul>
+        <pre><code>TreeMap&lt;String, Integer&gt; map = new TreeMap&lt;&gt;();
+map.put("a", 1);
+map.put("b", 2);
+map.put("c", 3);
+
+map.ceilingEntry("b") // b=2
+map.floorEntry("b")   // b=2
+map.lowerEntry("b")   // a=1
+map.higherEntry("b")  // c=3</code></pre>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- БЛОК 4: СВОЯ КОЛЛЕКЦИЯ (слайды 13-15) -->
+    <!-- ============================================ -->
+
+    <div class="step slide section" data-x="11000" data-y="-1500">
+        <div class="num">3</div>
+        <h1>Своя коллекция в JCF</h1>
+        <ul>
+            <li>Паттерн: AbstractList</li>
+            <li>Контракты: equals, hashCode, modCount</li>
+            <li>Пример: LRUCache</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="12000" data-y="-1500">
+        <h1>Паттерн: наследование Abstract*</h1>
+        <pre><code>public class MyList&lt;E&gt; extends AbstractList&lt;E&gt; {
+    // Реализуем только get(int) и size()
+    // AbstractList даст iterator(), subList(), equals(), hashCode()
+    
+    @Override
+    public E get(int index) { ... }
+    
+    @Override
+    public int size() { ... }
+    
+    // Для изменяемых — override add/remove
+}</code></pre>
+        <p>Наследуй <code>Abstract*</code>, а не реализуй интерфейс напрямую.</p>
+    </div>
+
+    <div class="step slide" data-x="13000" data-y="-1500">
+        <h1>Пример: LRUCache на LinkedHashMap</h1>
+        <pre><code>public class LRUCache&lt;K,V&gt; extends LinkedHashMap&lt;K,V&gt; {
+    private final int capacity;
+    
+    public LRUCache(int capacity) {
+        super(capacity, 0.75f, true); // accessOrder = true
+        this.capacity = capacity;
+    }
+    
+    @Override
+    protected boolean removeEldestEntry(Map.Entry&lt;K,V&gt; eldest) {
+        return size() > capacity;
+    }
+}</code></pre>
+        <p>Одна строка — и LRU готов. Спасибо accessOrder.</p>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- БЛОК 5: СТОРОННИЕ БИБЛИОТЕКИ (слайды 16-20) -->
+    <!-- ============================================ -->
+
+    <div class="step slide section" data-x="14000" data-y="-1500">
+        <div class="num">4</div>
+        <h1>Сторонние библиотеки</h1>
+        <ul>
+            <li>FastUtil: open addressing</li>
+            <li>Eclipse Collections: примитивы</li>
+            <li>Caffeine: W-TinyLFU</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="15000" data-y="-1500">
+        <h1>FastUtil: open addressing</h1>
+        <ul>
+            <li>Элементы в массиве — без Node-объектов</li>
+            <li>Линейное пробирование — cache locality</li>
+            <li>Load factor: 0.5 (не 0.75)</li>
+            <li>Удаление через tombstones</li>
+        </ul>
+        <pre><code>// JDK HashMap — chaining
+Node&lt;Integer, String&gt;[] table; // Node + next
+
+// FastUtil — open addressing
+int[] keys;   // массив ключей
+String[] values; // массив значений</code></pre>
+    </div>
+
+    <div class="step slide" data-x="16000" data-y="-1500">
+        <h1>Eclipse Collections: примитивы</h1>
+        <ul>
+            <li><code>IntList</code> — массив int[], нет boxing</li>
+            <li><code>IntIntMap</code> — два параллельных массива</li>
+            <li>Отсутствие <code>equals</code> — сравнение по значению</li>
+        </ul>
+        <pre><code>// JDK: boxing при каждой операции
+Map&lt;Integer, String&gt; map = new HashMap&lt;&gt;();
+map.put(1, "one"); // Integer.valueOf(1) — boxing
+
+// Eclipse: без boxing
+IntObjectMap&lt;String&gt; map = new IntObjectHashMap&lt;&gt;();
+map.put(1, "one"); // int — примитив</code></pre>
+    </div>
+
+    <div class="step slide" data-x="17000" data-y="-1500">
+        <h1>Caffeine: W-TinyLFU</h1>
+        <ul>
+            <li>Frequency Sketch — Count-Min Sketch (вероятностная)</li>
+            <li>Window LRU — 1% кеша для "всплесков"</li>
+            <li>Main LRU — 99% кеша, защищен от "полля"</li>
+        </ul>
+        <pre><code>Cache&lt;String, User&gt; cache = Caffeine.newBuilder()
+    .maximumSize(10_000)
+    .expireAfterWrite(10, TimeUnit.MINUTES)
+    .build();
+
+// Автоматическая загрузка
+User user = cache.get("key", k -> loadUser(k));</code></pre>
+    </div>
+
+    <div class="step slide" data-x="18000" data-y="-1500">
+        <h1>Сравнение библиотек</h1>
+        <table>
+            <tr><th>Библиотека</th><th>Подход</th><th>Память</th><th>Cache locality</th></tr>
+            <tr><td>JDK HashMap</td><td>Chaining</td><td>Node + next</td><td>Плохая</td></tr>
+            <tr><td>FastUtil</td><td>Open addressing</td><td>Массив</td><td>Отличная</td></tr>
+            <tr><td>Eclipse</td><td>Примитивы</td><td>int[]</td><td>Отличная</td></tr>
+            <tr><td>Caffeine</td><td>W-TinyLFU</td><td>Sketch + LRU</td><td>Хорошая</td></tr>
+        </table>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- БЛОК 6: СТРИМЫ (слайды 21-31) -->
+    <!-- ============================================ -->
+
+    <div class="step slide section" data-x="19000" data-y="-1500">
+        <div class="num">5</div>
+        <h1>Стримы</h1>
+        <ul>
+            <li>Концепции</li>
+            <li>Checked exceptions</li>
+            <li>Громоздкость</li>
+            <li>Бесконечные стримы</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="20000" data-y="-1500">
+        <h1>Концепции: pipeline, lazy, immutable</h1>
+        <ul>
+            <li>Коллекции — <b>данные</b>, стримы — <b>вычисления</b></li>
+            <li>Ленивость: ничего не вычисляется до терминальной операции</li>
+            <li>Immutable: стрим нельзя переиспользовать</li>
+        </ul>
+        <pre><code>// Ленивая цепочка
+list.stream()
+    .filter(s -> s.startsWith("a"))
+    .map(String::toUpperCase)
+    .collect(Collectors.toList()); // только здесь вычисления</code></pre>
+    </div>
+
+    <div class="step slide" data-x="21000" data-y="-1500">
+        <h1>Промежуточные vs терминальные</h1>
+        <table>
+            <tr><th>Тип</th><th>Операции</th><th>Ленивость</th></tr>
+            <tr><td>Промежуточные</td><td>filter, map, flatMap, distinct, sorted, limit</td><td>✅ Ленивые</td></tr>
+            <tr><td>Терминальные</td><td>collect, forEach, reduce, count, anyMatch</td><td>❌ Запускают</td></tr>
+        </table>
+        <pre><code>// Промежуточные — возвращают новый стрим
+Stream&lt;String&gt; s = list.stream().filter(...).map(...);
+
+// Терминальные — запускают вычисление
+List&lt;String&gt; result = s.collect(Collectors.toList());</code></pre>
+    </div>
+
+    <div class="step slide" data-x="22000" data-y="-1500">
+        <h1>Порядок выполнения</h1>
+        <ul>
+            <li>Вертикальный: filter → map → filter → map (по одному)</li>
+            <li>Горизонтальный: весь filter → весь map (не так!)</li>
+        </ul>
+        <pre><code>// Java: вертикальный — каждый элемент проходит всю цепочку
+list.stream()
+    .filter(s -> s.length() > 3)   // 1
+    .map(String::toUpperCase)       // 2
+    .filter(s -> s.startsWith("A")) // 3
+    .collect(Collectors.toList());
+
+// Порядок для каждого элемента: 1 → 2 → 3</code></pre>
+        <p>Важно для операций с побочными эффектами.</p>
+    </div>
+
+    <div class="step slide" data-x="23000" data-y="-1500">
+        <h1>Stateful операции</h1>
+        <ul>
+            <li><code>sorted()</code> — собирает все элементы</li>
+            <li><code>distinct()</code> — требует общий Set</li>
+            <li><code>limit()</code> — останавливает после N элементов</li>
+        </ul>
+        <pre><code>// sorted — собирает все в массив
+list.stream()
+    .sorted() // O(n log n), требует всю коллекцию
+    .map(...)
+    .collect(...);
+
+// distinct — ConcurrentHashMap для хранения
+list.stream()
+    .distinct()
+    .collect(...);</code></pre>
+    </div>
+
+    <div class="step slide" data-x="24000" data-y="-1500">
+        <h1>Checked exceptions: проблема</h1>
+        <pre><code>// ❌ Не компилируется!
+list.stream()
+    .map(s -> new URL(s)) // MalformedURLException — checked!
+    .collect(Collectors.toList());
+
+// ✅ Обходной путь — try-catch
+list.stream()
+    .map(s -> {
+        try {
+            return new URL(s);
+        } catch (MalformedURLException e) {
+            throw new RuntimeException(e);
+        }
+    })
+    .collect(Collectors.toList());</code></pre>
+        <p>Функциональные интерфейсы не позволяют checked exceptions.</p>
+    </div>
+
+    <div class="step slide" data-x="25000" data-y="-1500">
+        <h1>Checked exceptions: решения</h1>
+        <pre><code>// Вариант 1: Обертка
+@FunctionalInterface
+interface UncheckedFunction&lt;T, R&gt; {
+    R apply(T t) throws Exception;
+    
+    static &lt;T, R&gt; Function&lt;T, R&gt; wrap(UncheckedFunction&lt;T, R&gt; fn) {
+        return t -> {
+            try { return fn.apply(t); }
+            catch (Exception e) { throw new RuntimeException(e); }
+        };
+    }
+}
+
+// Вариант 2: Vavr Try
+list.stream()
+    .map(s -> Try.of(() -> new URL(s)).get())
+    .collect(Collectors.toList());</code></pre>
+    </div>
+
+    <div class="step slide" data-x="26000" data-y="-1500">
+        <h1>Громоздкость: композиция</h1>
+        <pre><code>// Длинная цепочка
+list.stream()
+    .filter(s -> s != null && !s.isEmpty())
+    .map(s -> s.trim())
+    .map(s -> s.toLowerCase())
+    .filter(s -> s.startsWith("a"))
+    .collect(Collectors.toList());
+
+// Композиция функций
+Function&lt;String, String&gt; clean = s -> s.trim().toLowerCase();
+Predicate&lt;String&gt; startsWithA = s -> s.startsWith("a");
+
+list.stream()
+    .filter(Objects::nonNull)
+    .map(clean)
+    .filter(startsWithA)
+    .collect(Collectors.toList());</code></pre>
+    </div>
+
+    <div class="step slide" data-x="27000" data-y="-1500">
+        <h1>Громоздкость: сложные collect</h1>
+        <pre><code>// Группировка с подсчетом
+Map&lt;String, Long&gt; countByType = items.stream()
+    .collect(Collectors.groupingBy(
+        Item::getType,
+        Collectors.counting()
+    ));
+
+// Вложенная группировка
+Map&lt;String, Map&lt;String, List&lt;Item&gt;&gt;&gt; nested = items.stream()
+    .collect(Collectors.groupingBy(
+        Item::getType,
+        Collectors.groupingBy(Item::getCategory)
+    ));
+
+// teeing (Java 12+)
+Map&lt;String, Long&gt; stats = list.stream()
+    .collect(Collectors.teeing(
+        Collectors.counting(),
+        Collectors.summingLong(String::length),
+        (count, sum) -> Map.of("count", count, "sum", sum)
+    ));</code></pre>
+    </div>
+
+    <div class="step slide" data-x="28000" data-y="-1500">
+        <h1>Бесконечные стримы</h1>
+        <pre><code>// Stream.iterate
+Stream.iterate(0, n -> n + 1)           // 0, 1, 2, 3, ...
+Stream.iterate(0, n -> n < 100, n -> n + 1) // с условием
+
+// Stream.generate
+Stream.generate(Math::random)            // бесконечные случайные
+
+// Ограничение
+Stream.iterate(0, n -> n + 1)
+    .limit(10)                          // 0..9
+
+// Числа Фибоначчи
+Stream.iterate(new long[]{0, 1}, p -> new long[]{p[1], p[0]+p[1]})
+    .map(p -> p[0])
+    .limit(10)
+    .forEach(System.out::println); // 0, 1, 1, 2, 3, 5, 8, 13, 21, 34</code></pre>
+    </div>
+
+    <div class="step slide" data-x="29000" data-y="-1500">
+        <h1>Сравнение: бесконечные стримы</h1>
+        <table>
+            <tr><th>Java</th><th>Kotlin</th><th>Python</th></tr>
+            <tr><td><code>Stream.iterate</code></td><td><code>generateSequence</code></td><td><code>itertools.count</code></td></tr>
+            <tr><td><code>Stream.generate</code></td><td><code>generateSequence { ... }</code></td><td><code>itertools.repeat</code></td></tr>
+            <tr><td><code>.limit(n)</code></td><td><code>.take(n)</code></td><td><code>itertools.islice</code></td></tr>
+        </table>
+        <p>Все ленивые — вычисляются только до ограничения.</p>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- БЛОК 7: БЛОКИРУЮЩИЕ КОЛЛЕКЦИИ (слайды 32-35) -->
+    <!-- ============================================ -->
+
+    <div class="step slide section" data-x="30000" data-y="-1500">
+        <div class="num">6</div>
+        <h1>Блокирующие коллекции</h1>
+        <ul>
+            <li>Проблема синхронизации</li>
+            <li>synchronized коллекции</li>
+            <li>BlockingQueue</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="31000" data-y="-1500">
+        <h1>Проблема синхронизации</h1>
+        <pre><code>// Наивный подход — блокировка на весь объект
+synchronized (map) {
+    map.put(key, value);
+}
+
+// Эволюция:
+// 1. Vector, Hashtable — synchronized методы (Java 1.0)
+// 2. Collections.synchronizedMap() — обертки (Java 1.2)
+// 3. ConcurrentHashMap, CopyOnWriteArrayList — конкурентные (Java 5+)</code></pre>
+        <p>Проблема: даже чтение блокирует — нельзя параллельно читать.</p>
+    </div>
+
+    <div class="step slide" data-x="32000" data-y="-1500">
+        <h1>synchronized коллекции</h1>
+        <pre><code>// Hashtable — synchronized на каждый метод
+Hashtable&lt;String, String&gt; table = new Hashtable&lt;&gt;();
+
+// Collections.synchronizedMap()
+Map&lt;String, String&gt; map = Collections.synchronizedMap(new HashMap&lt;&gt;());
+
+// Проблема: compound actions не атомарны!
+if (!map.containsKey(key)) {   // не атомарно!
+    map.put(key, value);       // другой поток может вставить между
+}</code></pre>
+    </div>
+
+    <div class="step slide" data-x="33000" data-y="-1500">
+        <h1>BlockingQueue</h1>
+        <table>
+            <tr><th>Операция</th><th>Бросает</th><th>null/false</th><th>Блокирует</th></tr>
+            <tr><td>Добавить</td><td><code>add()</code></td><td><code>offer()</code></td><td><code>put()</code></td></tr>
+            <tr><td>Убрать</td><td><code>remove()</code></td><td><code>poll()</code></td><td><code>take()</code></td></tr>
+            <tr><td>Посмотреть</td><td><code>element()</code></td><td><code>peek()</code></td><td>—</td></tr>
+        </table>
+        <pre><code>BlockingQueue&lt;Task&gt; queue = new ArrayBlockingQueue&lt;&gt;(100);
+
+// Producer
+queue.put(new Task()); // блокируется если полная
+
+// Consumer
+Task task = queue.take(); // блокируется если пустая</code></pre>
+    </div>
+
+    <div class="step slide" data-x="34000" data-y="-1500">
+        <h1>Реализации BlockingQueue</h1>
+        <table>
+            <tr><th>Класс</th><th>Структура</th><th>Лок</th></tr>
+            <tr><td>ArrayBlockingQueue</td><td>Кольцевой массив</td><td>1 lock</td></tr>
+            <tr><td>LinkedBlockingQueue</td><td>Связный список</td><td>2 lock (put/take)</td></tr>
+            <tr><td>PriorityBlockingQueue</td><td>Куча</td><td>1 lock</td></tr>
+            <tr><td>SynchronousQueue</td><td>Нет буфера</td><td>CAS или lock</td></tr>
+        </table>
+        <p>Единственная "магия" — Condition (await/signal) для блокировки потоков.</p>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- БЛОК 8: KOTLIN SEQUENCE VS PYTHON GENERATOR (слайды 36-40) -->
+    <!-- ============================================ -->
+
+    <div class="step slide section" data-x="35000" data-y="-1500">
+        <div class="num">7</div>
+        <h1>Kotlin Sequence vs Python Generator</h1>
+        <ul>
+            <li>Аналогия со Stream</li>
+            <li>Ключевые отличия</li>
+            <li>Сильные стороны Java</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="36000" data-y="-1500">
+        <h1>Kotlin Sequence</h1>
+        <pre><code>// Java Stream
+list.stream().map(...).filter(...).collect(toList());
+
+// Kotlin Sequence
+list.asSequence().map(...).filter(...).toList();
+
+// Генератор через yield
+fun fibonacci(): Sequence&lt;Int&gt; = sequence {
+    var a = 0; var b = 1
+    while (true) {
+        yield(a)
+        val tmp = a + b
+        a = b; b = tmp
+    }
+}</code></pre>
+        <p>Extension functions вместо интерфейса, нет checked exceptions.</p>
+    </div>
+
+    <div class="step slide" data-x="37000" data-y="-1500">
+        <h1>Python Generator</h1>
+        <pre><code># Java: Stream + collect
+list.stream().filter(...).map(...).collect(toList());
+
+# Python: list comprehension
+[s.upper() for s in list if s.startswith("a")]
+
+# Генератор
+def fibonacci():
+    a, b = 0, 1
+    while True:
+        yield a
+        a, b = b, a + b
+
+# Бесконечная последовательность + islice
+from itertools import islice
+list(islice(fibonacci(), 10))</code></pre>
+    </div>
+
+    <div class="step slide" data-x="38000" data-y="-1500">
+        <h1>Сравнительная таблица</h1>
+        <table>
+            <tr><th>Возможность</th><th>Java Stream</th><th>Kotlin Sequence</th><th>Python Generator</th></tr>
+            <tr><td>Ленивость</td><td>✅</td><td>✅</td><td>✅</td></tr>
+            <tr><td>Checked exceptions</td><td>❌ мешают</td><td>✅ нет</td><td>✅ нет</td></tr>
+            <tr><td>Генераторы (yield)</td><td>❌</td><td>✅</td><td>✅</td></tr>
+            <tr><td>Параллелизм</td><td>✅ parallelStream</td><td>❌</td><td>❌ GIL</td></tr>
+            <tr><td>Примитивы</td><td>✅ IntStream</td><td>❌ boxing</td><td>❌ boxing</td></tr>
+            <tr><td>Синтаксис</td><td>Громоздкий</td><td>Лаконичный</td><td>Лаконичный</td></tr>
+        </table>
+    </div>
+
+    <div class="step slide" data-x="39000" data-y="-1500">
+        <h1>Сильные стороны Java Stream</h1>
+        <ul>
+            <li><b>Параллелизм</b> — parallelStream из коробки</li>
+            <li><b>Примитивы</b> — IntStream без boxing</li>
+            <li><b>Богатый API</b> — groupingBy, teeing, flatMap</li>
+            <li><b>Типобезопасность</b> — ошибки на этапе компиляции</li>
+        </ul>
+        <pre><code>// Параллелизм — одна строка
+list.parallelStream()
+    .filter(...)
+    .map(...)
+    .collect(Collectors.toList());
+
+// Kotlin: нет аналога
+// Python: GIL не дает параллелить CPU-bound</code></pre>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- БЛОК 9: ПАРАЛЛЕЛИЗМ И SPLITERATOR (слайды 41-47) -->
+    <!-- ============================================ -->
+
+    <div class="step slide section" data-x="40000" data-y="-1500">
+        <div class="num">8</div>
+        <h1>Параллелизм и Spliterator</h1>
+        <ul>
+            <li>ForkJoinPool</li>
+            <li>Spliterator: trySplit</li>
+            <li>Work stealing</li>
+            <li>Динамическое разбиение</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="41000" data-y="-1500">
+        <h1>ForkJoinPool.commonPool()</h1>
+        <ul>
+            <li>Статический пул, создается лениво</li>
+            <li>Размер: <code>availableProcessors() - 1</code></li>
+            <li>Настройка: <code>-Djava.util.concurrent.ForkJoinPool.common.parallelism=N</code></li>
+        </ul>
+        <pre><code>// Свой пул
+ForkJoinPool customPool = new ForkJoinPool(4);
+customPool.submit(() -> 
+    list.parallelStream().filter(...).collect(...)
+).get();</code></pre>
+        <p>Проблема: commonPool общий для всех — конкуренция между задачами.</p>
+    </div>
+
+    <div class="step slide" data-x="42000" data-y="-1500">
+        <h1>Spliterator: Split + Iterator</h1>
+        <pre><code>public interface Spliterator&lt;T&gt; {
+    boolean tryAdvance(Consumer&lt;? super T&gt; action); // как next()
+    Spliterator&lt;T&gt; trySplit();    // разделить на две части
+    long estimateSize();          // оценка размера
+    int characteristics();        // флаги
+}</code></pre>
+        <table>
+            <tr><th>Флаг</th><th>Значение</th></tr>
+            <tr><td>SIZED</td><td>Известен точный размер</td></tr>
+            <tr><td>SUBSIZED</td><td>trySplit делит поровну</td></tr>
+            <tr><td>ORDERED</td><td>Порядок важен</td></tr>
+            <tr><td>DISTINCT</td><td>Элементы уникальны</td></tr>
+        </table>
+    </div>
+
+    <div class="step slide" data-x="43000" data-y="-1500">
+        <h1>Как работает разделение</h1>
+        <pre><code>// ArrayList: разделение пополам — O(1)
+Spliterator&lt;T&gt; left = list.spliterator();  // [0, size)
+Spliterator&lt;T&gt; right = left.trySplit();    // left = [0, mid), right = [mid, size)
+
+// LinkedList: разделение по одному — O(n)!
+Spliterator&lt;T&gt; left = list.spliterator();  // первый элемент
+Spliterator&lt;T&gt; right = left.trySplit();    // второй элемент (плохо!)</code></pre>
+        <p>Влияние на производительность: ArrayList — отличный параллелизм, LinkedList — бессмысленный.</p>
+    </div>
+
+    <div class="step slide" data-x="44000" data-y="-1500">
+        <h1>Алгоритм параллельного выполнения</h1>
+        <pre><code>class StreamTask extends RecursiveTask&lt;Result&gt; {
+    Spliterator&lt;T&gt; spliterator;
+    
+    protected Result compute() {
+        if (spliterator.estimateSize() < THRESHOLD) {
+            return process(spliterator); // маленький — последовательно
+        }
+        
+        Spliterator&lt;T&gt; right = spliterator.trySplit();
+        StreamTask leftTask = new StreamTask(spliterator);
+        StreamTask rightTask = new StreamTask(right);
+        
+        rightTask.fork();   // запустить в другом потоке
+        Result leftResult = leftTask.compute();
+        Result rightResult = rightTask.join();
+        
+        return combine(leftResult, rightResult);
+    }
+}</code></pre>
+        <p>Work stealing — потоки забирают задачи у занятых.</p>
+    </div>
+
+    <div class="step slide" data-x="45000" data-y="-1500">
+        <h1>End-to-end: кастомный Spliterator</h1>
+        <pre><code>public class RangeSpliterator implements Spliterator&lt;Integer&gt; {
+    private int current;
+    private final int end;
+    
+    @Override
+    public Spliterator&lt;Integer&gt; trySplit() {
+        if (remaining() < 2) return null;
+        int mid = current + remaining() / 2;
+        RangeSpliterator left = new RangeSpliterator(current, mid);
+        current = mid; // правую оставляем себе
+        return left;
+    }
+    
+    @Override
+    public int characteristics() {
+        return SIZED | SUBSIZED | IMMUTABLE | ORDERED;
+    }
+}
+
+// Использование
+Stream&lt;Integer&gt; stream = StreamSupport.stream(
+    new RangeSpliterator(1, 1000), true // parallel
+);</code></pre>
+    </div>
+
+    <div class="step slide" data-x="46000" data-y="-1500">
+        <h1>Динамическое разбиение</h1>
+        <ul>
+            <li>Spliterator не знает стоимость элементов</li>
+            <li>Решение: много мелких split + work stealing</li>
+            <li>ForkJoinPool сам балансирует нагрузку</li>
+        </ul>
+        <pre><code>// Плохо: делим на 2 части, одна тяжелая
+Spliterator&lt;Task&gt; left = spliterator.trySplit();
+
+// Хорошо: делим на 16 частей, ForkJoinPool распределит
+for (int i = 0; i < 16; i++) {
+    Spliterator&lt;Task&gt; part = spliterator.trySplit();
+    pool.submit(() -> process(part));
+}</code></pre>
+        <p>Динамическая балансировка — это работа ForkJoinPool, не Spliterator.</p>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- БЛОК 10: ЗАКЛЮЧЕНИЕ (слайды 48-50) -->
+    <!-- ============================================ -->
+
+    <div class="step slide section" data-x="47000" data-y="-1500">
+        <div class="num">9</div>
+        <h1>Итоги</h1>
+    </div>
+
+    <div class="step slide" data-x="48000" data-y="-1500">
+        <h1>Ключевые выводы</h1>
+        <ul>
+            <li>JCF — контракт, не реализация</li>
+            <li>OpenJDK оптимизирует под реальные сценарии</li>
+            <li>Стримы — декларативность, но checked exceptions мешают</li>
+            <li>Kotlin Sequence и Python Generator — лаконичнее</li>
+            <li>Параллелизм — сильная сторона Java Stream</li>
+        </ul>
+    </div>
+
+    <div class="step slide" data-x="49000" data-y="-1500">
+        <h1>Вопросы</h1>
+        <ul>
+            <li>Почему HashMap не гарантирует порядок?</li>
+            <li>Когда LinkedList лучше ArrayList?</li>
+            <li>Зачем нужен RandomAccess маркер?</li>
+            <li>Почему ConcurrentHashMap не позволяет null?</li>
+            <li>Когда parallelStream медленнее последовательного?</li>
+        </ul>
+    </div>
+
+</div>
+
+<div class="impress-progressbar"><div></div></div>
+<div class="impress-progress"></div>
+<a class="ov" href="#/overview">Обзор</a>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<script>
+    if (window.hljs) {
+        hljs.highlightAll();
+    }
+</script>
+<script src="js/impress.js"></script>
+<script>
+    impress().init();
+</script>
+</body>
+</html>
+
