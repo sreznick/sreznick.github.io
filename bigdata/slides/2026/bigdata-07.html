@@ -1,0 +1,668 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1024" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <title>Kafka: архитектура, масштабирование и гарантии</title>
+
+    <link href="//fonts.googleapis.com/css?family=Open+Sans:regular,semibold,italic,italicsemibold|PT+Sans:400,700,400italic,700italic|PT+Serif:400,700,400italic,700italic" rel="stylesheet" />
+
+    <link href="css/impress-demo.css" rel="stylesheet" />
+    <link href="css/impress-common.css" rel="stylesheet" />
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/default.min.css">
+
+    <style>
+        /* Базовые стили слайдов */
+        .slide {
+            font-size: 27px;
+            line-height: 1.3;
+            letter-spacing: -.5px;
+        }
+
+        .slide h1 {
+            font-size: 40px;
+            line-height: 1.15;
+            margin: 0 0 .5em;
+            text-align: left;
+        }
+
+        .slide h2 {
+            font-size: 32px;
+            margin: 0 0 .5em;
+        }
+
+        .slide h3 {
+            font-size: 24px;
+            margin: .5em 0 .3em;
+        }
+
+        .slide ul,
+        .slide ol {
+            margin: 0;
+            padding-left: 1.1em;
+        }
+
+        .slide li {
+            margin: .25em 0;
+        }
+
+        .slide p {
+            margin: .6em 0 0;
+        }
+
+        .slide pre {
+            margin: 0 0 12px;
+            letter-spacing: 0;
+            text-shadow: none;
+        }
+
+        .slide pre code.hljs {
+            padding: 12px 16px;
+            font-size: 17px;
+            line-height: 1.35;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .slide pre.small code.hljs {
+            font-size: 15.5px;
+        }
+
+        .slide code:not(.hljs) {
+            background: #e2e8f0;
+            color: #1e293b;
+            padding: 0 .3em;
+            border-radius: 4px;
+            font-size: .85em;
+            letter-spacing: 0;
+        }
+
+        .slide.section code:not(.hljs),
+        .slide.title code:not(.hljs) {
+            background: rgba(255,255,255,.28);
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .slide table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 22px;
+            line-height: 1.25;
+        }
+
+        .slide th,
+        .slide td {
+            border-bottom: 1px solid #ccc;
+            padding: 6px 10px;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .slide th {
+            background: #e2e8f0;
+            color: #1e293b;
+        }
+
+        .slide .hl {
+            color: #b91c1c;
+        }
+
+        /* Секционные слайды */
+        .slide.section {
+            background: linear-gradient(135deg,#0f766e,#1d4ed8);
+            color: #fff;
+            text-shadow: none;
+        }
+
+        .slide.section h1 {
+            color: #fff;
+            font-size: 50px;
+        }
+
+        .slide.section .num {
+            position: absolute;
+            right: 40px;
+            top: 0;
+            font-size: 200px;
+            font-weight: 700;
+            opacity: .18;
+            line-height: 1;
+        }
+
+        .slide.title .hint {
+            font-size: 20px;
+            color: #999;
+            margin-top: 40px;
+        }
+
+        .notes {
+            display: none;
+        }
+
+        .ov {
+            position: fixed;
+            left: 14px;
+            bottom: 12px;
+            color: #93c5fd;
+            font-size: 14px;
+            text-decoration: none;
+            z-index: 10;
+        }
+
+        #overview {
+            background: none!important;
+            border: 0!important;
+            box-shadow: none!important;
+            pointer-events: none;
+        }
+    </style>
+<style>
+.flow { display: flex; align-items: center; justify-content: space-around; gap: 12px; margin: 24px 0; text-align: center; }
+.flow span:not(:nth-child(even)) { background: #e2e8f0; color: #1e293b; border-radius: 8px; padding: 14px; }
+</style>
+<style>
+.slide .diagram { background:#f1f5f9; color:#1e293b; padding:18px; border-radius:8px; font:22px/1.55 monospace; white-space:pre-wrap; }
+.slide .source { position:absolute; bottom:18px; left:40px; font-size:14px; color:#475569; }
+.slide .source a { text-shadow:none; }
+.slide .timing { position:absolute; right:24px; bottom:18px; font-size:14px; color:#64748b; }
+.slide pre code { font-size:19px; }
+</style></head>
+
+<body class="impress-not-supported">
+
+<div class="fallback-message">
+    <p>Ваш браузер <b>не поддерживает возможности, необходимые для impress.js</b>, поэтому показана упрощённая версия презентации.</p>
+    <p>Лучше всего использовать свежие <b>Chrome</b>, <b>Safari</b> или <b>Firefox</b>.</p>
+</div>
+
+<div id="impress"
+    data-transition-duration="1000"
+    data-width="1024"
+    data-height="768"
+    data-max-scale="3"
+    data-min-scale="0"
+    data-perspective="1000"
+    >
+
+
+
+
+<div class="step slide" id="intro" data-x="0" data-y="0">
+<h1>Kafka: потоки событий</h1>
+<h2>Архитектура, масштабирование и гарантии</h2><p>От перегрузки и потери подтверждений<br>до consumer groups и выбора момента commit.</p><p><strong>Сквозной пример: события заказов.</strong></p>
+<aside class="notes">0:00–0:45. Представить сквозной пример. Пока не вводить устройство Kafka: сначала сформулировать проблему.</aside>
+<span class="timing">1 / 50</span>
+</div>
+
+<div class="step slide" id="overload" data-x="1100" data-y="0">
+<h1>1000 событий в секунду → 600</h1>
+
+<div class="flow"><span>Заказы<br><strong>1000/с</strong></span><span>→</span><span>Обработка<br><strong>600/с</strong></span></div>
+<p>Каждую секунду остаются <strong class="hl">400 необработанных событий</strong>.</p>
+<table><tr><th>Время перегрузки</th><th>Накопилось событий</th></tr><tr><td>10 секунд</td><td>4 000</td></tr><tr><td>1 минута</td><td>24 000</td></tr><tr><td>1 час</td><td>1 440 000</td></tr></table>
+<p>Куда они денутся?</p>
+
+<aside class="notes">0:45–2:00. Считаем от пустой очереди при постоянных скоростях. Предложить студентам назвать варианты до показа следующего слайда.</aside>
+<span class="timing">2 / 50</span>
+</div>
+
+<div class="step slide" id="choices" data-x="2200" data-y="0">
+<h1>Три реакции на перегрузку</h1>
+
+<table><tr><th>Решение</th><th>Что происходит</th><th>Цена</th></tr><tr><td><strong>Ждать</strong></td><td>Замедляем поступление</td><td>Задержки, отказ в приёме</td></tr><tr><td><strong>Буферизовать</strong></td><td>Принимаем сейчас,<br>обрабатываем позже</td><td>Память / диск,<br>рост времени ожидания</td></tr><tr><td><strong>Отбрасывать</strong></td><td>Обрабатываем часть потока</td><td>Неполные данные</td></tr></table>
+<p>На практике эти способы комбинируют:<br>например, ограниченный буфер, затем ожидание или отказ.</p>
+
+<aside class="notes">2:00–3:00. Это выбор при длительной перегрузке и фиксированных ресурсах. Увеличение производительности может убрать перегрузку, но требует ресурсов и времени.</aside>
+<span class="timing">3 / 50</span>
+</div>
+
+<div class="step slide" id="backpressure" data-x="3300" data-y="0">
+<h1>Ждать: обратное давление</h1>
+
+<div class="flow"><span>Производитель</span><span>→</span><span>Обработчик</span></div>
+<p style="text-align:center">← «Сейчас принять не могу»</p>
+<ul><li>Производитель ждёт или снижает скорость.</li><li>Задержка распространяется вверх по цепочке.</li><li>Ресурсы ожидания тоже конечны: потоки, соединения, запросы.</li></ul>
+<p><strong>Backpressure</strong> — передача ограничения скорости<br>от потребителя к производителю.</p>
+
+<aside class="notes">3:00–4:30. Пример: склад перестал отвечать, оформление заказа ждёт. Для внешнего потока, который невозможно затормозить, нужны буферизация или потери.</aside>
+<span class="timing">4 / 50</span>
+</div>
+
+<div class="step slide" id="async" data-x="4400" data-y="0">
+<h1>Асинхронность не добавляет мощности</h1>
+
+<table><tr><th>Блокирующий вызов</th><th>Асинхронный вызов</th></tr><tr><td>Поток выполнения ждёт ответ</td><td>Поток может выполнять другую работу</td></tr><tr><td>Нужен предел числа ожидающих вызовов</td><td>Нужен предел числа незавершённых операций</td></tr></table>
+<p>Если запускать <strong>1000 операций/с</strong>, а завершать <strong>600/с</strong>,<br>число незавершённых операций продолжает расти.</p>
+<p class="hl">Освободили поток выполнения —<br>но очередь ожидающей работы осталась.</p>
+
+<aside class="notes">4:30–6:00. Разделить синхронность, блокировку и регулирование скорости. Асинхронное ожидание полезно, но объекты запросов, данные и соединения всё равно занимают ресурсы.</aside>
+<span class="timing">5 / 50</span>
+</div>
+
+<div class="step slide" id="buffer" data-x="5500" data-y="0">
+<h1>Буфер покупает время</h1>
+
+<div class="flow"><span>1000/с</span><span>→</span><span>Очередь<br><strong>+400/с</strong></span><span>→</span><span>600/с</span></div>
+<ul><li><strong>Память:</strong> ограничена; данные могут исчезнуть при падении процесса.</li><li><strong>Диск:</strong> больше места; для сохранности нужен надёжный протокол записи.</li><li>Чем длиннее очередь, тем дольше событие ждёт обработки.</li></ul>
+<p>Буфер на <strong>240 000 событий</strong> заполнится за <strong>10 минут</strong><br>при постоянном избытке 400 событий/с.</p>
+<p><strong>После пика очередь сокращается, только если<br>обработка становится быстрее поступления.</strong></p>
+
+<aside class="notes">6:00–8:00. Расчёт от пустого буфера без накладных расходов. Дисковая очередь не бесконечна. Kafka будет примером устойчивого журнала, но запись на диск сама по себе не гарантирует сохранность при любом сбое.</aside>
+<span class="timing">6 / 50</span>
+</div>
+
+<div class="step slide" id="loss" data-x="6600" data-y="0">
+<h1>Отбрасывать: что можно потерять?</h1>
+
+<table><tr><th>Способ</th><th>Пример</th></tr><tr><td>Отклонить новые события</td><td>Ответить отказом; отправитель может повторить</td></tr><tr><td>Удалить старые</td><td>Оставить самые свежие показания</td></tr><tr><td>Сохранять выборку</td><td>Часть диагностических событий</td></tr><tr><td>Объединять обновления</td><td>Хранить последнюю температуру датчика</td></tr></table>
+<p>Последняя температура может быть достаточна.<br>Последний платёж не заменяет историю платежей.</p>
+<p><strong>Допустимость потери определяется смыслом данных.</strong></p>
+
+<aside class="notes">8:00–9:30. Отличить явный отказ в приёме от незаметного удаления уже принятых данных. Повторы после отказа создают нагрузку: им тоже нужны ограничение скорости и задержка.</aside>
+<span class="timing">7 / 50</span>
+</div>
+
+<div class="step slide" id="tradeoff" data-x="7700" data-y="0">
+<h1>Ограничения никуда не исчезают</h1>
+
+<p>При длительной перегрузке и ограниченных ресурсах<br>невозможно одновременно:</p>
+<ul><li>принимать всё без ожидания;</li><li>ничего не терять;</li><li>сохранять ограниченный размер очереди.</li></ul>
+<p><strong>Kafka даёт устойчивый буфер и независимое чтение.<br>Но его ёмкость и срок хранения конечны.</strong></p>
+<p class="hl">А если сообщение отправлено,<br>но подтверждение не пришло — оно доставлено?</p>
+
+<aside class="notes">9:30–12:00. Попросить объяснить, почему добавление памяти откладывает проблему. Затем перейти к неопределённости при сбоях: сообщение могло не дойти или сохраниться с потерей подтверждения. Это следующий блок, пока без подробного разбора гарантий.</aside>
+<span class="timing">8 / 50</span>
+</div>
+
+<div class="step slide" id="delivery" data-x="8800" data-y="0">
+<h1>Что значит «доставлено»?</h1>
+<pre class="diagram">Сервис → Kafka → consumer → БД → уведомление</pre><ul><li>Принято брокером ≠ обработано приложением.</li><li>Чтение consumer’ом ≠ сохранение результата.</li><li>Гарантию формулируем для конкретного участка и эффекта.</li></ul>
+<aside class="notes">12–14 мин. Попросить назвать точку, после которой заказ можно считать обработанным. Для разных бизнес-требований ответы отличаются.</aside>
+<span class="timing">9 / 50</span>
+</div>
+
+<div class="step slide" id="lost-ack" data-x="0" data-y="850">
+<h1>Подтверждения нет: что произошло?</h1>
+<pre class="diagram">Отправитель ── событие ──→ Получатель
+Отправитель ←── ответ? ─── Получатель</pre><table><tr><th>Возможный сбой</th><th>Что видит отправитель</th></tr><tr><td>Событие не дошло</td><td>Тайм-аут</td></tr><tr><td>Событие сохранено, ответ потерялся</td><td>Тайм-аут</td></tr></table><p><strong>Одинаковое наблюдение — разные последствия.</strong></p>
+<aside class="notes">14–16 мин. Не трактовать тайм-аут как доказательство отсутствия записи.</aside>
+<span class="timing">10 / 50</span>
+</div>
+
+<div class="step slide" id="retry" data-x="1100" data-y="850">
+<h1>Повторить или не повторить?</h1>
+<table><tr><th>Решение</th><th>Риск</th></tr><tr><td>Не повторять</td><td>Событие могло не сохраниться</td></tr><tr><td>Повторить</td><td>Событие могло уже сохраниться</td></tr></table><p>Нужны идентификация повторов и понятная граница подтверждения.</p><p><strong>Повторная попытка неизбежно связана<br>с неопределённостью предыдущей.</strong></p>
+<aside class="notes">16–18 мин. Спросить, достаточно ли увеличить тайм-аут. Нет: это меняет вероятность наблюдения, но не устраняет неопределённость.</aside>
+<span class="timing">11 / 50</span>
+</div>
+
+<div class="step slide" id="log" data-x="2200" data-y="850">
+<h1>Kafka: журнал событий</h1>
+<pre class="diagram">Заказы → topic orders → уведомления
+                      → склад
+                      → аналитика</pre><ul><li>Producer публикует запись; consumer читает.</li><li>Независимые приложения читают с разной скоростью.</li><li>Kafka сохраняет историю в пределах политики хранения.</li></ul>
+<aside class="notes">18–20 мин. Подчеркнуть отличие от удаления сообщения сразу после обработки.</aside>
+<p class="source"><a href="https://kafka.apache.org/41/design/design/">Источник: Apache Kafka</a></p><span class="timing">12 / 50</span>
+</div>
+
+<div class="step slide" id="record" data-x="3300" data-y="850">
+<h1>Что находится в записи?</h1>
+<pre class="diagram">topic: orders       key: order-42
+value: { event_id: evt-123,
+         type: OrderCreated,
+         amount: 1500 }</pre><ul><li>Ключ помогает выбрать партицию.</li><li>Значение — байты; формат и схему согласуют приложения.</li><li>event_id определяет событие; order_id — бизнес-объект.</li></ul>
+<aside class="notes">20–22 мин. У одного заказа много разных событий: дедупликация только по order_id может ошибочно удалить легитимные обновления.</aside>
+<span class="timing">13 / 50</span>
+</div>
+
+<div class="step slide" id="partitions" data-x="4400" data-y="850">
+<h1>Топик состоит из партиций</h1>
+<pre class="diagram">orders
+  p0: [0][1][2][3][4] →
+  p1: [0][1][2]       →
+  p2: [0][1][2][3]    →</pre><ul><li>Offset — позиция внутри конкретной партиции.</li><li>Адрес записи: topic + partition + offset.</li><li>Общего offset для топика нет.</li></ul>
+<aside class="notes">22–24 мин. Нумерация схематична: в реальном чтении возможны пропуски offsets, например из-за compaction или транзакционных записей.</aside>
+<p class="source"><a href="https://kafka.apache.org/41/design/design/">Источник: Apache Kafka</a></p><span class="timing">14 / 50</span>
+</div>
+
+<div class="step slide" id="retention" data-x="5500" data-y="850">
+<h1>Прочитали ≠ удалили</h1>
+<ul><li>Обычная delete-политика удаляет старые сегменты по времени или размеру.</li><li>Хранение не ждёт, пока все consumers прочитают данные.</li><li>Можно вернуться назад и перечитать доступную историю.</li><li>При слишком большом отставании нужная история уже удалена.</li></ul><p>Compaction — отдельная политика: сохранять актуальные значения по ключам, а не всю историю.</p>
+<aside class="notes">24–26 мин. Не обещать точное удаление каждой записи в момент истечения retention: удаляются сегменты.</aside>
+<p class="source"><a href="https://kafka.apache.org/41/design/design/">Источник: Apache Kafka</a></p><span class="timing">15 / 50</span>
+</div>
+
+<div class="step slide" id="cluster" data-x="6600" data-y="850">
+<h1>Как устроен кластер</h1>
+<table><tr><th>Партиция</th><th>Брокер A</th><th>Брокер B</th><th>Брокер C</th></tr><tr><td>orders p0</td><td><strong>лидер</strong></td><td>реплика</td><td>реплика</td></tr><tr><td>orders p1</td><td>реплика</td><td><strong>лидер</strong></td><td>реплика</td></tr><tr><td>orders p2</td><td>реплика</td><td>реплика</td><td><strong>лидер</strong></td></tr></table><ul><li>Брокер хранит данные нескольких партиций.</li><li>Лидер принимает запись; followers копируют журнал.</li><li>Разные лидеры распределяют нагрузку.</li></ul>
+<aside class="notes">26–28 мин. Здесь replication factor = 3, а логических партиций тоже 3. Это независимые параметры.</aside>
+<p class="source"><a href="https://kafka.apache.org/41/design/design/">Источник: Apache Kafka</a></p><span class="timing">16 / 50</span>
+</div>
+
+<div class="step slide" id="metadata" data-x="7700" data-y="850">
+<h1>Как клиент находит нужный брокер</h1>
+<pre class="diagram">1. Клиент → bootstrap broker: метаданные
+2. Клиент → лидер нужной партиции: данные
+3. При изменении лидера: обновление метаданных</pre><p>bootstrap.servers — начальные адреса для обнаружения кластера.</p><p><strong>Один центральный узел не пересылает весь трафик.</strong></p>
+<aside class="notes">28–29 мин. Обычно producer и consumer работают с лидером; существуют настройки чтения follower, которые здесь не разбираем.</aside>
+<p class="source"><a href="https://kafka.apache.org/41/javadoc/org/apache/kafka/clients/consumer/KafkaConsumer.html">Источник: Apache Kafka</a></p><span class="timing">17 / 50</span>
+</div>
+
+<div class="step slide" id="kraft" data-x="8800" data-y="850">
+<h1>KRaft: управление кластером</h1>
+<pre class="diagram">Контроллеры: [ C1 ] [ C2 ] [ C3 ]
+                кворум метаданных
+                      ↓
+Брокеры:      [ A ]  [ B ]  [ C ] …</pre><ul><li>Контроллеры управляют метаданными и выборами лидеров.</li><li>Активный контроллер координирует изменения.</li><li>Поток пользовательских событий идёт через брокеры.</li><li>Роли broker/controller могут быть разделены.</li></ul>
+<aside class="notes">29–31 мин. Современную архитектуру объяснять на KRaft. Кворум метаданных и репликация пользовательских партиций — разные механизмы.</aside>
+<p class="source"><a href="https://kafka.apache.org/41/operations/kraft/">Источник: Apache Kafka</a></p><span class="timing">18 / 50</span>
+</div>
+
+<div class="step slide" id="isr" data-x="0" data-y="1700">
+<h1>Какая реплика может продолжить работу?</h1>
+<ul><li>ISR — набор синхронных реплик партиции.</li><li>Отставшая реплика исключается из ISR.</li><li>При отказе лидера новый выбирается из подходящих ISR-реплик.</li><li>Выбор несинхронной реплики может повысить доступность ценой потери данных.</li></ul><p><strong>Число копий и число актуальных копий — разные величины.</strong></p>
+<aside class="notes">31–33 мин. Речь об обычном безопасном выборе лидера; unclean election разобрать как сознательное изменение компромисса.</aside>
+<p class="source"><a href="https://kafka.apache.org/41/design/design/">Источник: Apache Kafka</a></p><span class="timing">19 / 50</span>
+</div>
+
+<div class="step slide" id="acks" data-x="1100" data-y="1700">
+<h1>Что подтверждает producer?</h1>
+<table><tr><th>acks</th><th>Когда приходит успешный ответ</th></tr><tr><td>0</td><td>Producer не ждёт ответа брокера</td></tr><tr><td>1</td><td>Лидер записал; followers могли ещё не успеть</td></tr><tr><td>all</td><td>Запись подтверждена всеми текущими ISR</td></tr></table><p><code>min.insync.replicas</code> ограничивает допустимый размер ISR при записи с <code>acks=all</code>.</p>
+<aside class="notes">33–35 мин. acks=all не означает все назначенные реплики или fsync каждой записи. Например RF=3, min ISR=2: с одной ISR запись отклоняется.</aside>
+<p class="source"><a href="https://kafka.apache.org/41/configuration/producer-configs/">Источник: Apache Kafka</a></p><span class="timing">20 / 50</span>
+</div>
+
+<div class="step slide" id="producer-retry" data-x="2200" data-y="1700">
+<h1>Повторная отправка producer’ом</h1>
+<pre class="diagram">Producer → лидер: запись
+Лидер → producer: ответ потерялся
+Producer → лидер: повтор</pre><ul><li>Без защиты повтор может создать вторую запись.</li><li>Идемпотентный producer использует идентификатор и последовательности.</li><li>Повторы самого клиента подавляются; новая бизнес-отправка не становится автоматически дублем.</li></ul>
+<aside class="notes">35–37 мин. Идемпотентность producer не заменяет event_id и дедупликацию на уровне приложения.</aside>
+<p class="source"><a href="https://kafka.apache.org/41/configuration/producer-configs/">Источник: Apache Kafka</a></p><span class="timing">21 / 50</span>
+</div>
+
+<div class="step slide" id="keys" data-x="3300" data-y="1700">
+<h1>Ключ задаёт область порядка</h1>
+<pre class="diagram">order-42: Created → Paid → Shipped
+                    ↓
+             одна партиция</pre><ul><li>При стабильной схеме распределения одинаковый ключ направляется в одну партицию.</li><li>Порядок записей не равен порядку event_time.</li><li>Параллельная обработка может изменить порядок завершения.</li></ul>
+<aside class="notes">37–39 мин. Изменение числа партиций может изменить mapping ключей. Нельзя обещать вечное закрепление ключа за партицией.</aside>
+<span class="timing">22 / 50</span>
+</div>
+
+<div class="step slide" id="hot-key" data-x="4400" data-y="1700">
+<h1>Больше партиций ≠ равномерная нагрузка</h1>
+<table><tr><th>Ключ</th><th>Последствие</th></tr><tr><td>order_id</td><td>Распределяем разные заказы</td></tr><tr><td>shop_id</td><td>Крупный магазин может перегрузить одну партицию</td></tr><tr><td>Одинаковый ключ для всех</td><td>Вся запись идёт в одну партицию</td></tr></table><p><strong>Ключ выбирают с учётом порядка и распределения нагрузки.</strong></p>
+<aside class="notes">39–41 мин. Вопрос: поможет ли добавить десять брокеров, если все события имеют один ключ?</aside>
+<span class="timing">23 / 50</span>
+</div>
+
+<div class="step slide" id="groups" data-x="5500" data-y="1700">
+<h1>Независимые приложения — разные группы</h1>
+<pre class="diagram">orders → group notifications
+       → group warehouse
+       → group analytics</pre><ul><li>У каждой группы свой прогресс чтения.</li><li>Чтение одной группы не отнимает данные у другой.</li><li>group.id задаёт идентичность группы.</li></ul>
+<aside class="notes">41–43 мин. Здесь и далее обычные consumer groups; share groups не рассматриваем.</aside>
+<span class="timing">24 / 50</span>
+</div>
+
+<div class="step slide" id="assignment" data-x="6600" data-y="1700">
+<h1>Внутри группы делим партиции</h1>
+<pre class="diagram">Группа analytics
+  consumer A ← p0, p1
+  consumer B ← p2, p3
+
+Другая группа читает те же партиции независимо.</pre><ul><li>В устойчивом назначении одна партиция принадлежит одному участнику группы.</li><li>Один consumer может получить несколько партиций.</li><li>Пятый consumer при четырёх партициях останется без работы.</li></ul>
+<aside class="notes">43–45 мин. После сбоя старый worker может ещё выполнять внешний эффект: назначение само по себе не обеспечивает fencing в БД.</aside>
+<span class="timing">25 / 50</span>
+</div>
+
+<div class="step slide" id="rebalance" data-x="7700" data-y="1700">
+<h1>Rebalance: назначение меняется</h1>
+<pre class="diagram">Было: A ← p0,p1     B ← p2,p3
+Стало: A ← p0       B ← p1       C ← p2,p3</pre><ul><li>Участник добавился, ушёл или признан недоступным.</li><li>Группа перераспределяет владение партициями.</li><li>Новый владелец обычно продолжает с committed offset.</li><li>Потерянный прогресс может привести к повторной обработке.</li></ul>
+<aside class="notes">45–47 мин. Конкретное распределение зависит от протокола и assignor. Не утверждать, что любой rebalance полностью останавливает всех участников.</aside>
+<p class="source"><a href="https://kafka.apache.org/41/javadoc/org/apache/kafka/clients/consumer/KafkaConsumer.html">Источник: Apache Kafka</a></p><span class="timing">26 / 50</span>
+</div>
+
+<div class="step slide" id="positions" data-x="8800" data-y="1700">
+<h1>Три разных этапа обработки</h1>
+<pre class="diagram">poll вернул записи → завершили бизнес-операцию
+                              ↓
+                       commit offsets</pre><table><tr><th>Понятие</th><th>Смысл</th></tr><tr><td>Position</td><td>Откуда продолжится чтение в текущем consumer</td></tr><tr><td>Processed</td><td>До куда приложение действительно завершило работу</td></tr><tr><td>Committed</td><td>Сохранённая позиция для возобновления</td></tr></table>
+<aside class="notes">47–49 мин. Processed — понятие приложения, Kafka не наблюдает бизнес-операции.</aside>
+<p class="source"><a href="https://kafka.apache.org/41/javadoc/org/apache/kafka/clients/consumer/KafkaConsumer.html">Источник: Apache Kafka</a></p><span class="timing">27 / 50</span>
+</div>
+
+<div class="step slide" id="offset-value" data-x="0" data-y="2550">
+<h1>Commit 103: что это значит?</h1>
+<pre class="diagram">offset:       100     101     102   |   103
+обработано:     ✓       ✓       ✓   |   дальше
+committed offset = 103</pre><ul><li>Фиксируем позицию следующей записи, которую нужно обработать.</li><li>Offset хранится отдельно для каждой партиции.</li><li>Commit не удаляет данные и не подтверждает запись producer’у.</li></ul>
+<aside class="notes">49–51 мин. Для простого непрерывного примера последний обработанный offset + 1. В API используем nextOffsets после полной обработки poll; в журнале возможны пропуски.</aside>
+<p class="source"><a href="https://kafka.apache.org/41/javadoc/org/apache/kafka/clients/consumer/KafkaConsumer.html">Источник: Apache Kafka</a></p><span class="timing">28 / 50</span>
+</div>
+
+<div class="step slide" id="coordinator" data-x="1100" data-y="2550">
+<h1>Где хранится прогресс группы?</h1>
+<pre class="diagram">(group.id, topic, partition) → committed offset
+
+analytics, orders, p0 → 103
+analytics, orders, p1 → 280
+warehouse, orders, p0 →  95</pre><ul><li>Запросы commit обслуживает group coordinator на брокере.</li><li>Offsets хранятся во внутреннем топике __consumer_offsets.</li><li>Это не запись результата в вашу БД.</li></ul>
+<aside class="notes">51–52 мин. Group coordinator не равен активному KRaft-контроллеру: у них разные обязанности.</aside>
+<p class="source"><a href="https://kafka.apache.org/41/design/design/">Источник: Apache Kafka</a></p><span class="timing">29 / 50</span>
+</div>
+
+<div class="step slide" id="commit-before" data-x="2200" data-y="2550">
+<h1>Commit до обработки: окно потери</h1>
+<pre class="diagram">poll: 100…102
+commit: 103       ✓
+СБОЙ             ✕
+запись в БД      не выполнена
+
+Перезапуск: чтение с 103</pre><p class="hl">100–102 остаются в Kafka, но группа их пропускает.</p><p>Это потеря бизнес-эффекта относительно прогресса группы.</p>
+<aside class="notes">52–54 мин. При отсутствии других повторов это at-most-once подход на данном участке. Возможен ручной replay, пока история сохранена.</aside>
+<span class="timing">30 / 50</span>
+</div>
+
+<div class="step slide" id="commit-after" data-x="3300" data-y="2550">
+<h1>Commit после обработки: окно повтора</h1>
+<pre class="diagram">poll: 100…102
+запись в БД      ✓
+СБОЙ             ✕
+commit: 103      не выполнен
+
+Перезапуск: повторное чтение с 100</pre><p class="hl">Результат уже сохранён; повтор может применить его снова.</p><p>Так возникает at-least-once обработка.</p>
+<aside class="notes">54–56 мин. Предполагаем, что старый committed offset = 100, данные доступны, consumer повторяет после сбоя.</aside>
+<span class="timing">31 / 50</span>
+</div>
+
+<div class="step slide" id="auto-commit" data-x="4400" data-y="2550">
+<h1>Auto commit не знает о вашей БД</h1>
+<pre><code class="language-java">enable.auto.commit = true
+auto.commit.interval.ms = 5000</code></pre><ul><li>Клиент периодически сохраняет прогресс чтения.</li><li>Интервал не означает «через 5 секунд после успешной обработки».</li><li>В Java consumer завершайте всю обработку poll до следующего poll.</li><li>Передача записей worker’ам и новый poll могут зафиксировать ещё не завершённую работу.</li></ul>
+<aside class="notes">56–58 мин. Поведение относится к Java KafkaConsumer: не изображать auto commit как независимый таймер, следящий за бизнес-обработкой. Framework может иметь собственную политику ack.</aside>
+<p class="source"><a href="https://kafka.apache.org/41/configuration/consumer-configs/">Источник: Apache Kafka</a></p><span class="timing">32 / 50</span>
+</div>
+
+<div class="step slide" id="manual-commit" data-x="5500" data-y="2550">
+<h1>Ручной commit после успешной обработки</h1>
+<pre><code class="language-java">props.put(&quot;enable.auto.commit&quot;, &quot;false&quot;);
+
+while (running) {
+    var records = consumer.poll(Duration.ofMillis(500));
+    processAndPersistAll(records); // ждём успеха всей порции
+    consumer.commitSync(records.nextOffsets());
+}</code></pre><p>При ошибке обработки до commit не доходим.<br>Повтор после сбоя всё равно возможен.</p>
+<aside class="notes">58–60 мин. Учебный фрагмент для Java client 4.1: close и обработка исключений опущены. Если ошибка поймана и цикл продолжен, нужно явно решить вопрос seek/retry: отсутствие commit само по себе не перематывает текущую position.</aside>
+<p class="source"><a href="https://kafka.apache.org/41/javadoc/org/apache/kafka/clients/consumer/KafkaConsumer.html">Источник: Apache Kafka</a></p><span class="timing">33 / 50</span>
+</div>
+
+<div class="step slide" id="sync-async" data-x="6600" data-y="2550">
+<h1>commitSync и commitAsync</h1>
+<table><tr><th>API</th><th>Что делает</th><th>На что обратить внимание</th></tr><tr><td>commitSync</td><td>Ждёт завершения или ошибки</td><td>Задержка; исключения нельзя игнорировать</td></tr><tr><td>commitAsync</td><td>Возвращает управление без ожидания</td><td>Результат в callback; ошибки нужно обрабатывать</td></tr></table><p><strong>Sync/async — способ ожидания commit.<br>До/после обработки — выбор гарантии.</strong></p>
+<aside class="notes">60–62 мин. Тайм-аут оставляет неопределённость. Не повторять произвольно старый async commit после более нового: это может откатить сохранённый offset.</aside>
+<p class="source"><a href="https://kafka.apache.org/41/javadoc/org/apache/kafka/clients/consumer/KafkaConsumer.html">Источник: Apache Kafka</a></p><span class="timing">34 / 50</span>
+</div>
+
+<div class="step slide" id="frequency" data-x="7700" data-y="2550">
+<h1>Когда и как часто делать commit?</h1>
+<table><tr><th>Политика</th><th>Компромисс</th></tr><tr><td>После каждой записи</td><td>Меньше повторов при сбое, больше запросов commit</td></tr><tr><td>После порции / через интервал</td><td>Меньше накладных расходов, больше потенциальных повторов</td></tr></table><ul><li>Фиксируем только действительно завершённый прогресс.</li><li>Частый commit уменьшает окно повтора, но не устраняет его.</li><li>Commit после старта асинхронной записи — слишком рано.</li></ul>
+<aside class="notes">62–64 мин. Пример: 600 событий/с и commit раз в 5 секунд дают порядок 3000 потенциальных повторов плюс незавершённая работа; это оценка, не строгая граница.</aside>
+<span class="timing">35 / 50</span>
+</div>
+
+<div class="step slide" id="parallel-hole" data-x="8800" data-y="2550">
+<h1>Параллельная обработка: нельзя перескочить дыру</h1>
+<pre class="diagram">offset:       100    101    102    103
+завершено:     ✓      …      ✓      ✓
+
+Безопасный committed offset: 101
+Commit 104 пропустит незавершённую запись 101.</pre><ul><li>Отслеживаем непрерывно завершённый префикс каждой партиции.</li><li>Ограничиваем число задач в работе; при необходимости pause.</li><li>KafkaConsumer не предназначен для произвольных вызовов из нескольких потоков.</li></ul>
+<aside class="notes">64–66 мин. Не брать максимум завершившихся offsets. Состояние выполнения и операции consumer координируем в корректной потоковой модели.</aside>
+<p class="source"><a href="https://kafka.apache.org/41/javadoc/org/apache/kafka/clients/consumer/KafkaConsumer.html">Источник: Apache Kafka</a></p><span class="timing">36 / 50</span>
+</div>
+
+<div class="step slide" id="poll-timeout" data-x="0" data-y="3400">
+<h1>Долгая обработка и потеря назначения</h1>
+<ul><li>max.poll.interval.ms ограничивает время между poll.</li><li>Если consumer слишком долго не вызывает poll, назначение может быть потеряно.</li><li>Поздний commit может завершиться ошибкой.</li><li>Фоновый worker может всё ещё менять внешнюю БД.</li></ul><p>Нужны ограниченные порции, корректная обработка rebalance<br>и контроль незавершённой работы.</p>
+<aside class="notes">66–68 мин. Детали исключения и момента переназначения зависят от group protocol и static membership. Не обещать мгновенное переназначение по одному таймеру.</aside>
+<p class="source"><a href="https://kafka.apache.org/41/configuration/consumer-configs/">Источник: Apache Kafka</a></p><span class="timing">37 / 50</span>
+</div>
+
+<div class="step slide" id="lag" data-x="1100" data-y="3400">
+<h1>Lag — не время и не бизнес-прогресс</h1>
+<pre class="diagram">Конец журнала:        1000
+Position:              950
+Завершено приложением:  900
+Committed:             850</pre><ul><li>Lag по committed offset в примере: 150 записей.</li><li>Для оценки задержки нужны время событий и метрики обработки.</li><li>Нулевой lag не доказывает, что бизнес-результат корректен.</li></ul>
+<aside class="notes">68–70 мин. Выбранная метрика lag должна быть явно определена: разные инструменты считают от разных позиций. Здесь схема без транзакционных границ.</aside>
+<span class="timing">38 / 50</span>
+</div>
+
+<div class="step slide" id="reset" data-x="2200" data-y="3400">
+<h1>Перезапуск, replay и auto.offset.reset</h1>
+<ul><li>При допустимом committed offset чтение возобновляется с него.</li><li>auto.offset.reset применяется, если позиции нет или она недоступна.</li><li>earliest — с начала доступной истории; latest — с её конца.</li><li>Для replay явно меняют позицию: seek или reset offsets группы.</li></ul><p><strong>earliest не означает перечитывать всё при каждом запуске.</strong></p>
+<aside class="notes">70–71 мин. Административный reset согласовывать с активностью группы. Удалённую retention историю настройка не восстановит.</aside>
+<p class="source"><a href="https://kafka.apache.org/41/configuration/consumer-configs/">Источник: Apache Kafka</a></p><span class="timing">39 / 50</span>
+</div>
+
+<div class="step slide" id="semantics" data-x="3300" data-y="3400">
+<h1>Гарантии: для какого эффекта?</h1>
+<table><tr><th>Гарантия</th><th>При сбоях</th></tr><tr><td>At-most-once</td><td>Допускаем пропуск; избегаем повтора на выбранном участке</td></tr><tr><td>At-least-once</td><td>Добиваемся повтора при неопределённости; возможен дубль</td></tr><tr><td>Exactly-once</td><td>Фиксируем эффект ровно один раз в оговорённых границах</td></tr></table><p>Сам факт повторного выполнения кода<br>ещё не означает повторный бизнес-эффект.</p>
+<aside class="notes">71–73 мин. Сформулировать предпосылки: доступность истории, продолжение повторов, политика обработки ошибок. Не обещать доставку навсегда при произвольных сбоях.</aside>
+<p class="source"><a href="https://kafka.apache.org/41/design/design/">Источник: Apache Kafka</a></p><span class="timing">40 / 50</span>
+</div>
+
+<div class="step slide" id="db-dedup" data-x="4400" data-y="3400">
+<h1>Kafka → БД: защищаем бизнес-эффект</h1>
+<pre class="diagram">Транзакция БД:
+  1. Зарегистрировать event_id с UNIQUE-ограничением
+  2. Если событие новое — применить изменение
+  3. COMMIT БД
+После этого: commit offset в Kafka</pre><ul><li>Отметка и изменение должны быть атомарны в одной БД.</li><li>Повтор после сбоя увидит уже зарегистрированное событие.</li><li>Срок хранения дедупликации должен покрывать возможный replay.</li></ul>
+<aside class="notes">73–75 мин. Если отметка сохранена отдельно до эффекта, возможна потеря. Если после — возможен дубль. Реальный SQL параметризуется; на слайде алгоритм.</aside>
+<span class="timing">41 / 50</span>
+</div>
+
+<div class="step slide" id="transactions" data-x="5500" data-y="3400">
+<h1>Kafka → Kafka: транзакция</h1>
+<pre class="diagram">Прочитать вход
+Начать Kafka-транзакцию
+  Записать выходные события
+  Добавить offsets группы: sendOffsetsToTransaction
+commitTransaction</pre><ul><li>Результаты и прогресс группы фиксируются в одной транзакции.</li><li>Для получателя: isolation.level=read_committed.</li><li>Это не включает произвольную внешнюю БД или HTTP-запрос.</li></ul>
+<aside class="notes">75–77 мин. Выполнение обработки может повториться, но aborted output не выдаётся read_committed consumer. Не обещать общий snapshot всех партиций при чтении.</aside>
+<p class="source"><a href="https://kafka.apache.org/41/design/design/">Источник: Apache Kafka</a></p><span class="timing">42 / 50</span>
+</div>
+
+<div class="step slide" id="two-commits" data-x="6600" data-y="3400">
+<h1>Три разных «commit»</h1>
+<table><tr><th>Механизм</th><th>Что фиксирует</th></tr><tr><td>Commit offsets группы</td><td>Позицию продолжения чтения</td></tr><tr><td>Commit транзакции Kafka</td><td>Выходные записи и включённые offsets</td></tr><tr><td>Commit транзакции БД</td><td>Изменения внутри БД</td></tr></table><p><strong>Одинаковое слово не означает общую транзакцию.</strong></p><p>Без связующего протокола два независимых commit<br>оставляют окно неопределённости.</p>
+<aside class="notes">77–78 мин. Вернуться к примеру записи в БД и падения до commit offset.</aside>
+<span class="timing">43 / 50</span>
+</div>
+
+<div class="step slide" id="failure-quiz" data-x="7700" data-y="3400">
+<h1>Проверьте гарантию</h1>
+<table><tr><th>Сценарий</th><th>Что может случиться?</th></tr><tr><td>Commit → запись в БД → сбой</td><td>Пропуск при сбое между первыми шагами</td></tr><tr><td>Запись в БД → commit → сбой</td><td>Повтор при сбое между первыми шагами</td></tr><tr><td>Отдали worker’ам → commit</td><td>Зафиксирована незавершённая работа</td></tr><tr><td>UNIQUE event_id + эффект в одной транзакции БД</td><td>Повторное чтение без повторного эффекта</td></tr></table>
+<aside class="notes">78–80 мин. Сначала закрыть правый столбец устно, дать аудитории предсказать последствия. Последняя строка требует корректного обработки конфликта уникальности.</aside>
+<span class="timing">44 / 50</span>
+</div>
+
+<div class="step slide" id="scale-units" data-x="8800" data-y="3400">
+<h1>100 000 машин: что считаем?</h1>
+<pre class="diagram">Тысячи producers
+         ↓
+Несколько Kafka-кластеров
+         ↓
+Тысячи consumers разных приложений</pre><ul><li>Машины всей системы ≠ брокеры одного кластера.</li><li>Оцениваем байты/с, события/с, retention и число читателей.</li><li>100 000 брокеров в одном кластере не принимаем за проектную норму.</li></ul>
+<aside class="notes">80–82 мин. Это архитектурная постановка, не обещание проверенной ёмкости. Для конкретного проекта нужны нагрузочные испытания.</aside>
+<span class="timing">45 / 50</span>
+</div>
+
+<div class="step slide" id="capacity" data-x="0" data-y="4250">
+<h1>Прикидка ёмкости</h1>
+<pre class="diagram">Вход: 100 МБ/с
+За сутки: 100 × 86 400 = 8,64 ТБ
+RF = 3: ≈ 25,9 ТБ за сутки хранения</pre><ul><li>Расчёт без сжатия и служебных расходов.</li><li>Репликация и независимые читатели нагружают сеть.</li><li>Нужен запас на восстановление и перераспределение данных.</li></ul>
+<aside class="notes">82–84 мин. Используются десятичные единицы. При недельном retention умножить на семь; реальный объём зависит от сжатия и формата.</aside>
+<span class="timing">46 / 50</span>
+</div>
+
+<div class="step slide" id="scale-limits" data-x="1100" data-y="4250">
+<h1>Что ограничивает масштаб?</h1>
+<table><tr><th>Уровень</th><th>Возможное ограничение</th></tr><tr><td>Партиция</td><td>Горячий ключ; скорость одного consumer</td></tr><tr><td>Брокер</td><td>Сеть, диск, CPU; распределение реплик</td></tr><tr><td>Кластер</td><td>Метаданные, перемещения, время восстановления</td></tr><tr><td>Приложение</td><td>БД или API не успевают принимать результат</td></tr></table><p>Больше узлов помогает, только если работа распределяется.</p>
+<aside class="notes">84–86 мин. Добавление брокеров само по себе не переносит всю существующую нагрузку. Расширение числа партиций может изменить mapping ключей.</aside>
+<span class="timing">47 / 50</span>
+</div>
+
+<div class="step slide" id="multi-cluster" data-x="2200" data-y="4250">
+<h1>Большая система: несколько кластеров</h1>
+<ul><li>Разделение по регионам, продуктам и классам нагрузки.</li><li>Меньше область отказа; независимое управление ёмкостью.</li><li>Межкластерная доставка добавляет задержки и возможные повторы.</li><li>Позиции и транзакционные гарантии нельзя автоматически переносить между кластерами.</li></ul><p>Исторический пример LinkedIn, 2019:<br><strong>100+ кластеров, 4000+ брокеров, 7 трлн сообщений/день.</strong></p>
+<aside class="notes">86–88 мин. Это опубликованный исторический масштаб, не текущая оценка и не предел Kafka. Обсудить мониторинг lag и ошибок отдельно по каждому этапу.</aside>
+<p class="source"><a href="https://www.linkedin.com/blog/engineering/open-source/apache-kafka-trillion-messages">Источник: LinkedIn Engineering</a></p><span class="timing">48 / 50</span>
+</div>
+
+<div class="step slide" id="final-case" data-x="3300" data-y="4250">
+<h1>Заказ обработан. Но commit не успел</h1>
+<pre class="diagram">1. Kafka сохранила OrderCreated
+2. Consumer записал заказ в БД
+3. Consumer упал до commit offset
+4. Другой consumer получил партицию</pre><p>С какой позиции продолжится чтение?<br>Может ли заказ появиться повторно?<br>Как обеспечить один бизнес-эффект?</p>
+<aside class="notes">88–90 мин. Ответы: с последнего допустимого committed offset, повтор возможен; идемпотентность или дедупликация вместе с эффектом в транзакции БД. Связать с будущим Structured Streaming: offsets и state будут управляться через checkpoint.</aside>
+<span class="timing">49 / 50</span>
+</div>
+
+<div class="step slide" id="sources" data-x="4400" data-y="4250">
+<h1>Материалы к лекции</h1>
+<ul><li><a href="https://kafka.apache.org/41/design/design/">Apache Kafka: устройство и гарантии</a></li><li><a href="https://kafka.apache.org/41/javadoc/org/apache/kafka/clients/consumer/KafkaConsumer.html">Java KafkaConsumer: позиции, commit и обработка</a></li><li><a href="https://kafka.apache.org/41/configuration/producer-configs/">Producer configs: acks и идемпотентность</a></li><li><a href="https://kafka.apache.org/41/configuration/consumer-configs/">Consumer configs: auto commit и тайм-ауты</a></li><li><a href="https://kafka.apache.org/41/operations/kraft/">KRaft: роли брокеров и контроллеров</a></li></ul><p>Примеры API ориентированы на Apache Kafka 4.1.<br>На практике проверяйте настройки конкретного клиента.</p>
+<aside class="notes">Справочный слайд, вне 90 минут.</aside>
+<span class="timing">50 / 50</span>
+</div>
+
+<div class="step" id="overview" data-x="4400" data-y="2125" data-scale="12"></div>
+
+
+</div>
+
+<div class="impress-progressbar"><div></div></div>
+<div class="impress-progress"></div>
+<a class="ov" href="#/overview">Обзор</a>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<script>
+    if (window.hljs) {
+        hljs.highlightAll();
+    }
+</script>
+<script src="js/impress.js"></script>
+<script>
+    impress().init();
+</script>
+</body>
+</html>
