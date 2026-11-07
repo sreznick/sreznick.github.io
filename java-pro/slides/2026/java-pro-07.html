@@ -1,0 +1,738 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1024" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <title>Базы данных в Java: JDBC и ORM</title>
+
+    <link href="//fonts.googleapis.com/css?family=Open+Sans:regular,semibold,italic,italicsemibold|PT+Sans:400,700,400italic,700italic|PT+Serif:400,700,400italic,700italic" rel="stylesheet" />
+
+    <link href="css/impress-demo.css" rel="stylesheet" />
+    <link href="css/impress-common.css" rel="stylesheet" />
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/default.min.css">
+
+    <style>
+        /* Дополнения к impress-demo.css: только то, чего нет в образце (код, таблицы, разделы). Можно удалить/подправить. */
+
+        .slide {
+            font-size: 27px;
+            line-height: 1.3;
+            letter-spacing: -.5px;
+        }
+
+        .slide h1 {
+            font-size: 40px;
+            line-height: 1.15;
+            margin: 0 0 .5em;
+            text-align: left;
+        }
+
+        .slide ul,
+        .slide ol {
+            margin: 0;
+            padding-left: 1.1em;
+        }
+
+        .slide li {
+            margin: .25em 0;
+        }
+
+        .slide p {
+            margin: .6em 0 0;
+        }
+
+        .slide pre {
+            margin: 0 0 12px;
+            letter-spacing: 0;
+            text-shadow: none;
+        }
+
+        .slide pre code.hljs {
+            padding: 12px 16px;
+            font-size: 17px;
+            line-height: 1.35;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .slide pre.small code.hljs {
+            font-size: 15.5px;
+        }
+
+        .slide code:not(.hljs) {
+            background: #e2e8f0;
+            color: #1e293b;
+            padding: 0 .3em;
+            border-radius: 4px;
+            font-size: .85em;
+            letter-spacing: 0;
+        }
+
+        .slide.section code:not(.hljs),
+        .slide.title code:not(.hljs) {
+            background: rgba(255,255,255,.28);
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .slide table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 22px;
+            line-height: 1.25;
+        }
+
+        .slide th,
+        .slide td {
+            border-bottom: 1px solid #ccc;
+            padding: 6px 10px;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .slide th {
+            background: #e2e8f0;
+            color: #1e293b;
+        }
+
+        .slide .hl {
+            color: #b91c1c;
+        }
+
+        .slide.section {
+            background: linear-gradient(135deg,#0f766e,#1d4ed8);
+            color: #fff;
+            text-shadow: none;
+        }
+
+        .slide.section h1 {
+            color: #fff;
+            font-size: 50px;
+        }
+
+        .slide.section .num {
+            position: absolute;
+            right: 40px;
+            top: 0;
+            font-size: 200px;
+            font-weight: 700;
+            opacity: .18;
+            line-height: 1;
+        }
+
+        .slide.title .hint {
+            font-size: 20px;
+            color: #999;
+            margin-top: 40px;
+        }
+
+        .notes {
+            display: none;
+        }
+
+        .ov {
+            position: fixed;
+            left: 14px;
+            bottom: 12px;
+            color: #93c5fd;
+            font-size: 14px;
+            text-decoration: none;
+            z-index: 10;
+        }
+
+        #overview {
+            background: none!important;
+            border: 0!important;
+            box-shadow: none!important;
+            pointer-events: none;
+        }
+    </style>
+
+    <style>
+        .slide { background: #111; color: #fff; }
+        .slide h2 { font-size: 30px; margin: .7em 0; }
+        .slide .lead { font-size: 32px; margin: 1em 0; }
+        .slide .takeaway { border-left: 4px solid #38bdf8; padding-left: 16px; margin-top: 24px; font-size: 24px; }
+        .slide .muted { color: #b8c4d4; font-size: 21px; }
+        .slide .counter { position: absolute; bottom: 18px; right: 28px; font-size: 15px; color: #94a3b8; }
+        .slide ol { list-style-type: decimal; }
+        .slide pre code { display: block; white-space: pre; background: #f3f4f6; color: #111827; padding: 12px 16px; font: 17px/1.35 monospace; border-radius: 8px; }
+        .slide table { font-size: 21px; }
+        .slide a { color: #7dd3fc; background: none; text-shadow: none; text-decoration: underline; }
+        .slide.section { background: linear-gradient(135deg,#0f766e,#1d4ed8); }
+        .slide.section .muted { color: #e2e8f0; }
+        .slide .flow { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 30px 0; font-size: 22px; }
+        .slide .box { border: 1px solid #38bdf8; border-radius: 8px; padding: 16px 12px; text-align: center; }
+        #overview { color: #fff; }
+        .ov { color: #164e63; }
+        @media print {
+            html, body { background: #fff !important; min-height: 0; }
+            #impress { position: static !important; transform: none !important; }
+            .step.slide { position: relative !important; transform: none !important; opacity: 1 !important; margin: 0 auto !important; break-after: page; box-shadow: none; }
+            #overview, .ov, .impress-progress, .impress-progressbar, .fallback-message { display: none !important; }
+            * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+    </style>
+</head>
+
+<body class="impress-not-supported">
+<div class="fallback-message"><p>Для показа используйте браузер с поддержкой impress.js. Навигация: стрелки или пробел.</p></div>
+<div id="impress" data-transition-duration="600" data-width="1024" data-height="768" data-max-scale="30" data-min-scale="0" data-perspective="1000">
+<div id="intro" class="step slide" data-x="0" data-y="0">
+<h1>Базы данных в Java</h1>
+<h2>JDBC · пулы соединений · ORM</h2><p class="lead">От SQL-запроса до согласованности между сервисами</p><p>Сквозной пример: заказ и его позиции.</p><p class="muted">Основная часть: JDBC и ORM.<br>Дополнительный блок: распределённые данные.</p>
+<div class="counter">1 / 66</div>
+</div>
+
+<div id="route" class="step slide" data-x="1100" data-y="0">
+<h1>Маршрут занятия</h1>
+<ul><li>Как Java обращается к БД: JDBC и пулы.</li><li>Как обеспечить целостность: транзакции и миграции.</li><li>Что автоматизирует ORM: сущности, связи, изменения.</li><li>Как управлять SQL: загрузка, N+1, пагинация, batching.</li><li>Дополнительно: 2PC, saga, outbox, Event Sourcing.</li></ul>
+<div class="counter">2 / 66</div>
+</div>
+
+<div id="relational" class="step slide section" data-x="2200" data-y="0">
+<h1>Объекты и таблицы</h1>
+<div class="num">01</div><p class="lead">Один заказ — несколько позиций</p>
+<div class="counter">3 / 66</div>
+</div>
+
+<div id="schema" class="step slide" data-x="3300" data-y="0">
+<h1>Схема примера: PostgreSQL</h1>
+<pre><code class="language-sql">CREATE TABLE orders (
+    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    created_at timestamp NOT NULL
+);
+CREATE TABLE order_items (
+    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    order_id bigint NOT NULL REFERENCES orders(id),
+    product_name text NOT NULL,
+    quantity integer NOT NULL CHECK (quantity &gt; 0)
+);</code></pre><p class="takeaway">Внешний ключ запрещает позицию с несуществующим order_id.</p>
+<div class="counter">4 / 66</div>
+</div>
+
+<div id="mapping-gap" class="step slide" data-x="4400" data-y="0">
+<h1>В Java — граф объектов, в БД — строки</h1>
+<div class="flow"><div class="box">Order<br>List&lt;OrderItem&gt;</div><span>→</span><div class="box">orders<br>order_items</div></div><ul><li>Ссылке на заказ соответствует внешний ключ.</li><li>Для восстановления объектов нужно прочитать строки.</li><li>Для сохранения графа нужно выполнить SQL-команды.</li></ul><p class="takeaway">Кто напишет SQL и преобразует строки в объекты?</p>
+<div class="counter">5 / 66</div>
+</div>
+
+<div id="jdbc" class="step slide section" data-x="5500" data-y="0">
+<h1>JDBC</h1>
+<div class="num">02</div><p class="lead">Стандартный API и драйвер конкретной СУБД</p>
+<div class="counter">6 / 66</div>
+</div>
+
+<div id="jdbc-api" class="step slide" data-x="6600" data-y="0">
+<h1>Основные объекты JDBC</h1>
+<table><thead><tr><th>Объект</th><th>Ответственность</th></tr></thead><tbody><tr><td>DataSource</td><td>Выдать соединение; сам интерфейс не гарантирует пул.</td></tr><tr><td>Connection</td><td>Сеанс работы с БД; команды и границы транзакции.</td></tr><tr><td>PreparedStatement</td><td>Параметризованная SQL-команда.</td></tr><tr><td>ResultSet</td><td>Последовательное чтение строк результата.</td></tr></tbody></table><p class="takeaway">JDBC — интерфейсы; драйвер реализует взаимодействие с СУБД.</p>
+<div class="counter">7 / 66</div>
+</div>
+
+<div id="prepared" class="step slide" data-x="7700" data-y="0">
+<h1>PreparedStatement: клиент и сервер</h1>
+<pre><code class="language-java">PreparedStatement ps = connection.prepareStatement(
+    &quot;SELECT id FROM orders WHERE id = ?&quot;
+);
+ps.setLong(1, orderId);</code></pre><ul><li>Структура SQL фиксирована; значения задаются отдельно.</li><li>Драйвер может использовать серверную подготовку или эмуляцию.</li><li>В pgJDBC по умолчанию: безымянный statement, затем именованный с 5-го выполнения.</li><li>Подготовленный запрос — не предвычисленный результат.</li></ul><p class="takeaway">Параметры заменяют значения, а не имена таблиц и SQL-операторы.</p>
+<div class="counter">8 / 66</div>
+</div>
+
+<div id="pools" class="step slide section" data-x="8800" data-y="0">
+<h1>Пулы соединений</h1>
+<div class="num">03</div><p class="lead">Соединения переиспользуются и ограничивают нагрузку на БД</p>
+<div class="counter">9 / 66</div>
+</div>
+
+<div id="pool-lifecycle" class="step slide" data-x="9900" data-y="0">
+<h1>Взять → использовать → вернуть</h1>
+<div class="flow"><div class="box">getConnection()</div><span>→</span><div class="box">Connection<br>из пула</div><span>→</span><div class="box">close()<br>возврат</div></div><ul><li>Физическое подключение требует сети, аутентификации и ресурсов БД.</li><li>Пул выдаёт логическую обёртку над физическим соединением.</li><li>close() обычно возвращает соединение, а не разрывает его.</li><li>Все соединения заняты → ожидание до тайм-аута.</li></ul><p class="takeaway">try-with-resources обязателен и при использовании пула.</p>
+<div class="counter">10 / 66</div>
+</div>
+
+<div id="pool-comparison" class="step slide" data-x="11000" data-y="0">
+<h1>Основные реализации пулов</h1>
+<table><thead><tr><th>Пул</th><th>Особенности</th></tr></thead><tbody><tr><td>HikariCP</td><td>Компактная конфигурация, акцент на низких накладных расходах; нет своего кеша statements.</td></tr><tr><td>Apache DBCP 2</td><td>Основан на Commons Pool; гибкие проверки и обработка забытых соединений.</td></tr><tr><td>c3p0</td><td>Фоновые проверки и восстановление; опциональное кеширование statements.</td></tr></tbody></table><p class="takeaway">В примерах используем HikariCP. Выбор сверяем с окружением и средствами диагностики.</p>
+<div class="counter">11 / 66</div>
+</div>
+
+<div id="pool-config" class="step slide" data-x="12100" data-y="0">
+<h1>HikariCP: минимальный пример</h1>
+<pre><code class="language-java">HikariConfig config = new HikariConfig();
+config.setJdbcUrl(System.getenv(&quot;DB_URL&quot;));
+config.setUsername(System.getenv(&quot;DB_USER&quot;));
+config.setPassword(System.getenv(&quot;DB_PASSWORD&quot;));
+config.setMaximumPoolSize(10);
+config.setConnectionTimeout(2_000);
+
+HikariDataSource dataSource = new HikariDataSource(config);
+// Один DataSource на приложение; закрываем при остановке.</code></pre><p class="takeaway">connectionTimeout — ожидание выдачи соединения, не время выполнения SQL.</p>
+<div class="counter">12 / 66</div>
+</div>
+
+<div id="pool-sizing" class="step slide" data-x="13200" data-y="0">
+<h1>Размер пула и диагностика</h1>
+<ul><li>maximumPoolSize: предел соединений; minimumIdle: целевой минимум свободных.</li><li>maxLifetime: обновление физических соединений.</li><li>10 экземпляров × 20 соединений = до 200 соединений с БД.</li><li>Наблюдаем: active, idle, pending, время ожидания и время удержания.</li><li>Не держим соединение во время долгого HTTP-вызова.</li></ul><p class="takeaway">Демонстрация: занять оба соединения пула из двух; третья попытка ждёт или получает тайм-аут.</p>
+<div class="counter">13 / 66</div>
+</div>
+
+<div id="jdbc-read" class="step slide" data-x="14300" data-y="0">
+<h1>Чтение: строки → объекты</h1>
+<pre><code class="language-java">String sql = &quot;&quot;&quot;
+    SELECT id, product_name, quantity
+    FROM order_items WHERE order_id = ?
+    &quot;&quot;&quot;;
+try (Connection c = dataSource.getConnection();
+     PreparedStatement ps = c.prepareStatement(sql)) {
+    ps.setLong(1, orderId);
+    try (ResultSet rs = ps.executeQuery()) {
+        while (rs.next()) {
+            items.add(new ItemDto(rs.getLong(&quot;id&quot;),
+                rs.getString(&quot;product_name&quot;),
+                rs.getInt(&quot;quantity&quot;)));
+        }
+    }
+}</code></pre><p class="muted">ItemDto — обычный DTO приложения. Параметры нумеруются с 1.</p>
+<div class="counter">14 / 66</div>
+</div>
+
+<div id="jdbc-write" class="step slide" data-x="15400" data-y="0">
+<h1>Запись и идентификатор</h1>
+<pre><code class="language-java">String sql = &quot;&quot;&quot;
+    INSERT INTO orders(created_at) VALUES (?) RETURNING id
+    &quot;&quot;&quot;;
+try (PreparedStatement ps = c.prepareStatement(sql)) {
+    ps.setObject(1, LocalDateTime.now());
+    try (ResultSet rs = ps.executeQuery()) {
+        if (!rs.next()) throw new SQLException(&quot;Нет id&quot;);
+        long orderId = rs.getLong(1);
+        // Используем orderId при вставке позиций.
+    }
+}</code></pre><ul><li>RETURNING — возможность PostgreSQL; здесь запрос возвращает ResultSet.</li><li>Для UPDATE / DELETE без результата используем executeUpdate().</li></ul>
+<div class="counter">15 / 66</div>
+</div>
+
+<div id="transactions" class="step slide section" data-x="16500" data-y="0">
+<h1>Транзакции</h1>
+<div class="num">04</div><p class="lead">Граница — бизнес-операция «создать заказ»</p>
+<div class="counter">16 / 66</div>
+</div>
+
+<div id="atomicity" class="step slide" data-x="17600" data-y="0">
+<h1>Заказ должен сохраниться целиком</h1>
+<div class="flow"><div class="box">INSERT orders</div><span>→</span><div class="box">INSERT item 1</div><span>→</span><div class="box">INSERT item 2</div></div><ul><li>Без общей транзакции возможен частично сохранённый заказ.</li><li>autoCommit обычно включён: отдельная команда фиксируется отдельно.</li><li>Отключаем autoCommit и используем одно соединение.</li><li>Транзакцию обеспечивает СУБД; JDBC управляет её границами.</li></ul><p class="takeaway">Откат SQL не возвращает Java-объекты в прежнее состояние.</p>
+<div class="counter">17 / 66</div>
+</div>
+
+<div id="jdbc-transaction" class="step slide" data-x="18700" data-y="0">
+<h1>JDBC: commit и rollback</h1>
+<pre><code class="language-java">try (Connection c = dataSource.getConnection()) {
+    c.setAutoCommit(false);
+    try {
+        long id = insertOrder(c, order);
+        insertItems(c, id, order.getItems());
+        c.commit();
+    } catch (SQLException | RuntimeException e) {
+        try {
+            c.rollback();
+        } catch (SQLException rollbackError) {
+            e.addSuppressed(rollbackError);
+        }
+        throw e;
+    }
+}</code></pre><p class="takeaway">Оба метода получают тот же Connection; SQL хранится в репозитории.</p>
+<div class="counter">18 / 66</div>
+</div>
+
+<div id="acid" class="step slide" data-x="19800" data-y="0">
+<h1>ACID: четыре гарантии</h1>
+<table><thead><tr><th>Свойство</th><th>Смысл</th></tr></thead><tbody><tr><td>Atomicity</td><td>Изменения транзакции фиксируются вместе или откатываются.</td></tr><tr><td>Consistency</td><td>При корректной логике и ограничениях сохраняются инварианты.</td></tr><tr><td>Isolation</td><td>Параллельные транзакции взаимодействуют по правилам выбранного уровня.</td></tr><tr><td>Durability</td><td>Подтверждённые изменения сохраняются согласно гарантиям БД.</td></tr></tbody></table><p class="takeaway">Наличие транзакции не означает полную изоляцию от конкурентов.</p>
+<div class="counter">19 / 66</div>
+</div>
+
+<div id="isolation" class="step slide" data-x="20900" data-y="0">
+<h1>Изоляция: что видит транзакция</h1>
+<ul><li>Read Committed: в PostgreSQL новый снимок на каждую команду.</li><li>Repeatable Read: в PostgreSQL стабильный снимок; возможен write skew.</li><li>Serializable: эффект успешных транзакций эквивалентен последовательному выполнению.</li><li>При конфликтах возможен отказ: приложение повторяет всю транзакцию.</li></ul><p class="takeaway">Пример write skew: два врача видят второго на дежурстве и оба снимают своё дежурство.</p>
+<div class="counter">20 / 66</div>
+</div>
+
+<div id="locking" class="step slide" data-x="22000" data-y="0">
+<h1>Пессимистический и оптимистический подходы</h1>
+<table><thead><tr><th>Подход</th><th>Механизм</th><th>Цена</th></tr></thead><tbody><tr><td>Пессимистический</td><td>SELECT … FOR UPDATE до изменения</td><td>Ожидания, дедлоки, удержание блокировок.</td></tr><tr><td>Оптимистический</td><td>Проверка версии при записи</td><td>Конфликт → новая транзакция и повторная проверка.</td></tr><tr><td>MVCC</td><td>Версии строк и снимки внутри СУБД</td><td>Не заменяет проверку бизнес-инвариантов.</td></tr></tbody></table><p class="takeaway">MVCC и поле версии ORM — разные механизмы.</p>
+<div class="counter">21 / 66</div>
+</div>
+
+<div id="migrations" class="step slide section" data-x="23100" data-y="0">
+<h1>Миграции схемы</h1>
+<div class="num">05</div><p class="lead">Изменения БД воспроизводятся вместе с версией приложения</p>
+<div class="counter">22 / 66</div>
+</div>
+
+<div id="migration-history" class="step slide" data-x="24200" data-y="0">
+<h1>Схема тоже имеет историю</h1>
+<div class="flow"><div class="box">V1: таблицы</div><span>→</span><div class="box">V2: статус</div><span>→</span><div class="box">V3: индекс</div></div><ul><li>Миграции хранятся в репозитории рядом с кодом.</li><li>Инструмент ведёт историю применения и проверяет контрольные суммы.</li><li>Применённую версионную миграцию не переписываем: добавляем новую.</li><li>Проверяем и создание БД с нуля, и обновление существующей.</li></ul>
+<div class="counter">23 / 66</div>
+</div>
+
+<div id="migration-tools" class="step slide" data-x="25300" data-y="0">
+<h1>Flyway и Liquibase</h1>
+<table><thead><tr><th></th><th>Flyway</th><th>Liquibase</th></tr></thead><tbody><tr><td>Основная модель</td><td>Версионные SQL-скрипты; также программные миграции.</td><td>Changelog из changeset; SQL, XML, YAML, JSON.</td></tr><tr><td>История</td><td>Версии и контрольные суммы.</td><td>Идентичность changeset и контрольные суммы.</td></tr><tr><td>Выбор</td><td>Прямой контроль SQL и последовательных изменений.</td><td>Декларативные операции, условия и описание rollback.</td></tr></tbody></table><p class="takeaway">Обратимость зависит от изменения данных. Описание rollback не возвращает удалённые данные само по себе.</p>
+<div class="counter">24 / 66</div>
+</div>
+
+<div id="migration-example" class="step slide" data-x="26400" data-y="0">
+<h1>Миграция: добавляем статус</h1>
+<pre><code class="language-sql">-- V2__add_order_status.sql (PostgreSQL)
+ALTER TABLE orders ADD COLUMN status varchar(20);
+
+UPDATE orders SET status = &#x27;NEW&#x27; WHERE status IS NULL;
+
+ALTER TABLE orders ALTER COLUMN status SET NOT NULL;
+ALTER TABLE orders ADD CONSTRAINT orders_status_check
+    CHECK (status IN (&#x27;NEW&#x27;, &#x27;CANCELLED&#x27;, &#x27;PAID&#x27;));</code></pre><ul><li>После миграции обновляем INSERT и отображение ORM.</li><li>Пример для небольшой таблицы; массовый backfill требует отдельного планирования.</li></ul>
+<div class="counter">25 / 66</div>
+</div>
+
+<div id="expand-contract" class="step slide" data-x="27500" data-y="0">
+<h1>Обновление без одновременного релиза</h1>
+<div class="flow"><div class="box">Расширить схему</div><span>→</span><div class="box">Перенести данные<br>и приложение</div><span>→</span><div class="box">Удалить старое</div></div><ul><li>Во время раскатки старая и новая версии могут работать одновременно.</li><li>Промежуточная схема должна поддерживать обе версии.</li><li>Долгие блокировки и массовые UPDATE оцениваем заранее.</li><li>Автогенерация DDL ORM удобна в эксперименте; production-переходы описываем миграциями.</li></ul><p class="takeaway">В приложении можно проверять соответствие схемы через Hibernate schema validation.</p>
+<div class="counter">26 / 66</div>
+</div>
+
+<div id="jdbc-practice" class="step slide" data-x="28600" data-y="0">
+<h1>Практика: атомарное сохранение</h1>
+<ul><li>Применить миграции и реализовать JDBC-репозиторий.</li><li>Сохранить заказ с двумя позициями.</li><li>Во второй позиции передать quantity = 0: нарушить CHECK.</li><li>После rollback проверить отсутствие и заказа, и первой позиции.</li><li>Повторить с autoCommit и сравнить состояние БД.</li></ul><p class="takeaway">Результат: наблюдаемая разница между набором команд и одной бизнес-транзакцией.</p>
+<div class="counter">27 / 66</div>
+</div>
+
+<div id="orm" class="step slide section" data-x="29700" data-y="0">
+<h1>ORM: от строк к объектам</h1>
+<div class="num">06</div><p class="lead">JPA задаёт контракт, Hibernate его реализует</p>
+<div class="counter">28 / 66</div>
+</div>
+
+<div id="orm-stack" class="step slide" data-x="30800" data-y="0">
+<h1>Что автоматизирует ORM</h1>
+<div class="flow"><div class="box">Java-объекты</div><span>→</span><div class="box">Hibernate</div><span>→</span><div class="box">JDBC</div><span>→</span><div class="box">БД</div></div><ul><li>Отображение классов и полей на таблицы и столбцы.</li><li>Создание объектов по результату чтения.</li><li>Стандартные INSERT, UPDATE, DELETE и передачу параметров.</li><li>Отслеживание изменений и загрузку связей.</li></ul><p class="takeaway">Jakarta Persistence (JPA) — спецификация; Hibernate ORM — реализация.</p>
+<div class="counter">29 / 66</div>
+</div>
+
+<div id="entity" class="step slide" data-x="31900" data-y="0">
+<h1>Сущность Order</h1>
+<pre><code class="language-java">@Entity
+@Table(name = &quot;orders&quot;)
+public class Order {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = &quot;created_at&quot;, nullable = false)
+    private LocalDateTime createdAt;
+
+    @Column(nullable = false)
+    private String status = &quot;NEW&quot;;
+
+    protected Order() {}
+    // Конструктор, геттеры и бизнес-методы опущены.
+}</code></pre><p class="muted">Аннотации: jakarta.persistence.*. @Id на поле задаёт доступ к полям.</p>
+<div class="counter">30 / 66</div>
+</div>
+
+<div id="entity-creation" class="step slide" data-x="33000" data-y="0">
+<h1>Кто и когда создаёт объект?</h1>
+<table><thead><tr><th>Действие</th><th>Что происходит</th></tr></thead><tbody><tr><td>new Order(…)</td><td>Объект создаёт приложение; строки в БД ещё может не быть.</td></tr><tr><td>persist(order)</td><td>Объект становится managed; ORM организует INSERT.</td></tr><tr><td>find(Order.class, id)</td><td>Возврат объекта из контекста либо чтение и создание сущности.</td></tr><tr><td>Обращение к lazy-связи</td><td>Загрузка и создание связанных объектов по необходимости.</td></tr></tbody></table><p class="takeaway">Создание Java-объекта и выполнение SQL — разные события.</p>
+<div class="counter">31 / 66</div>
+</div>
+
+<div id="entity-manager" class="step slide" data-x="34100" data-y="0">
+<h1>EntityManager и persistence context</h1>
+<ul><li>Persistence context хранит управляемые сущности и отслеживает их состояние.</li><li>Для типа и идентификатора в одном контексте — один managed-экземпляр.</li><li>Повторный find() может вернуть тот же объект без SELECT.</li><li>EntityManager не предназначен для совместного использования потоками.</li></ul><p class="takeaway">Persistence context живёт на стороне Java; его границы и границы транзакции — разные понятия.</p>
+<div class="counter">32 / 66</div>
+</div>
+
+<div id="jpa-bootstrap" class="step slide" data-x="35200" data-y="0">
+<h1>Настройка JPA без Spring</h1>
+<pre><code class="language-java">EntityManagerFactory emf = Persistence
+    .createEntityManagerFactory(&quot;orders&quot;);
+EntityManager em = emf.createEntityManager();
+try {
+    // Работа с em и локальной транзакцией.
+} finally {
+    em.close();
+}
+// emf.close() — при остановке приложения.</code></pre><ul><li>Persistence unit orders описывается в META-INF/persistence.xml.</li><li>Для этого примера используется RESOURCE_LOCAL.</li><li>DataSource / пул подключается через настройки провайдера; фабрика живёт долго.</li></ul>
+<div class="counter">33 / 66</div>
+</div>
+
+<div id="dirty-checking" class="step slide" data-x="36300" data-y="0">
+<h1>Изменение без отдельного save()</h1>
+<pre><code class="language-java">EntityTransaction tx = em.getTransaction();
+tx.begin();
+try {
+    Order order = em.find(Order.class, orderId);
+    order.cancel(); // изменяет status managed-сущности
+    tx.commit();
+} catch (RuntimeException e) {
+    if (tx.isActive()) {
+        try { tx.rollback(); }
+        catch (RuntimeException re) { e.addSuppressed(re); }
+    }
+    throw e;
+}</code></pre><p class="takeaway">Dirty checking обнаруживает изменение; при flush ORM выполняет UPDATE.</p>
+<div class="counter">34 / 66</div>
+</div>
+
+<div id="flush" class="step slide" data-x="37400" data-y="0">
+<h1>Flush ≠ commit</h1>
+<ul><li>Flush синхронизирует изменения контекста с БД через SQL.</li><li>Может происходить явно, перед commit и перед некоторыми запросами.</li><li>SQL уже выполнен, но изменения ещё можно откатить до commit.</li><li>INSERT может потребоваться раньше, например для получения IDENTITY-id.</li><li>После rollback безопаснее завершить этот unit of work и начать с новым контекстом.</li></ul><p class="takeaway">Не привязываем каждый Java-вызов к немедленной SQL-команде.</p>
+<div class="counter">35 / 66</div>
+</div>
+
+<div id="states" class="step slide" data-x="38500" data-y="0">
+<h1>Жизненный цикл сущности</h1>
+<table><thead><tr><th>Состояние</th><th>Смысл</th></tr></thead><tbody><tr><td>New</td><td>Объект создан, ORM им ещё не управляет.</td></tr><tr><td>Managed</td><td>В контексте; изменения отслеживаются.</td></tr><tr><td>Detached</td><td>Отсоединён; изменения автоматически не сохраняются.</td></tr><tr><td>Removed</td><td>Помечен для удаления при синхронизации.</td></tr></tbody></table><div class="flow"><div class="box">new</div><span>→</span><div class="box">persist → managed</div><span>→</span><div class="box">detach → detached</div></div><p class="takeaway">merge(detached) возвращает managed-экземпляр; исходный объект остаётся detached.</p>
+<div class="counter">36 / 66</div>
+</div>
+
+<div id="relations" class="step slide" data-x="39600" data-y="0">
+<h1>Связь заказа и позиций</h1>
+<pre><code class="language-java">// Order
+@OneToMany(mappedBy = &quot;order&quot;, cascade = CascadeType.PERSIST)
+private List&lt;OrderItem&gt; items = new ArrayList&lt;&gt;();
+
+public void addItem(OrderItem item) {
+    items.add(item);
+    item.setOrder(this);
+}
+
+// OrderItem
+@ManyToOne(fetch = FetchType.LAZY)
+@JoinColumn(name = &quot;order_id&quot;, nullable = false)
+private Order order;</code></pre><p class="takeaway">OrderItem.order — владеющая сторона: определяет значение внешнего ключа.</p>
+<div class="counter">37 / 66</div>
+</div>
+
+<div id="cascades" class="step slide" data-x="40700" data-y="0">
+<h1>Каскады и удаление из коллекции</h1>
+<ul><li>PERSIST распространяет сохранение новых сущностей.</li><li>MERGE распространяет перенос состояния при merge().</li><li>REMOVE распространяет удаление; ALL включает все каскады.</li><li>orphanRemoval удаляет дочернюю сущность при разрыве связи в подходящей модели владения.</li><li>Каскады ORM отличаются от ON DELETE CASCADE в БД.</li></ul><p class="takeaway">Не выбираем ALL автоматически: жизненный цикл связанных сущностей может быть независимым.</p>
+<div class="counter">38 / 66</div>
+</div>
+
+<div id="lazy" class="step slide" data-x="41800" data-y="0">
+<h1>Lazy loading: поле может вызвать SQL</h1>
+<pre><code class="language-java">Order order = em.find(Order.class, orderId);
+for (OrderItem item : order.getItems()) {
+    System.out.println(item.getProductName());
+}</code></pre><ul><li>OneToMany по умолчанию LAZY; Hibernate использует специальную коллекцию.</li><li>Незагруженная lazy-связь после отсоединения обычно даёт LazyInitializationException.</li><li>EAGER требует загрузки связи, но не гарантирует JOIN и один запрос.</li></ul><p class="takeaway">План загрузки выбираем под конкретный сценарий.</p>
+<div class="counter">39 / 66</div>
+</div>
+
+<div id="optimization" class="step slide section" data-x="42900" data-y="0">
+<h1>Оптимизация ORM</h1>
+<div class="num">07</div><p class="lead">Сначала наблюдаем SQL, затем меняем способ загрузки</p>
+<div class="counter">40 / 66</div>
+</div>
+
+<div id="observe" class="step slide" data-x="44000" data-y="0">
+<h1>Что измерять</h1>
+<ul><li>Количество SQL-запросов и сетевых обменов.</li><li>Количество строк, столбцов и объём переданных данных.</li><li>Время запросов, план выполнения, индексы и блокировки.</li><li>Память persistence context и время удержания соединения.</li><li>SQL-лог для разбора; статистика и метрики для измерений.</li></ul><p class="takeaway">Один огромный JOIN тоже может быть дорогим. Не логируем чувствительные параметры без необходимости.</p>
+<div class="counter">41 / 66</div>
+</div>
+
+<div id="n-plus-one" class="step slide" data-x="45100" data-y="0">
+<h1>N+1: короткий код, много запросов</h1>
+<pre><code class="language-java">List&lt;Order&gt; orders = em.createQuery(
+    &quot;select o from Order o&quot;, Order.class
+).getResultList();
+for (Order order : orders) {
+    for (OrderItem item : order.getItems()) {
+        System.out.println(item.getProductName());
+    }
+}</code></pre><p class="takeaway">Без кеша и batch fetching: 1 запрос заказов + N запросов позиций. Для 100 заказов — 101 SELECT.</p>
+<div class="counter">42 / 66</div>
+</div>
+
+<div id="fetch-join" class="step slide" data-x="46200" data-y="0">
+<h1>Fetch join: явно загрузить связь</h1>
+<pre><code class="language-java">List&lt;Order&gt; orders = em.createQuery(&quot;&quot;&quot;
+    select distinct o
+    from Order o
+    left join fetch o.items
+    &quot;&quot;&quot;, Order.class).getResultList();</code></pre><ul><li>JPQL использует имена сущностей и полей, а не таблиц.</li><li>LEFT JOIN сохраняет заказы без позиций.</li><li>Данные заказа повторяются в SQL-строках для каждой позиции.</li><li>Несколько to-many JOIN могут дать декартово разрастание.</li></ul><p class="takeaway">Не загружаем весь граф «на всякий случай».</p>
+<div class="counter">43 / 66</div>
+</div>
+
+<div id="fetch-options" class="step slide" data-x="47300" data-y="0">
+<h1>Другие способы загрузки</h1>
+<table><thead><tr><th>Способ</th><th>Когда полезен</th></tr></thead><tbody><tr><td>Entity graph (JPA)</td><td>Задать нужные связи для операции без изменения основного JPQL.</td></tr><tr><td>Batch fetching (Hibernate)</td><td>Загрузить связи нескольких заказов группой через IN вместо N запросов.</td></tr><tr><td>DTO-проекция</td><td>Получить только поля для экрана или отчёта.</td></tr></tbody></table><p class="takeaway">Batch fetching чтения связей и JDBC batching записи — разные оптимизации.</p>
+<div class="counter">44 / 66</div>
+</div>
+
+<div id="projection" class="step slide" data-x="48400" data-y="0">
+<h1>DTO вместо полного графа</h1>
+<pre><code class="language-java">List&lt;OrderSummary&gt; rows = em.createQuery(&quot;&quot;&quot;
+    select new example.OrderSummary(o.id, o.status)
+    from Order o
+    where o.status = :status
+    order by o.id
+    &quot;&quot;&quot;, OrderSummary.class)
+    .setParameter(&quot;status&quot;, &quot;NEW&quot;)
+    .setMaxResults(50)
+    .getResultList();</code></pre><ul><li>Конструктор DTO соответствует выбранным полям.</li><li>Результат такой проекции не является managed-сущностью.</li><li>Фильтрацию, сортировку и агрегацию выполняем в БД.</li></ul>
+<div class="counter">45 / 66</div>
+</div>
+
+<div id="pagination" class="step slide" data-x="49500" data-y="0">
+<h1>Коллекция fetch join и LIMIT</h1>
+<ul><li>LIMIT ограничивает SQL-строки, а нужен лимит заказов.</li><li>Fetch join коллекции вместе с пагинацией может привести к выборке всех строк и ограничению в памяти.</li><li>Решение: сначала страница id заказов, затем загрузка заказов с позициями по этим id.</li><li>Восстанавливаем порядок страницы; учитываем изменения между двумя запросами.</li><li>Альтернатива: DTO или отдельная пакетная загрузка позиций.</li></ul><p class="takeaway">В Hibernate можно включить fail_on_pagination_over_collection_fetch, чтобы обнаруживать такой сценарий.</p>
+<div class="counter">46 / 66</div>
+</div>
+
+<div id="write-batching" class="step slide" data-x="50600" data-y="0">
+<h1>Массовая запись</h1>
+<pre><code class="language-java">// Настройка Hibernate: hibernate.jdbc.batch_size=50
+for (int i = 0; i &lt; orders.size(); i++) {
+    em.persist(orders.get(i));
+    if ((i + 1) % 50 == 0) {
+        em.flush();
+        em.clear();
+    }
+}</code></pre><ul><li>flush отправляет изменения; clear освобождает контекст и отсоединяет сущности.</li><li>flush не фиксирует транзакцию: её размер выбираем отдельно.</li><li>IDENTITY обычно мешает batching INSERT в Hibernate; стратегию id выбираем осознанно.</li></ul><p class="takeaway">Перед clear() нужен flush(), иначе несинхронизированные изменения теряются из контекста.</p>
+<div class="counter">47 / 66</div>
+</div>
+
+<div id="orm-practice" class="step slide" data-x="51700" data-y="0">
+<h1>Практика: увидеть и исправить N+1</h1>
+<ul><li>Создать 10 заказов по 3 позиции.</li><li>В новом EntityManager прочитать заказы и вывести позиции.</li><li>При отключённых кеше второго уровня и batch fetching ожидаем 11 SELECT.</li><li>Повторить с fetch join и новым EntityManager: ожидаем 1 SELECT.</li><li>Сравнить не только запросы, но и число строк результата.</li></ul><p class="takeaway">Проверяем фактический SQL; переключение на EAGER не является универсальным решением.</p>
+<div class="counter">48 / 66</div>
+</div>
+
+<div id="version" class="step slide" data-x="52800" data-y="0">
+<h1>Оптимистическая блокировка: @Version</h1>
+<pre><code class="language-java">// В Order; столбец добавляется отдельной миграцией.
+@Version
+private long version;</code></pre><pre><code class="language-sql">UPDATE orders
+SET status = ?, version = 6
+WHERE id = ? AND version = 5;</code></pre><ul><li>Первый участник обновил строку; второй со старой версией изменит 0 строк.</li><li>ORM обнаруживает конфликт: OptimisticLockException.</li><li>Повторяем бизнес-операцию в новой транзакции с новым чтением.</li></ul><p class="takeaway">Версия защищает запись; инварианты между несколькими записями требуют отдельного решения.</p>
+<div class="counter">49 / 66</div>
+</div>
+
+<div id="comparison" class="step slide" data-x="53900" data-y="0">
+<h1>JDBC и ORM: что выбираем?</h1>
+<table><thead><tr><th></th><th>JDBC</th><th>ORM</th></tr></thead><tbody><tr><td>Запросы</td><td>Явный SQL.</td><td>Генерация SQL + JPQL / native SQL.</td></tr><tr><td>Маппинг</td><td>Вручную.</td><td>По метаданным отображения.</td></tr><tr><td>Изменения</td><td>Явные SQL-команды.</td><td>Dirty checking managed-сущностей.</td></tr><tr><td>Сильная сторона</td><td>SQL-ориентированные операции и точный контроль.</td><td>Работа со связанными сущностями.</td></tr><tr><td>Что изучать</td><td>SQL, ресурсы, транзакции.</td><td>То же + контекст, flush и план загрузки.</td></tr></tbody></table><p class="takeaway">Подходы можно сочетать, согласуя транзакции и состояние persistence context.</p>
+<div class="counter">50 / 66</div>
+</div>
+
+<div id="distributed" class="step slide section" data-x="55000" data-y="0">
+<h1>Распределённые данные</h1>
+<div class="num">08</div><p class="lead">Дополнительный блок: границы атомарности</p>
+<div class="counter">51 / 66</div>
+</div>
+
+<div id="dual-write" class="step slide" data-x="56100" data-y="0">
+<h1>Двух commit() недостаточно</h1>
+<div class="flow"><div class="box">Заказ: БД A</div><span>→</span><div class="box">Оплата: БД B</div><span>→</span><div class="box">Событие: брокер</div></div><ul><li>Первый commit прошёл, второй завершился ошибкой.</li><li>Или БД зафиксирована, а процесс упал до отправки события.</li><li>Локальный rollback уже не отменяет подтверждённую операцию другого участника.</li></ul><p class="takeaway">Нужен протокол общей фиксации либо процесс с локальными транзакциями и восстановлением.</p>
+<div class="counter">52 / 66</div>
+</div>
+
+<div id="two-phase" class="step slide" data-x="57200" data-y="0">
+<h1>2PC / XA: общая фиксация</h1>
+<div class="flow"><div class="box">Координатор</div><span>→</span><div class="box">PREPARE<br>участники готовы?</div><span>→</span><div class="box">COMMIT<br>или ROLLBACK</div></div><ul><li>Участники поддерживают XA и сохраняют подготовленное состояние.</li><li>В Java: Jakarta Transactions (JTA), менеджер транзакций, XA-ресурсы.</li><li>Цена: задержки, удержание ресурсов, сложное восстановление.</li><li>После сбоя координатора подготовленные участники могут ждать решения.</li></ul><p class="takeaway">Произвольный HTTP API не становится участником XA автоматически.</p>
+<div class="counter">53 / 66</div>
+</div>
+
+<div id="saga" class="step slide" data-x="58300" data-y="0">
+<h1>Saga: последовательность локальных транзакций</h1>
+<div class="flow"><div class="box">Создать заказ</div><span>→</span><div class="box">Резерв товара</div><span>→</span><div class="box">Оплатить</div></div><ul><li>Каждый шаг фиксируется в своей системе.</li><li>При бизнес-ошибке выполняем компенсации: снять резерв, отменить заказ.</li><li>Компенсация — новая бизнес-операция; не технический rollback.</li><li>Нужны состояния процесса, тайм-ауты, повторные попытки и обработка зависаний.</li></ul><p class="takeaway">У saga нет общей изоляции: промежуточные состояния могут быть видимы.</p>
+<div class="counter">54 / 66</div>
+</div>
+
+<div id="saga-coordination" class="step slide" data-x="59400" data-y="0">
+<h1>Кто управляет saga?</h1>
+<table><thead><tr><th></th><th>Оркестрация</th><th>Хореография</th></tr></thead><tbody><tr><td>Управление</td><td>Оркестратор хранит процесс и отправляет команды.</td><td>Участники реагируют на события.</td></tr><tr><td>Преимущество</td><td>Маршрут и состояние процесса видны явно.</td><td>Нет отдельного центрального управляющего процесса.</td></tr><tr><td>Сложность</td><td>Надёжность и развитие оркестратора.</td><td>Труднее восстановить общий маршрут и зависимости.</td></tr></tbody></table><p class="takeaway">Оба подхода требуют идемпотентности, диагностики и восстановления.</p>
+<div class="counter">55 / 66</div>
+</div>
+
+<div id="outbox" class="step slide" data-x="60500" data-y="0">
+<h1>Transactional outbox</h1>
+<div class="flow"><div class="box">Локальная транзакция<br>orders + outbox</div><span>→</span><div class="box">Relay / CDC</div><span>→</span><div class="box">Брокер</div></div><ul><li>Бизнес-изменение и событие записываем атомарно в одной БД.</li><li>Отдельный процесс публикует зафиксированные записи.</li><li>Сбой после отправки, до отметки публикации → возможна повторная отправка.</li><li>Потребитель обрабатывает дубли идемпотентно.</li></ul><p class="takeaway">Outbox устраняет разрыв двойной записи, но сам по себе не даёт end-to-end exactly once.</p>
+<div class="counter">56 / 66</div>
+</div>
+
+<div id="idempotence" class="step slide" data-x="61600" data-y="0">
+<h1>Идемпотентность и eventual consistency</h1>
+<ul><li>Повтор одной команды не должен повторно списывать деньги.</li><li>Используем operationId / messageId и уникальное ограничение.</li><li>Запись о принятом сообщении и бизнес-изменение фиксируем одной транзакцией.</li><li>Промежуточные статусы: PENDING → CONFIRMED / REJECTED.</li><li>Сходимость требует доставки, работающих обработчиков и восстановления ошибок.</li></ul><p class="takeaway">В интерфейсе показываем реальное состояние процесса, а не преждевременный успех.</p>
+<div class="counter">57 / 66</div>
+</div>
+
+<div id="event-sourcing" class="step slide section" data-x="62700" data-y="0">
+<h1>Event Sourcing</h1>
+<div class="num">09</div><p class="lead">Дополнительный блок: история событий как источник истины</p>
+<div class="counter">58 / 66</div>
+</div>
+
+<div id="event-state" class="step slide" data-x="63800" data-y="0">
+<h1>Состояние или последовательность событий?</h1>
+<table><thead><tr><th>Текущее состояние</th><th>История событий</th></tr></thead><tbody><tr><td>orders.status = CANCELLED</td><td>OrderCreated → ItemAdded → OrderCancelled</td></tr><tr><td>UPDATE заменяет значение.</td><td>Добавляем новое событие.</td></tr><tr><td>Историю нужно вести отдельно.</td><td>Состояние получаем свёрткой событий.</td></tr></tbody></table><p class="takeaway">Event Sourcing — способ хранения состояния, а не просто отправка событий в брокер.</p>
+<div class="counter">59 / 66</div>
+</div>
+
+<div id="event-replay" class="step slide" data-x="64900" data-y="0">
+<h1>Восстановление, версии и снимки</h1>
+<pre><code class="language-java">State state = emptyState();
+for (Event event : eventsInOrder) {
+    state = apply(state, event);
+}
+// append(streamId, expectedVersion, newEvents)</code></pre><ul><li>Порядок и версия задаются внутри потока агрегата, например заказа.</li><li>При append проверяем ожидаемую версию: оптимистическая конкуренция.</li><li>Snapshot хранит состояние на версии K; затем применяем события после K.</li><li>Снимок — оптимизация, источником истины остаётся история.</li></ul>
+<div class="counter">60 / 66</div>
+</div>
+
+<div id="cqrs" class="step slide" data-x="66000" data-y="0">
+<h1>Проекции и CQRS</h1>
+<div class="flow"><div class="box">Команда</div><span>→</span><div class="box">Поток событий</div><span>→</span><div class="box">Проекция</div><span>→</span><div class="box">Чтение</div></div><ul><li>Проекция строит удобное представление: таблицу заказов, поиск, статистику.</li><li>CQRS разделяет модели записи и чтения; не требует Event Sourcing.</li><li>Асинхронная проекция может отставать; обработчик должен переносить повтор события.</li><li>Повторное проигрывание не должно повторно выполнять внешние платежи.</li></ul><p class="takeaway">Saga — процесс; outbox — доставка; Event Sourcing — хранение; CQRS — разделение моделей.</p>
+<div class="counter">61 / 66</div>
+</div>
+
+<div id="event-tradeoffs" class="step slide" data-x="67100" data-y="0">
+<h1>Цена истории событий</h1>
+<ul><li>Плюсы: объяснимость изменений, восстановление состояния, новые проекции.</li><li>Нужно поддерживать старые форматы событий и эволюцию бизнес-логики.</li><li>Перестроение больших проекций требует ресурсов и контроля.</li><li>Удаление персональных данных требует специального проектирования.</li><li>Выбираем там, где ценность истории оправдывает сложность.</li></ul>
+<div class="counter">62 / 66</div>
+</div>
+
+<div id="final-practice" class="step slide" data-x="68200" data-y="0">
+<h1>Итоговое задание</h1>
+<ul><li>Миграцией добавить статус заказа и поле версии.</li><li>Реализовать отмену заказа на JDBC и ORM.</li><li>Проверить сохранение и rollback чтением через новый контекст.</li><li>В ORM показать dirty checking и конфликт @Version.</li><li>Приложить SQL-лог и объяснить моменты SELECT / UPDATE.</li></ul><p class="takeaway">Дополнительно: спроектировать outbox и обработчик повторной доставки OrderCancelled.</p>
+<div class="counter">63 / 66</div>
+</div>
+
+<div id="recap" class="step slide" data-x="69300" data-y="0">
+<h1>Вопросы для проверки понимания</h1>
+<ul><li>Что закрывает Connection.close() при использовании пула?</li><li>Чем flush отличается от commit?</li><li>Почему merge() возвращает другой управляемый экземпляр?</li><li>Как получить N+1 и как проверить его устранение?</li><li>Что гарантирует @Version и чего она не гарантирует?</li><li>Почему saga, outbox и Event Sourcing решают разные задачи?</li></ul>
+<div class="counter">64 / 66</div>
+</div>
+
+<div id="sources-jdbc" class="step slide" data-x="70400" data-y="0">
+<h1>Материалы: JDBC, пулы, миграции</h1>
+<ul><li><a href="https://docs.oracle.com/javase/tutorial/jdbc/">Oracle: JDBC Basics</a></li><li><a href="https://jdbc.postgresql.org/documentation/server-prepare/">pgJDBC: server-prepared statements</a></li><li><a href="https://github.com/brettwooldridge/HikariCP">HikariCP: конфигурация и рекомендации</a></li><li><a href="https://commons.apache.org/proper/commons-dbcp/configuration.html">Apache DBCP 2</a> · <a href="https://www.mchange.com/projects/c3p0/">c3p0</a></li><li><a href="https://documentation.red-gate.com/fd/versioned-migrations-273973333.html">Flyway: versioned migrations</a></li><li><a href="https://docs.liquibase.com/">Liquibase: документация</a></li><li><a href="https://www.postgresql.org/docs/current/transaction-iso.html">PostgreSQL: изоляция транзакций</a></li></ul>
+<div class="counter">65 / 66</div>
+</div>
+
+<div id="sources-orm" class="step slide" data-x="71500" data-y="0">
+<h1>Материалы: ORM и распределённые данные</h1>
+<ul><li><a href="https://jakarta.ee/specifications/persistence/3.2/">Jakarta Persistence 3.2</a></li><li><a href="https://docs.hibernate.org/orm/7.0/userguide/html_single/">Hibernate ORM: User Guide</a></li><li><a href="https://jakarta.ee/specifications/transactions/">Jakarta Transactions</a></li><li><a href="https://microservices.io/patterns/data/saga.html">Saga</a></li><li><a href="https://microservices.io/patterns/data/transactional-outbox.html">Transactional outbox</a></li><li><a href="https://microservices.io/patterns/data/event-sourcing.html">Event Sourcing</a></li><li><a href="https://microservices.io/patterns/data/cqrs.html">CQRS</a></li></ul>
+<div class="counter">66 / 66</div>
+</div>
+
+<div id="overview" class="step" data-x="35750" data-y="0" data-scale="79.2"></div>
+</div>
+<div class="impress-progressbar"><div></div></div>
+<div class="impress-progress"></div>
+<a class="ov" href="#/intro">В начало</a>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<script>if (window.hljs) hljs.highlightAll();</script>
+<script src="js/impress.js"></script>
+<script>impress().init();</script>
+</body>
+</html>
