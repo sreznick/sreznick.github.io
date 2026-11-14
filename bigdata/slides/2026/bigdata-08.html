@@ -1,0 +1,811 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1024" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <title>Потоковая обработка: время, состояние и восстановление</title>
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:400,600,700&amp;subset=cyrillic" rel="stylesheet" />
+    <link href="css/impress-demo.css" rel="stylesheet" />
+    <link href="css/impress-common.css" rel="stylesheet" />
+    <style>
+
+.slide { font-size:27px; line-height:1.32; letter-spacing:-.4px; }
+.slide h1 { font-size:39px; line-height:1.15; margin:0 0 24px; text-align:left; }
+.slide h2 { font-size:31px; line-height:1.3; margin:0 0 24px; }
+.slide p { margin:20px 0 0; }
+.slide ul { margin:0; padding-left:1.05em; }
+.slide ul li { padding-left:0; margin:14px 0; }
+.slide table { width:100%; border-collapse:collapse; font-size:23px; line-height:1.28; letter-spacing:0; }
+.slide th, .slide td { padding:12px 10px; border-bottom:1px solid #475569; text-align:left; vertical-align:top; }
+.slide th { background:#1e293b; color:#bfdbfe; font-weight:bold; }
+.slide strong { color:#93c5fd; }
+.slide a { color:#93c5fd; text-shadow:none; }
+.slide .callout { border-left:4px solid #38bdf8; padding:12px 16px; background:#172033; border-radius:0 8px 8px 0; font-size:25px; }
+.diagram { background:#172033; color:#e2e8f0; padding:20px; border-radius:8px; font:22px/1.6 monospace; white-space:pre-wrap; letter-spacing:0; margin:20px 0; text-shadow:none; }
+.flow { display:flex; align-items:center; justify-content:center; gap:12px; margin:28px 0; }
+.node { flex:1; background:#1e293b; border:1px solid #475569; border-radius:8px; padding:20px 10px; text-align:center; font-size:24px; }
+.arrow { color:#38bdf8; font-size:30px; }
+.slide.section { background:linear-gradient(135deg,#0f766e,#1d4ed8); text-shadow:none; display:flex; flex-direction:column; justify-content:center; }
+.slide.section h1 { font-size:52px; }
+.slide.section p { font-size:30px; }
+/* Generated code slides use fragments from lecture-08-code. */
+.slide pre.code { background:#172033; color:#e2e8f0; padding:16px; border-radius:8px; font:19px/1.4 monospace; white-space:pre-wrap; overflow-wrap:anywhere; letter-spacing:0; margin:14px 0; text-shadow:none; }
+.slide .code-explanation { font-size:23px; line-height:1.3; margin-top:14px; }
+.notes { display:none; }
+.slide .footer { position:absolute; bottom:18px; left:60px; right:60px; display:flex; align-items:end; justify-content:space-between; gap:12px; color:#94a3b8; font-size:13px; letter-spacing:0; line-height:1.3; }
+.footer a { color:#94a3b8; }
+.slide.section .footer { color:#dbeafe; }
+.counter { white-space:nowrap; }
+.impress-progress { display:none; }
+.ov { position:fixed; left:14px; bottom:12px; color:#93c5fd; font-size:14px; text-decoration:none; z-index:10; }
+#overview { background:none!important; border:0!important; box-shadow:none!important; pointer-events:none; }
+@media print {
+  html, body { height:auto!important; overflow:visible!important; background:white!important; }
+  #impress { position:static!important; transform:none!important; }
+  #impress > div { position:static!important; transform:none!important; }
+  .step.slide { opacity:1!important; margin:0 auto 24px; break-after:page; print-color-adjust:exact; -webkit-print-color-adjust:exact; }
+  #overview, .ov, .impress-progressbar, .impress-progress, #impress-toolbar, #impress-help { display:none!important; }
+}
+    </style>
+</head>
+<body class="impress-not-supported">
+<div class="fallback-message">
+    <p>Ваш браузер не поддерживает возможности impress.js. Показана упрощённая версия презентации.</p>
+    <p>Для показа используйте современный Chrome, Safari или Firefox.</p>
+</div>
+<div id="impress" data-transition-duration="700" data-width="1024" data-height="768" data-max-scale="3" data-min-scale="0" data-perspective="1000">
+
+<div class="step slide" id="intro" data-x="0" data-y="0">
+    <h1>Потоковая обработка</h1>
+    <h2>Время, состояние и восстановление</h2><p>Kafka Streams · Spark Structured Streaming · Apache Flink</p><div class="flow"><div class="node">События</div><span class="arrow">→</span><div class="node">Состояние</div><span class="arrow">→</span><div class="node">Результат</div></div><p>Сквозной пример: оплаты заказов и выручка магазинов.</p>
+    <aside class="notes"><p>На прошлой лекции мы разобрали, как Kafka хранит сообщения и как приложение сохраняет позицию чтения. Теперь добавим расчёт: из сообщений об оплатах будем получать сумму продаж каждого магазина за каждую минуту.</p><p>Для этого мало прочитать очередную запись. Нужно помнить предыдущую сумму, учитывать время оплаты и уметь продолжить работу после сбоя. Если запись задержалась, придётся решить, исправлять ли уже показанный результат.</p><p>Разберём эти задачи на одном примере. Затем посмотрим, как устроена их обработка в Kafka Streams, Spark Structured Streaming и Flink. После объяснений будем читать короткие примеры кода. Полные файлы можно запустить самостоятельно; задания остаются на семинаре.</p></aside>
+    <div class="footer"><span></span><span class="counter">1 / 108</span></div>
+</div>
+
+<div class="step slide" id="route" data-x="1100" data-y="0">
+    <h1>Четыре вопроса потокового вычисления</h1>
+    <ul><li>Что хранить между сообщениями?</li><li>К какой минуте отнести задержавшуюся оплату?</li><li>Когда показать сумму и до какого момента её исправлять?</li><li>Как продолжить работу после сбоя?</li></ul><p>Сначала разберём эти вопросы, затем сравним Kafka Streams, Spark и Flink.</p>
+    <aside class="notes"><p>Нам нужно ответить на четыре вопроса. Что сохранить после обработки записи, чтобы обработать следующую? К какой минуте отнести оплату, сообщение о которой задержалось? Когда показать сумму и до какого момента её исправлять? Как продолжить расчёт после сбоя?</p><p>Последний вопрос касается и самого обработчика, и получателя результата. Обработчик мог потерять накопленную сумму, а база данных уже успеть её сохранить. Если просто начать чтение заново, легко повторить запись или пропустить часть оплат.</p><p>Эти вопросы возникают и у обычного consumer. Потоковый движок предоставляет средства для их решения: хранение промежуточных данных, работу с временем и восстановление после сбоя.</p></aside>
+    <div class="footer"><span></span><span class="counter">2 / 108</span></div>
+</div>
+
+<div class="step slide" id="consumer" data-x="2200" data-y="0">
+    <h1>Что потоковый движок добавляет к consumer</h1>
+    <pre class="diagram">Kafka → consumer → расчёт суммы → БД</pre><p>Consumer получает записи. Приложение считает сумму и сохраняет результат.</p><p>Потоковый движок организует хранение сумм, распределение работы и восстановление после сбоя.</p><p>Для продолжения нужны и позиция чтения, и соответствующие ей суммы.</p>
+    <aside class="notes"><p>Consumer читает сообщения из Kafka. Прочитав сообщение об оплате, приложение прибавляет её сумму к предыдущим оплатам магазина и записывает результат в БД.</p><p>Offset позволяет указать место в журнале, откуда надо продолжить чтение. Накопленная сумма в offset не хранится. Если процесс потерял свою память, одного сохранённого offset недостаточно для продолжения расчёта.</p><p>Можно реализовать хранение сумм и восстановление самостоятельно. Для простой задачи это может быть оправданно. Но с появлением нескольких машин, окон и соединений потоков придётся писать всё больше служебного кода. Потоковые системы берут значительную часть этой работы на себя.</p></aside>
+    <div class="footer"><span></span><span class="counter">3 / 108</span></div>
+</div>
+
+<div class="step slide" id="payment" data-x="3300" data-y="0">
+    <h1>Событие успешной оплаты</h1>
+    <table><thead><tr><th>Поле</th><th>Пример</th><th>Для чего нужно</th></tr></thead><tbody><tr><td>event_id</td><td>pay-123</td><td>Распознать повтор того же события</td></tr><tr><td>order_id</td><td>order-42</td><td>Найти заказ</td></tr><tr><td>shop_id</td><td>shop-7</td><td>Посчитать сумму магазина</td></tr><tr><td>paid_at</td><td>12:00:10</td><td>Узнать время оплаты</td></tr><tr><td>amount</td><td>100 ₽</td><td>Прибавить к сумме</td></tr></tbody></table><p>В примере: одна успешная оплата на заказ, одна валюта, без возвратов.</p>
+    <aside class="notes"><p>Каждая запись сообщает об успешной оплате заказа. В ней есть идентификатор события, заказа и магазина, время оплаты и сумма.</p><p>Идентификатор события нужен, чтобы распознать повтор той же оплаты. Идентификатор заказа отвечает на другой вопрос: к какому заказу относится событие? У заказа бывают и другие события, поэтому эти два идентификатора не взаимозаменяемы.</p><p>Для примера считаем, что у заказа одна успешная оплата. Валюта одна, возвратов пока нет. Под суммой продаж будем понимать сумму таких оплат. Если отправитель дважды сообщит об одной оплате, это один факт и две входные записи. Далее посмотрим, как исключить повторный учёт.</p></aside>
+    <div class="footer"><span></span><span class="counter">4 / 108</span></div>
+</div>
+
+<div class="step slide" id="batch-stream" data-x="4400" data-y="0">
+    <h1>Пакетная и непрерывная обработка</h1>
+    <table><thead><tr><th>Пакетная задача</th><th>Непрерывная задача</th></tr></thead><tbody><tr><td>Обрабатываем заданный набор записей</td><td>Обрабатываем новые записи по мере поступления</td></tr><tr><td>Можно дочитать набор и подвести итог</td><td>Новые записи продолжают поступать</td></tr></tbody></table><p>В обоих случаях можно считать суммы за минуту. В потоке нужно решить, сколько ждать задержавшиеся записи.</p>
+    <aside class="notes"><p>В пакетной задаче мы обрабатываем заданный конечный набор: например, конкретные файлы или таблицу на выбранный момент. Можно дочитать этот набор и подвести итог.</p><p>При непрерывной обработке новые записи продолжают поступать. Ждать окончания всего потока нельзя, поэтому результаты рассчитывают и показывают во время работы.</p><p>Сумму за отдельную минуту посчитать можно, но остаётся вопрос: все ли записи за эту минуту уже получены? Сообщение о старой оплате может задержаться у отправителя или в обработке. Дальше определим, сколько такие сообщения ждать и что делать после окончания ожидания.</p></aside>
+    <div class="footer"><span></span><span class="counter">5 / 108</span></div>
+</div>
+
+<div class="step slide" id="latency" data-x="5500" data-y="0">
+    <h1>Пересчитать всё или добавить новые оплаты</h1>
+    <table><thead><tr><th>Способ</th><th>Что делаем</th></tr></thead><tbody><tr><td>Полный пересчёт</td><td>Снова читаем всю историю и складываем оплаты</td></tr><tr><td>Инкрементальный расчёт</td><td>Храним сумму и прибавляем новые оплаты</td></tr></tbody></table><p>Второй способ экономит вычисления, но требует сохранить результат предыдущих шагов.</p><p class="callout">Частота запуска и способ расчёта — разные вопросы.</p>
+    <aside class="notes"><p>Самый прямой способ обновлять сумму — регулярно перечитывать всю историю и считать заново. Чем длиннее история, тем больше повторной работы.</p><p>Другой способ — сохранить предыдущую сумму и добавить к ней только новые оплаты. Это инкрементальный расчёт: обновление уже известного результата вместо полного пересчёта.</p><p>Так можно работать и отдельными запусками, и непрерывно. Сам по себе запуск раз в секунду ничего не говорит о том, перечитываем ли мы историю или используем ранее посчитанное. Нас интересует, что приложение сохраняет между запусками и как связывает сохранённую сумму с прочитанными записями.</p></aside>
+    <div class="footer"><span></span><span class="counter">6 / 108</span></div>
+</div>
+
+<div class="step slide section" id="state" data-x="6600" data-y="0">
+    <h1>Состояние операторов и распределение работы</h1>
+    <p>Сначала одна сумма на магазин. Затем — распределение магазинов между машинами.</p>
+    <aside class="notes"><p>Начнём с того, какие данные обработчик хранит между сообщениями. После этого разберём, как распределить их между несколькими машинами.</p></aside>
+    <div class="footer"><span></span><span class="counter">7 / 108</span></div>
+</div>
+
+<div class="step slide" id="code-run" data-code-slide="true" data-x="7700" data-y="0"><h1>Как воспроизвести примеры</h1>
+<p>Из каталога <a href="lecture-08-code/README.md">lecture-08-code</a>. <a href="lecture-08-code/EXAMPLES.md">Все примеры и слайды</a>:</p>
+<pre class="code">./run.sh list
+./run.sh prepare
+./run.sh start spark filter</pre>
+<p>В другом терминале:</p><pre class="code">./run.sh send initial
+./run.sh send late</pre>
+<p>Вместо spark можно выбрать streams или flink. Один запуск — одно преобразование.</p>
+<aside class="notes"><p>После этого разделителя общие идеи сопровождаются кодом трёх систем. На слайдах показаны преобразования, а полные программы с импортами и чтением Kafka лежат в lecture-08-code. Для Kafka Streams и Flink используем Java, для Spark — Python.</p><p>Prepare собирает образы и запускает отдельный учебный брокер. Сначала запускаем обработку, затем из второго терминала отправляем очередную фазу и наблюдаем результат. Файлы README описывают точные команды, ограничения и ожидаемые значения. Каждый пример запускается отдельно: фрагменты соседних слайдов не нужно без разбора соединять в одну программу.</p></aside><div class="footer"><span></span><span class="counter">8 / 108</span></div></div>
+
+<div class="step slide" id="code-spark-source" data-code-slide="true" data-x="8800" data-y="0"><h1>PySpark: читаем оплаты из Kafka</h1><pre class="code">raw = (spark.readStream.format(&quot;kafka&quot;)
+       .option(&quot;kafka.bootstrap.servers&quot;, bootstrap)
+       .option(&quot;subscribe&quot;, &quot;payments&quot;)
+       .option(&quot;startingOffsets&quot;, &quot;earliest&quot;).load())
+payments = raw.select(F.from_json(
+    F.col(&quot;value&quot;).cast(&quot;string&quot;),
+    &quot;event_id STRING, order_id STRING, shop_id STRING, &quot;
+    &quot;paid_at TIMESTAMP, amount LONG&quot;
+).alias(&quot;p&quot;)).select(&quot;p.*&quot;)</pre><p class="code-explanation">JSON превращается в таблицу: paid_at — timestamp, amount — целое число. Чтение начинается после start().</p><aside class="notes"><p>JSON превращается в таблицу: paid_at — timestamp, amount — целое число. Чтение начинается после start().</p><p>Полная программа: lecture-08-code/spark/job.py. Запуск из lecture-08-code: ./run.sh start spark minute. Входные сообщения отправляем отдельными фазами через ./run.sh send. Новый RUN_ID нужен для независимого эксперимента.</p></aside><div class="footer"><span><a href="lecture-08-code/spark/job.py">lecture-08-code/spark/job.py</a> · spark minute</span><span class="counter">9 / 108</span></div></div>
+
+<div class="step slide" id="code-streams-source" data-code-slide="true" data-x="0" data-y="850"><h1>Kafka Streams: читаем оплаты из Kafka</h1><pre class="code">KStream&lt;String, String&gt; payments = builder.stream(
+    &quot;payments&quot;, input(&quot;paid_at&quot;));
+// input() берёт timestamp из paid_at, а не из времени Kafka.</pre><p class="code-explanation">Значение Kafka — JSON-строка. input(&quot;paid_at&quot;) извлекает время оплаты; полный код функции есть в файле примера.</p><aside class="notes"><p>Значение Kafka — JSON-строка. input(&quot;paid_at&quot;) извлекает время оплаты; полный код функции есть в файле примера.</p><p>Полная программа: lecture-08-code/streams/src/main/java/course/Examples.java. Запуск из lecture-08-code: ./run.sh start streams minute. Входные сообщения отправляем отдельными фазами через ./run.sh send. Новый RUN_ID нужен для независимого эксперимента.</p></aside><div class="footer"><span><a href="lecture-08-code/streams/src/main/java/course/Examples.java">lecture-08-code/streams/src/main/java/course/Examples.java</a> · streams minute</span><span class="counter">10 / 108</span></div></div>
+
+<div class="step slide" id="code-flink-source" data-code-slide="true" data-x="1100" data-y="850"><h1>Flink: читаем оплаты из Kafka</h1><pre class="code">DataStream&lt;String&gt; payments = env.fromSource(
+    source(&quot;payments&quot;, mode + &quot;-&quot; + run), clock(&quot;paid_at&quot;), &quot;payments&quot;);
+// source() читает Kafka, clock() извлекает paid_at и задаёт watermark.</pre><p class="code-explanation">Источник Kafka передаёт JSON-строки. clock(&quot;paid_at&quot;) задаёт время событий и watermark; выполнение начнётся после execute().</p><aside class="notes"><p>Источник Kafka передаёт JSON-строки. clock(&quot;paid_at&quot;) задаёт время событий и watermark; выполнение начнётся после execute().</p><p>Полная программа: lecture-08-code/flink/src/main/java/course/Examples.java. Запуск из lecture-08-code: ./run.sh start flink minute. Входные сообщения отправляем отдельными фазами через ./run.sh send. Новый RUN_ID нужен для независимого эксперимента.</p></aside><div class="footer"><span><a href="lecture-08-code/flink/src/main/java/course/Examples.java">lecture-08-code/flink/src/main/java/course/Examples.java</a> · flink minute</span><span class="counter">11 / 108</span></div></div>
+
+<div class="step slide" id="code-streams-json" data-code-slide="true" data-x="2200" data-y="850"><h1>Kafka Streams: наши функции для JSON</h1><pre class="code">static final ObjectMapper JSON = new ObjectMapper();
+static JsonNode json(String v) {
+    try { return JSON.readTree(v); }
+    catch (Exception e) { throw new IllegalArgumentException(v, e); }
+}
+static String text(String v, String field) { return json(v).path(field).asText(); }
+static long amount(String v) { return json(v).path(&quot;amount&quot;).asLong(); }</pre><p class="code-explanation">json, text и amount — вспомогательные функции примера, не API Kafka Streams. Jackson разбирает JSON: text читает строку, amount — целое поле amount.</p><aside class="notes"><p>json, text и amount — вспомогательные функции примера, не API Kafka Streams. Jackson разбирает JSON: text читает строку, amount — целое поле amount.</p><p>Полная программа: lecture-08-code/streams/src/main/java/course/Examples.java. Запуск из lecture-08-code: ./run.sh start streams map. Входные сообщения отправляем отдельными фазами через ./run.sh send. Новый RUN_ID нужен для независимого эксперимента.</p></aside><div class="footer"><span><a href="lecture-08-code/streams/src/main/java/course/Examples.java">lecture-08-code/streams/src/main/java/course/Examples.java</a> · streams map</span><span class="counter">12 / 108</span></div></div>
+
+<div class="step slide" id="code-flink-json" data-code-slide="true" data-x="3300" data-y="850"><h1>Flink: наши функции для JSON</h1><pre class="code">static JsonNode json(String v) {
+    try { return JSON.readTree(v); }
+    catch (Exception e) { throw new IllegalArgumentException(v, e); }
+}
+static String text(String v, String f) { return json(v).path(f).asText(); }
+static long amount(String v) { return json(v).path(&quot;amount&quot;).asLong(); }</pre><p class="code-explanation">json, text и amount — наши вспомогательные функции. JSON — ObjectMapper из Jackson, объявленный в полном файле. Эти функции только читают поля текущей записи.</p><aside class="notes"><p>json, text и amount — наши вспомогательные функции. JSON — ObjectMapper из Jackson, объявленный в полном файле. Эти функции только читают поля текущей записи.</p><p>Полная программа: lecture-08-code/flink/src/main/java/course/Examples.java. Запуск из lecture-08-code: ./run.sh start flink map. Входные сообщения отправляем отдельными фазами через ./run.sh send. Новый RUN_ID нужен для независимого эксперимента.</p></aside><div class="footer"><span><a href="lecture-08-code/flink/src/main/java/course/Examples.java">lecture-08-code/flink/src/main/java/course/Examples.java</a> · flink map</span><span class="counter">13 / 108</span></div></div>
+
+<div class="step slide" id="stateless-stateful" data-x="4400" data-y="850">
+    <h1>Каким операциям нужно состояние</h1>
+    <table><thead><tr><th>Операция</th><th>Что нужно помнить</th></tr></thead><tbody><tr><td>Проверить amount &gt; 0</td><td>Ничего о предыдущих записях</td></tr><tr><td>Посчитать сумму магазина</td><td>Уже накопленную сумму</td></tr><tr><td>Убрать повторы</td><td>Ранее встреченные event_id</td></tr><tr><td>Соединить заказ и оплату</td><td>Полученную запись, пока ждём вторую</td></tr></tbody></table><p><strong>Состояние, или state,</strong> — промежуточные данные, которые оператор хранит между сообщениями.</p>
+    <aside class="notes"><p>Оператором будем называть один шаг обработки: фильтрацию, подсчёт суммы или соединение записей.</p><p>Фильтр положительных сумм проверяет текущую запись. Предыдущие оплаты ему не нужны. Подсчёту суммы, наоборот, нужно знать, сколько уже накоплено по магазину. Для удаления повторов нужны ранее встреченные event_id. Для соединения заказа и оплаты нужно сохранить запись, которая пришла первой.</p><p>Эти промежуточные данные называют состоянием оператора, или state. Оно может находиться в памяти или на диске. Само наличие состояния ещё не означает, что оно переживёт потерю машины: для этого понадобится механизм восстановления.</p></aside>
+    <div class="footer"><span></span><span class="counter">14 / 108</span></div>
+</div>
+
+<div class="step slide" id="code-spark-filter" data-code-slide="true" data-x="5500" data-y="850"><h1>PySpark: фильтр без состояния</h1><pre class="code">result = payments.filter(F.col(&quot;amount&quot;) &gt; 0)</pre><p class="code-explanation">Оставляем только записи с amount &gt; 0. Для решения достаточно текущей записи; предыдущие оплаты не нужны.</p><aside class="notes"><p>Оставляем только записи с amount &gt; 0. Для решения достаточно текущей записи; предыдущие оплаты не нужны.</p><p>Полная программа: lecture-08-code/spark/job.py. Запуск из lecture-08-code: ./run.sh start spark filter. Входные сообщения отправляем отдельными фазами через ./run.sh send. Новый RUN_ID нужен для независимого эксперимента.</p></aside><div class="footer"><span><a href="lecture-08-code/spark/job.py">lecture-08-code/spark/job.py</a> · spark filter</span><span class="counter">15 / 108</span></div></div>
+
+<div class="step slide" id="code-streams-filter" data-code-slide="true" data-x="6600" data-y="850"><h1>Kafka Streams: фильтр без состояния</h1><pre class="code">KStream&lt;String, String&gt; result = payments.filter(
+    (key, value) -&gt; amount(value) &gt; 0);</pre><p class="code-explanation">Оставляем только записи с amount &gt; 0. Для решения достаточно текущей записи; предыдущие оплаты не нужны.</p><aside class="notes"><p>Оставляем только записи с amount &gt; 0. Для решения достаточно текущей записи; предыдущие оплаты не нужны.</p><p>Полная программа: lecture-08-code/streams/src/main/java/course/Examples.java. Запуск из lecture-08-code: ./run.sh start streams filter. Входные сообщения отправляем отдельными фазами через ./run.sh send. Новый RUN_ID нужен для независимого эксперимента.</p></aside><div class="footer"><span><a href="lecture-08-code/streams/src/main/java/course/Examples.java">lecture-08-code/streams/src/main/java/course/Examples.java</a> · streams filter</span><span class="counter">16 / 108</span></div></div>
+
+<div class="step slide" id="code-flink-filter" data-code-slide="true" data-x="7700" data-y="850"><h1>Flink: фильтр без состояния</h1><pre class="code">DataStream&lt;String&gt; result = payments.filter(v -&gt; amount(v) &gt; 0);</pre><p class="code-explanation">Оставляем только записи с amount &gt; 0. Для решения достаточно текущей записи; предыдущие оплаты не нужны.</p><aside class="notes"><p>Оставляем только записи с amount &gt; 0. Для решения достаточно текущей записи; предыдущие оплаты не нужны.</p><p>Полная программа: lecture-08-code/flink/src/main/java/course/Examples.java. Запуск из lecture-08-code: ./run.sh start flink filter. Входные сообщения отправляем отдельными фазами через ./run.sh send. Новый RUN_ID нужен для независимого эксперимента.</p></aside><div class="footer"><span><a href="lecture-08-code/flink/src/main/java/course/Examples.java">lecture-08-code/flink/src/main/java/course/Examples.java</a> · flink filter</span><span class="counter">17 / 108</span></div></div>
+
+<div class="step slide" id="code-spark-map" data-code-slide="true" data-x="8800" data-y="850"><h1>PySpark: выбираем магазин и сумму</h1><pre class="code">result = payments.select(&quot;shop_id&quot;, &quot;amount&quot;)</pre><p class="code-explanation">select оставляет два столбца. Каждая входная запись даёт одну выходную; суммы ещё не складываются.</p><aside class="notes"><p>select оставляет два столбца. Каждая входная запись даёт одну выходную; суммы ещё не складываются.</p><p>Полная программа: lecture-08-code/spark/job.py. Запуск из lecture-08-code: ./run.sh start spark map. Входные сообщения отправляем отдельными фазами через ./run.sh send. Новый RUN_ID нужен для независимого эксперимента.</p></aside><div class="footer"><span><a href="lecture-08-code/spark/job.py">lecture-08-code/spark/job.py</a> · spark map</span><span class="counter">18 / 108</span></div></div>
+
+<div class="step slide" id="code-streams-map" data-code-slide="true" data-x="0" data-y="1700"><h1>Kafka Streams: выбираем магазин и сумму</h1><pre class="code">KStream&lt;String, Long&gt; result = payments
+    .selectKey((key, value) -&gt; text(value, &quot;shop_id&quot;))
+    .mapValues(value -&gt; amount(value));</pre><p class="code-explanation">text и amount — наши функции чтения JSON. Магазин становится ключом, сумма — значением. selectKey меняет ключ записи; пересылка данных выполняется отдельно.</p><aside class="notes"><p>text и amount — наши функции чтения JSON. Магазин становится ключом, сумма — значением. selectKey меняет ключ записи; пересылка данных выполняется отдельно.</p><p>Полная программа: lecture-08-code/streams/src/main/java/course/Examples.java. Запуск из lecture-08-code: ./run.sh start streams map. Входные сообщения отправляем отдельными фазами через ./run.sh send. Новый RUN_ID нужен для независимого эксперимента.</p></aside><div class="footer"><span><a href="lecture-08-code/streams/src/main/java/course/Examples.java">lecture-08-code/streams/src/main/java/course/Examples.java</a> · streams map</span><span class="counter">19 / 108</span></div></div>
+
+<div class="step slide" id="code-flink-map" data-code-slide="true" data-x="1100" data-y="1700"><h1>Flink: выбираем магазин и сумму</h1><pre class="code">DataStream&lt;Tuple2&lt;String, Long&gt;&gt; result = payments
+    .map(v -&gt; Tuple2.of(text(v, &quot;shop_id&quot;), amount(v)))
+    .returns(Types.TUPLE(Types.STRING, Types.LONG));</pre><p class="code-explanation">Получаем пару (shop_id, amount). Тип результата указан явно: это помогает Flink сериализовать пары.</p><aside class="notes"><p>Получаем пару (shop_id, amount). Тип результата указан явно: это помогает Flink сериализовать пары.</p><p>Полная программа: lecture-08-code/flink/src/main/java/course/Examples.java. Запуск из lecture-08-code: ./run.sh start flink map. Входные сообщения отправляем отдельными фазами через ./run.sh send. Новый RUN_ID нужен для независимого эксперимента.</p></aside><div class="footer"><span><a href="lecture-08-code/flink/src/main/java/course/Examples.java">lecture-08-code/flink/src/main/java/course/Examples.java</a> · flink map</span><span class="counter">20 / 108</span></div></div>
+
+<div class="step slide" id="code-spark-map-rdd" data-code-slide="true" data-x="2200" data-y="1700"><h1>PySpark: RDD внутри микробатча</h1><pre class="code">def show_pairs(batch, batch_id):
+    pairs = batch.rdd.map(lambda p: (p.shop_id, p.amount))
+    # Только для маленького учебного набора.
+    print(&quot;RDD&quot;, batch_id, pairs.collect(), flush=True)
+
+query = (payments.writeStream.foreachBatch(show_pairs)
+         .option(&quot;checkpointLocation&quot;, f&quot;{state_dir}/{mode}/{run}&quot;)
+         .trigger(processingTime=&quot;2 seconds&quot;).start())
+query.awaitTermination()</pre><p class="code-explanation">payments — потоковый DataFrame. batch — конечный DataFrame одной порции: внутри foreachBatch доступны batch.rdd и map. Этот код не хранит состояние между порциями.</p><aside class="notes"><p>payments — потоковый DataFrame. batch — конечный DataFrame одной порции: внутри foreachBatch доступны batch.rdd и map. Этот код не хранит состояние между порциями.</p><p>Полная программа: lecture-08-code/spark/job.py. Запуск из lecture-08-code: ./run.sh start spark map-rdd. Входные сообщения отправляем отдельными фазами через ./run.sh send. Новый RUN_ID нужен для независимого эксперимента.</p></aside><div class="footer"><span><a href="lecture-08-code/spark/job.py">lecture-08-code/spark/job.py</a> · spark map-rdd</span><span class="counter">21 / 108</span></div></div>
+
+<div class="step slide" id="increment" data-x="3300" data-y="1700">
+    <h1>Как одна оплата меняет состояние</h1>
+    <p>Пока считаем сумму магазина без разбиения по минутам.</p><pre class="diagram">Магазин shop-7
+
+Было:          100 ₽
+Новая оплата: +200 ₽
+Стало:         300 ₽</pre><p>Сохраняем 300 ₽. Следующую оплату прибавим к этой сумме.</p><p>Теперь распределим магазины между обработчиками.</p>
+    <aside class="notes"><p>Пока упростим задачу: будем считать сумму магазина без разбиения по минутам. Для shop-7 уже накоплено сто рублей. Добавляем новую оплату на двести и сохраняем триста. Следующую оплату прибавим уже к трёмстам.</p><p>Для суммы достаточно одного числа на магазин. Для среднего понадобятся сумма и количество. Такие промежуточные результаты удобно объединять: частичные суммы складываются, пары «сумма, количество» складываются по компонентам.</p><p>Ассоциативность позволяет объединять части в разном порядке, но сама по себе не обещает маленькую память. Например, склеивание списков ассоциативно, а итоговый список растёт. У суммы есть оба нужных свойства: компактное представление и простое объединение частей.</p><p>Теперь распределим магазины между обработчиками, сохранив то же правило прибавления.</p></aside>
+    <div class="footer"><span></span><span class="counter">22 / 108</span></div>
+</div>
+
+<div class="step slide" id="code-spark-sum" data-code-slide="true" data-x="4400" data-y="1700"><h1>PySpark: сумма по магазину</h1><pre class="code">result = payments.groupBy(&quot;shop_id&quot;).agg(
+    F.sum(&quot;amount&quot;).alias(&quot;total&quot;))</pre><p class="code-explanation">groupBy задаёт ключ состояния. sum обновляет накопленную сумму; режим update печатает изменившиеся строки.</p><aside class="notes"><p>groupBy задаёт ключ состояния. sum обновляет накопленную сумму; режим update печатает изменившиеся строки.</p><p>Полная программа: lecture-08-code/spark/job.py. Запуск из lecture-08-code: ./run.sh start spark sum. Входные сообщения отправляем отдельными фазами через ./run.sh send. Новый RUN_ID нужен для независимого эксперимента.</p></aside><div class="footer"><span><a href="lecture-08-code/spark/job.py">lecture-08-code/spark/job.py</a> · spark sum</span><span class="counter">23 / 108</span></div></div>
+
+<div class="step slide" id="code-streams-sum" data-code-slide="true" data-x="5500" data-y="1700"><h1>Kafka Streams: сумма по магазину</h1><pre class="code">KStream&lt;String, String&gt; byShop = payments
+    .selectKey((key, value) -&gt; text(value, &quot;shop_id&quot;))
+    .repartition(Repartitioned.with(Serdes.String(), Serdes.String()));
+KTable&lt;String, Long&gt; totals = byShop
+    .groupByKey(Grouped.with(Serdes.String(), Serdes.String()))
+    .aggregate(() -&gt; 0L,
+        (shop, payment, total) -&gt; total + amount(payment),
+        Materialized.with(Serdes.String(), Serdes.Long()));
+totals.toStream().foreach((k, v) -&gt;
+    System.out.println(&quot;RESULT &quot; + k + &quot;=&quot; + v));</pre><p class="code-explanation">Сначала задаём ключ shop_id и распределяем записи. aggregate хранит сумму на ключ; KTable представляет текущие значения.</p><aside class="notes"><p>Сначала задаём ключ shop_id и распределяем записи. aggregate хранит сумму на ключ; KTable представляет текущие значения.</p><p>Полная программа: lecture-08-code/streams/src/main/java/course/Examples.java. Запуск из lecture-08-code: ./run.sh start streams sum. Входные сообщения отправляем отдельными фазами через ./run.sh send. Новый RUN_ID нужен для независимого эксперимента.</p></aside><div class="footer"><span><a href="lecture-08-code/streams/src/main/java/course/Examples.java">lecture-08-code/streams/src/main/java/course/Examples.java</a> · streams sum</span><span class="counter">24 / 108</span></div></div>
+
+<div class="step slide" id="code-flink-sum" data-code-slide="true" data-x="6600" data-y="1700"><h1>Flink: сумма по магазину</h1><pre class="code">KeyedStream&lt;Tuple2&lt;String, Long&gt;, String&gt; byShop = amounts.keyBy(v -&gt; v.f0);
+DataStream&lt;Tuple2&lt;String, Long&gt;&gt; totals = byShop.sum(1);
+totals.print(&quot;RESULT&quot;);
+// f0 — shop_id, f1 — сумма. sum(1) суммирует поле f1.</pre><p class="code-explanation">amounts содержит пары (shop_id, amount). keyBy задаёт ключ состояния. sum(1) обновляет сумму во втором поле пары.</p><aside class="notes"><p>amounts содержит пары (shop_id, amount). keyBy задаёт ключ состояния. sum(1) обновляет сумму во втором поле пары.</p><p>Полная программа: lecture-08-code/flink/src/main/java/course/Examples.java. Запуск из lecture-08-code: ./run.sh start flink sum. Входные сообщения отправляем отдельными фазами через ./run.sh send. Новый RUN_ID нужен для независимого эксперимента.</p></aside><div class="footer"><span><a href="lecture-08-code/flink/src/main/java/course/Examples.java">lecture-08-code/flink/src/main/java/course/Examples.java</a> · flink sum</span><span class="counter">25 / 108</span></div></div>
+
+<div class="step slide" id="key-owner" data-x="7700" data-y="1700">
+    <h1>Как распределить суммы между обработчиками</h1>
+    <pre class="diagram">Оплаты shop-7 → обработчик A → сумма shop-7
+Оплаты shop-9 → обработчик B → сумма shop-9</pre><ul><li>По shop_id выбираем, куда отправить запись.</li><li>Каждый обработчик хранит суммы своих магазинов.</li><li>Это та же идея, что у reducer после shuffle.</li></ul><p>Один обработчик обычно обслуживает много магазинов.</p>
+    <aside class="notes"><p>Пусть оплаты shop-7 обрабатывает A, а оплаты shop-9 — B. В каждой записи есть shop_id; по нему выбираем обработчик. У каждого обработчика может быть много магазинов.</p><p>В этой простой схеме все оплаты одного магазина должны попасть к тому, кто хранит его сумму. Это та же идея, что у reducer после shuffle в MapReduce. Потоковый обработчик при этом не заканчивает работу после одной порции, а сохраняет суммы для следующих сообщений.</p><p>Для суммы возможен расчёт в два этапа: сначала частичные суммы, потом их сложение. Это аналог combiner и reducer. Но не всякую обработку можно так разбить. Пока будем рассматривать схему с одним обработчиком для каждого магазина.</p></aside>
+    <div class="footer"><span></span><span class="counter">26 / 108</span></div>
+</div>
+
+<div class="step slide" id="repartition" data-x="8800" data-y="1700">
+    <h1>Зачем перераспределять данные перед агрегацией</h1>
+    <p>Допустим, производитель выбирал партицию по order_id. Нам нужна сумма по shop_id.</p><pre class="diagram">A: order-1, shop-7, 100 ₽ ──┐
+                           ├→ обработчик shop-7 → 300 ₽
+B: order-2, shop-7, 200 ₽ ──┘</pre><p>Передаём оплаты одного магазина тому, кто считает его сумму.</p><p class="callout">Shuffle — передача записей обработчикам по нужному ключу. Если они уже находятся там, пересылка не нужна.</p>
+    <aside class="notes"><p>Предположим, производитель выбирал партицию Kafka по order_id. Тогда события одного заказа находятся вместе, но заказы одного магазина могут оказаться в разных партициях. Теперь перед суммированием нужно собрать оплаты по другому ключу — shop_id.</p><p>На схеме у A есть оплата магазина shop-7 на сто рублей, у B — на двести. Чтобы получить сумму триста, их нужно передать обработчику этого магазина. Если он на другой машине, потребуется сеть.</p><p>Перераспределение записей по нужному ключу называют shuffle или repartition. Если записи уже распределены подходящим образом, лишней пересылки может не быть. Дорогая операция здесь — передача данных, а не извлечение поля shop_id из сообщения.</p></aside>
+    <div class="footer"><span></span><span class="counter">27 / 108</span></div>
+</div>
+
+<div class="step slide" id="code-spark-key" data-code-slide="true" data-x="0" data-y="2550"><h1>PySpark: распределение по shop_id</h1><pre class="code">by_shop = payments.repartition(2, &quot;shop_id&quot;)
+result = by_shop.groupBy(&quot;shop_id&quot;).agg(
+    F.sum(&quot;amount&quot;).alias(&quot;total&quot;))</pre><p class="code-explanation">repartition явно перераспределяет строки по магазину. groupBy и без него организует нужное распределение; вручную писать repartition обычно не требуется.</p><aside class="notes"><p>repartition явно перераспределяет строки по магазину. groupBy и без него организует нужное распределение; вручную писать repartition обычно не требуется.</p><p>Полная программа: lecture-08-code/spark/job.py. Запуск из lecture-08-code: ./run.sh start spark key. Входные сообщения отправляем отдельными фазами через ./run.sh send. Новый RUN_ID нужен для независимого эксперимента.</p></aside><div class="footer"><span><a href="lecture-08-code/spark/job.py">lecture-08-code/spark/job.py</a> · spark key</span><span class="counter">28 / 108</span></div></div>
+
+<div class="step slide" id="code-streams-key" data-code-slide="true" data-x="1100" data-y="2550"><h1>Kafka Streams: распределение по shop_id</h1><pre class="code">KStream&lt;String, String&gt; byShop = payments
+    .selectKey((key, value) -&gt; text(value, &quot;shop_id&quot;))
+    .repartition(Repartitioned.with(Serdes.String(), Serdes.String()));</pre><p class="code-explanation">selectKey меняет поле ключа. repartition явно пересылает записи через внутренний Kafka-топик; groupByKey далее видит подходящий ключ.</p><aside class="notes"><p>selectKey меняет поле ключа. repartition явно пересылает записи через внутренний Kafka-топик; groupByKey далее видит подходящий ключ.</p><p>Полная программа: lecture-08-code/streams/src/main/java/course/Examples.java. Запуск из lecture-08-code: ./run.sh start streams key. Входные сообщения отправляем отдельными фазами через ./run.sh send. Новый RUN_ID нужен для независимого эксперимента.</p></aside><div class="footer"><span><a href="lecture-08-code/streams/src/main/java/course/Examples.java">lecture-08-code/streams/src/main/java/course/Examples.java</a> · streams key</span><span class="counter">29 / 108</span></div></div>
+
+<div class="step slide" id="code-flink-key" data-code-slide="true" data-x="2200" data-y="2550"><h1>Flink: распределение по shop_id</h1><pre class="code">KeyedStream&lt;Tuple2&lt;String, Long&gt;, String&gt; byShop = amounts.keyBy(v -&gt; v.f0);</pre><p class="code-explanation">keyBy направляет пары с одинаковым f0 к одной параллельной копии следующей операции. f0 здесь содержит shop_id.</p><aside class="notes"><p>keyBy направляет пары с одинаковым f0 к одной параллельной копии следующей операции. f0 здесь содержит shop_id.</p><p>Полная программа: lecture-08-code/flink/src/main/java/course/Examples.java. Запуск из lecture-08-code: ./run.sh start flink key. Входные сообщения отправляем отдельными фазами через ./run.sh send. Новый RUN_ID нужен для независимого эксперимента.</p></aside><div class="footer"><span><a href="lecture-08-code/flink/src/main/java/course/Examples.java">lecture-08-code/flink/src/main/java/course/Examples.java</a> · flink key</span><span class="counter">30 / 108</span></div></div>
+
+<div class="step slide" id="state-scale" data-x="3300" data-y="2550">
+    <h1>Как передать часть работы новой машине</h1>
+    <ol><li>Выбрать магазины, которые перейдут на новую машину.</li><li>Передать или восстановить накопленные суммы.</li><li>Переключить чтение так, чтобы не потерять и не учесть дважды оплаты при передаче.</li></ol><p>Движок переносит работу целыми задачами: свободная машина поможет, только если ей есть что назначить.</p><p class="callout">Один очень активный магазин может перегрузить свой обработчик. Для суммы возможен расчёт через частичные агрегаты.</p>
+    <aside class="notes"><p>При добавлении машины нужно решить, какие магазины она будет обслуживать. Если часть магазинов переезжает с A на B, вместе с ними должны переехать накопленные суммы. Начать с нуля на новой машине нельзя.</p><p>Нужно также определить момент передачи: когда A перестаёт обновлять сумму и когда это начинает делать B. Восстановление и переназначение работы обеспечивает runtime соответствующей системы.</p><p>Есть ограничение, которое добавление машин само по себе не снимает. Если один магазин создаёт половину всех записей, его обработчик останется перегруженным. Для суммы могут помочь частичные агрегаты. Для произвольной обработки одного ключа такой способ может не подходить. Кроме того, новый процесс не получит работу, если все имеющиеся задачи уже заняты и дальше не делятся.</p></aside>
+    <div class="footer"><span></span><span class="counter">31 / 108</span></div>
+</div>
+
+<div class="step slide" id="state-size" data-x="4400" data-y="2550">
+    <h1>Сколько данных хранит обработчик</h1>
+    <table><thead><tr><th>Задача</th><th>Что хранится</th></tr></thead><tbody><tr><td>Сумма за всё время</td><td>Одно число на магазин</td></tr><tr><td>Суммы по минутам</td><td>Число на каждую ещё сохраняемую пару «магазин, минута»</td></tr><tr><td>Удаление повторов</td><td>event_id за выбранный срок</td></tr><tr><td>Join двух потоков</td><td>Записи, для которых ещё ждём пару</td></tr></tbody></table><p>Без сохранённого event_id можно повторно учесть ту же оплату. Без сохранённого заказа нельзя выполнить join с задержавшейся оплатой.</p>
+    <aside class="notes"><p>Размер состояния зависит от того, что считаем. Для суммы за всё время нужна одна запись на магазин. Для сумм по минутам — отдельная запись на магазин и минуту. Для удаления повторов надо помнить event_id. Для join — записи, у которых ещё нет пары.</p><p>Из этого следует, что состояния разных операций растут по-разному. Одна сумма не требует хранить все оплаты, а ожидание пар может потребовать много отдельных записей.</p><p>Удаление состояния влияет на дальнейшую обработку. После удаления event_id повторное сообщение можно ошибочно учесть ещё раз. После удаления заказа из состояния его уже нельзя соединить с задержавшейся оплатой. Поэтому для каждой операции нужно определить срок хранения данных. Дальше разберём, как для этого используют время.</p></aside>
+    <div class="footer"><span></span><span class="counter">32 / 108</span></div>
+</div>
+
+<div class="step slide" id="code-spark-dedup" data-code-slide="true" data-x="5500" data-y="2550"><h1>PySpark: удаление повторов по event_id</h1><pre class="code">result = payments.dropDuplicates([&quot;event_id&quot;])</pre><p class="code-explanation">В этом примере нет срока удаления: набор увиденных event_id растёт. На выход проходит только первая запись с каждым идентификатором.</p><aside class="notes"><p>В этом примере нет срока удаления: набор увиденных event_id растёт. На выход проходит только первая запись с каждым идентификатором.</p><p>Полная программа: lecture-08-code/spark/job.py. Запуск из lecture-08-code: ./run.sh start spark dedup. Входные сообщения отправляем отдельными фазами через ./run.sh send. Новый RUN_ID нужен для независимого эксперимента.</p></aside><div class="footer"><span><a href="lecture-08-code/spark/job.py">lecture-08-code/spark/job.py</a> · spark dedup</span><span class="counter">33 / 108</span></div></div>
+
+<div class="step slide" id="code-streams-dedup" data-code-slide="true" data-x="6600" data-y="2550"><h1>Kafka Streams: удаление повторов по event_id</h1><pre class="code">payments.selectKey((k, v) -&gt; text(v, &quot;event_id&quot;))
+    .repartition(Repartitioned.with(Serdes.String(), Serdes.String()))
+    .processValues(Seen::new, &quot;seen&quot;)
+    .foreach((k, v) -&gt; System.out.println(&quot;RESULT &quot; + v));
+// Seen хранит event_id в управляемом state store.</pre><p class="code-explanation">Seen — наш обработчик с управляемым хранилищем seen. Он проверяет event_id и пропускает только первую запись; реализация на следующем слайде.</p><aside class="notes"><p>Seen — наш обработчик с управляемым хранилищем seen. Он проверяет event_id и пропускает только первую запись; реализация на следующем слайде.</p><p>Полная программа: lecture-08-code/streams/src/main/java/course/Examples.java. Запуск из lecture-08-code: ./run.sh start streams dedup. Входные сообщения отправляем отдельными фазами через ./run.sh send. Новый RUN_ID нужен для независимого эксперимента.</p></aside><div class="footer"><span><a href="lecture-08-code/streams/src/main/java/course/Examples.java">lecture-08-code/streams/src/main/java/course/Examples.java</a> · streams dedup</span><span class="counter">34 / 108</span></div></div>
+
+<div class="step slide" id="code-flink-dedup" data-code-slide="true" data-x="7700" data-y="2550"><h1>Flink: удаление повторов по event_id</h1><pre class="code">payments.keyBy(v -&gt; text(v, &quot;event_id&quot;))
+    .process(new Seen()).print(&quot;RESULT&quot;);</pre><p class="code-explanation">После keyBy состояние Seen относится к одному event_id. Значение seen сохраняется движком; реализация показана далее.</p><aside class="notes"><p>После keyBy состояние Seen относится к одному event_id. Значение seen сохраняется движком; реализация показана далее.</p><p>Полная программа: lecture-08-code/flink/src/main/java/course/Examples.java. Запуск из lecture-08-code: ./run.sh start flink dedup. Входные сообщения отправляем отдельными фазами через ./run.sh send. Новый RUN_ID нужен для независимого эксперимента.</p></aside><div class="footer"><span><a href="lecture-08-code/flink/src/main/java/course/Examples.java">lecture-08-code/flink/src/main/java/course/Examples.java</a> · flink dedup</span><span class="counter">35 / 108</span></div></div>
+
+<div class="step slide" id="code-streams-seen-setup" data-code-slide="true" data-x="8800" data-y="2550"><h1>Kafka Streams: где хранится seen</h1><pre class="code">public static final class Seen extends ContextualFixedKeyProcessor&lt;String, String, String&gt; {
+    private KeyValueStore&lt;String, Boolean&gt; seen;
+    @Override public void init(FixedKeyProcessorContext&lt;String, String&gt; context) {
+        super.init(context);
+        seen = context.getStateStore(&quot;seen&quot;);
+    }</pre><p class="code-explanation">Это управляемое состояние, а не обычный Set в памяти процесса. В учебном примере event_id хранятся без ограничения срока.</p><aside class="notes"><p>Это управляемое состояние, а не обычный Set в памяти процесса. В учебном примере event_id хранятся без ограничения срока.</p><p>Полная программа: lecture-08-code/streams/src/main/java/course/Examples.java. Запуск из lecture-08-code: ./run.sh start streams dedup. Входные сообщения отправляем отдельными фазами через ./run.sh send. Новый RUN_ID нужен для независимого эксперимента.</p></aside><div class="footer"><span><a href="lecture-08-code/streams/src/main/java/course/Examples.java">lecture-08-code/streams/src/main/java/course/Examples.java</a> · streams dedup</span><span class="counter">36 / 108</span></div></div>
+
+<div class="step slide" id="code-streams-seen-process" data-code-slide="true" data-x="0" data-y="3400"><h1>Kafka Streams: проверка и сохранение event_id</h1><pre class="code">    @Override public void process(FixedKeyRecord&lt;String, String&gt; record) {
+        String id = text(record.value(), &quot;event_id&quot;);
+        if (seen.get(id) == null) {
+            seen.put(id, true);
+            context().forward(record);
+        }
+    }
+}</pre><p class="code-explanation">Проверяем, был ли event_id. Если нет — сохраняем признак и передаём запись дальше. Повтор не проходит.</p><aside class="notes"><p>Проверяем, был ли event_id. Если нет — сохраняем признак и передаём запись дальше. Повтор не проходит.</p><p>Полная программа: lecture-08-code/streams/src/main/java/course/Examples.java. Запуск из lecture-08-code: ./run.sh start streams dedup. Входные сообщения отправляем отдельными фазами через ./run.sh send. Новый RUN_ID нужен для независимого эксперимента.</p></aside><div class="footer"><span><a href="lecture-08-code/streams/src/main/java/course/Examples.java">lecture-08-code/streams/src/main/java/course/Examples.java</a> · streams dedup</span><span class="counter">37 / 108</span></div></div>
+
+<div class="step slide" id="code-flink-seen-setup" data-code-slide="true" data-x="1100" data-y="3400"><h1>Flink: где хранится seen</h1><pre class="code">public static final class Seen extends KeyedProcessFunction&lt;String, String, String&gt; {
+    private transient ValueState&lt;Boolean&gt; seen;
+    @Override public void open(OpenContext context) throws Exception {
+        seen = getRuntimeContext().getState(
+            new ValueStateDescriptor&lt;&gt;(&quot;seen&quot;, Types.BOOLEAN));
+    }</pre><p class="code-explanation">Это управляемое состояние, а не обычный Set в памяти процесса. В учебном примере event_id хранятся без ограничения срока.</p><aside class="notes"><p>Это управляемое состояние, а не обычный Set в памяти процесса. В учебном примере event_id хранятся без ограничения срока.</p><p>Полная программа: lecture-08-code/flink/src/main/java/course/Examples.java. Запуск из lecture-08-code: ./run.sh start flink dedup. Входные сообщения отправляем отдельными фазами через ./run.sh send. Новый RUN_ID нужен для независимого эксперимента.</p></aside><div class="footer"><span><a href="lecture-08-code/flink/src/main/java/course/Examples.java">lecture-08-code/flink/src/main/java/course/Examples.java</a> · flink dedup</span><span class="counter">38 / 108</span></div></div>
+
+<div class="step slide" id="code-flink-seen-process" data-code-slide="true" data-x="2200" data-y="3400"><h1>Flink: проверка и сохранение event_id</h1><pre class="code">    @Override public void processElement(String value, Context ctx, Collector&lt;String&gt; out)
+            throws Exception {
+        if (seen.value() == null) {
+            seen.update(true);
+            out.collect(value);
+        }
+    }
+}</pre><p class="code-explanation">Проверяем, был ли event_id. Если нет — сохраняем признак и передаём запись дальше. Повтор не проходит.</p><aside class="notes"><p>Проверяем, был ли event_id. Если нет — сохраняем признак и передаём запись дальше. Повтор не проходит.</p><p>Полная программа: lecture-08-code/flink/src/main/java/course/Examples.java. Запуск из lecture-08-code: ./run.sh start flink dedup. Входные сообщения отправляем отдельными фазами через ./run.sh send. Новый RUN_ID нужен для независимого эксперимента.</p></aside><div class="footer"><span><a href="lecture-08-code/flink/src/main/java/course/Examples.java">lecture-08-code/flink/src/main/java/course/Examples.java</a> · flink dedup</span><span class="counter">39 / 108</span></div></div>
+
+<div class="step slide section" id="time" data-x="3300" data-y="3400">
+    <h1>Время события и время обработки</h1>
+    <p>Когда покупатель оплатил заказ и когда обработчик прочитал запись об этом.</p>
+    <aside class="notes"><p>Вернёмся к исходной задаче: нужна отдельная сумма за каждую минуту. Сначала определим, какую минуту имеем в виду: минуту оплаты или минуту обработки записи.</p></aside>
+    <div class="footer"><span></span><span class="counter">40 / 108</span></div>
+</div>
+
+<div class="step slide" id="two-clocks" data-x="4400" data-y="3400">
+    <h1>Порядок записи не равен времени оплаты</h1>
+    <table><thead><tr><th>Событие</th><th>Offset</th><th>Оплатили</th><th>Обработали</th><th>Сумма</th></tr></thead><tbody><tr><td>A</td><td>100</td><td>12:00:10</td><td>12:00:11</td><td>100 ₽</td></tr><tr><td>C</td><td>101</td><td>12:01:05</td><td>12:01:06</td><td>300 ₽</td></tr><tr><td>B</td><td>102</td><td>12:00:40</td><td>12:02:05</td><td>200 ₽</td></tr></tbody></table><p><strong>Event time:</strong> paid_at из события.<br><strong>Processing time:</strong> время обработки оператором.</p><p class="callout">В одной партиции читаем A → C → B. B оплачена раньше C, но запись о ней добавлена позже.</p>
+    <aside class="notes"><p>Рассмотрим записи о трёх оплатах одного магазина в одной партиции Kafka. Запись об оплате A получила offset 100, об оплате C — 101, об оплате B — 102. Оплата B состоялась до оплаты C, но запись о ней добавили в Kafka после записи C.</p><p>Kafka выдаёт записи в порядке offsets. Она не сортирует их по paid_at. Поэтому даже одна партиция может содержать сообщение о более старой оплате после сообщения о новой.</p><p>Event time в нашем примере — время оплаты из paid_at. Processing time — время обработки записи данным оператором. По paid_at порядок A, B, C; по чтению и обработке — A, C, B. Сохраним эти обозначения и offsets для дальнейших примеров.</p></aside>
+    <div class="footer"><span></span><span class="counter">41 / 108</span></div>
+</div>
+
+<div class="step slide" id="different-answers" data-x="5500" data-y="3400">
+    <h1>Выбор времени меняет результат</h1>
+    <table><thead><tr><th>Минута</th><th>По paid_at</th><th>По времени обработки</th></tr></thead><tbody><tr><td>12:00–12:01</td><td>A + B = 300 ₽</td><td>A = 100 ₽</td></tr><tr><td>12:01–12:02</td><td>C = 300 ₽</td><td>C = 300 ₽</td></tr><tr><td>12:02–12:03</td><td>0 ₽</td><td>B = 200 ₽</td></tr></tbody></table><p class="callout">Слева — когда оплатили. Справа — когда обработчик увидел эти оплаты.</p>
+    <aside class="notes"><p>После получения всех трёх записей можно посчитать две разные суммы по минутам. По времени оплаты первая минута содержит A и B — триста рублей. Вторая содержит C — ещё триста.</p><p>Если группировать по времени обработки, B попадёт в третью минуту. Это ответ на другой вопрос: сколько денег было в записях, обработанных за данную минуту? Для суммы продаж по времени оплаты он не подходит.</p><p>При повторном чтении истории processing time будет новым, а paid_at останется прежним. Поэтому нельзя заменять время оплаты текущим временем только ради удобства обработки. Для нашей задачи дальше используем paid_at.</p></aside>
+    <div class="footer"><span></span><span class="counter">42 / 108</span></div>
+</div>
+
+<div class="step slide" id="tumbling" data-x="6600" data-y="3400">
+    <h1>Минутные окна по времени оплаты</h1>
+    <pre class="diagram">Время оплаты →
+12:00          12:01          12:02
+├── A ── B ────┼── C ─────────┤
+│   300 ₽      │   300 ₽      │
+└──────────────┴──────────────┘</pre><p><strong>Tumbling:</strong> соседние окна без перекрытия. Начало включаем, конец исключаем.</p><p>Храним сумму для каждой пары <strong>(shop_id, начало минуты)</strong>.</p><p>Какие оплаты сложить, когда показать сумму и сколько её исправлять — три отдельных вопроса.</p>
+    <aside class="notes"><p>Разобьём время оплаты на соседние минутные интервалы. A и B относятся к первой минуте, C — ко второй. В этом виде группировки интервалы не перекрываются; такие окна называют tumbling.</p><p>Нужно договориться о границах. Мы включаем начало и исключаем конец. Значит, оплата ровно в 12:01 относится ко второй минуте.</p><p>Теперь вместо одной суммы магазина храним несколько: по паре «магазин, начало минуты». Сам магазин по-прежнему может обслуживать один обработчик; внутри него находятся суммы разных минут.</p><p>Здесь три отдельных вопроса. Какие оплаты относятся к этой минуте? Когда показать их сумму? Когда перестать учитывать запоздавшие оплаты за эту минуту? Например, можно показать сумму сразу, а потом некоторое время исправлять её по мере поступления задержавшихся записей.</p></aside>
+    <div class="footer"><span></span><span class="counter">43 / 108</span></div>
+</div>
+
+<div class="step slide" id="code-spark-minute" data-code-slide="true" data-x="7700" data-y="3400"><h1>PySpark: минутное окно</h1><pre class="code">timed = payments.withWatermark(&quot;paid_at&quot;, &quot;2 minutes&quot;)
+result = timed.groupBy(
+    &quot;shop_id&quot;, F.window(&quot;paid_at&quot;, &quot;1 minute&quot;)
+).agg(F.sum(&quot;amount&quot;).alias(&quot;total&quot;))</pre><p class="code-explanation">Watermark допускает задержку по времени оплаты. Группировка — по магазину и окну; update показывает предварительные суммы.</p><aside class="notes"><p>Watermark допускает задержку по времени оплаты. Группировка — по магазину и окну; update показывает предварительные суммы.</p><p>Полная программа: lecture-08-code/spark/job.py. Запуск из lecture-08-code: ./run.sh start spark minute. Входные сообщения отправляем отдельными фазами через ./run.sh send. Новый RUN_ID нужен для независимого эксперимента.</p></aside><div class="footer"><span><a href="lecture-08-code/spark/job.py">lecture-08-code/spark/job.py</a> · spark minute</span><span class="counter">44 / 108</span></div></div>
+
+<div class="step slide" id="code-streams-minute" data-code-slide="true" data-x="8800" data-y="3400"><h1>Kafka Streams: минутное окно</h1><pre class="code">windows = TimeWindows.ofSizeAndGrace(
+    Duration.ofMinutes(1), Duration.ofMinutes(2));</pre><p class="code-explanation">Это описание окна: длина одна минута, дополнительное ожидание grace — две минуты. Применение к потоку и сумма показаны далее.</p><aside class="notes"><p>Это описание окна: длина одна минута, дополнительное ожидание grace — две минуты. Применение к потоку и сумма показаны далее.</p><p>Полная программа: lecture-08-code/streams/src/main/java/course/Examples.java. Запуск из lecture-08-code: ./run.sh start streams minute. Входные сообщения отправляем отдельными фазами через ./run.sh send. Новый RUN_ID нужен для независимого эксперимента.</p></aside><div class="footer"><span><a href="lecture-08-code/streams/src/main/java/course/Examples.java">lecture-08-code/streams/src/main/java/course/Examples.java</a> · streams minute</span><span class="counter">45 / 108</span></div></div>
+
+<div class="step slide" id="code-flink-minute" data-code-slide="true" data-x="0" data-y="4250"><h1>Flink: минутное окно</h1><pre class="code">byShop.window(TumblingEventTimeWindows.of(Duration.ofMinutes(1)))
+    .sum(1).print(&quot;RESULT&quot;);</pre><p class="code-explanation">byShop уже содержит пары (магазин, сумма) с timestamps оплат. Окно выдаёт сумму при продвижении watermark; по умолчанию дополнительного allowed lateness нет.</p><aside class="notes"><p>byShop уже содержит пары (магазин, сумма) с timestamps оплат. Окно выдаёт сумму при продвижении watermark; по умолчанию дополнительного allowed lateness нет.</p><p>Полная программа: lecture-08-code/flink/src/main/java/course/Examples.java. Запуск из lecture-08-code: ./run.sh start flink minute. Входные сообщения отправляем отдельными фазами через ./run.sh send. Новый RUN_ID нужен для независимого эксперимента.</p></aside><div class="footer"><span><a href="lecture-08-code/flink/src/main/java/course/Examples.java">lecture-08-code/flink/src/main/java/course/Examples.java</a> · flink minute</span><span class="counter">46 / 108</span></div></div>
+
+<div class="step slide" id="code-streams-window-sum" data-code-slide="true" data-x="1100" data-y="4250"><h1>Kafka Streams: применяем окно и считаем</h1><pre class="code">payments.groupBy((k, v) -&gt; text(v, &quot;shop_id&quot;),
+        Grouped.with(Serdes.String(), Serdes.String()))
+    .windowedBy(windows)
+    .aggregate(() -&gt; 0L, (k, v, sum) -&gt; sum + amount(v),
+        Materialized.with(Serdes.String(), Serdes.Long()))
+    .toStream().foreach((k, v) -&gt; System.out.println(
+        &quot;RESULT &quot; + k.key() + &quot;@&quot; + k.window().start() + &quot;=&quot; + v));</pre><p class="code-explanation">Группируем оплаты по магазину и выбранному окну. На выходе — новое полное значение суммы, а не прибавление. Этот же код используется для перекрывающихся окон.</p><aside class="notes"><p>Группируем оплаты по магазину и выбранному окну. На выходе — новое полное значение суммы, а не прибавление. Этот же код используется для перекрывающихся окон.</p><p>Полная программа: lecture-08-code/streams/src/main/java/course/Examples.java. Запуск из lecture-08-code: ./run.sh start streams minute. Входные сообщения отправляем отдельными фазами через ./run.sh send. Новый RUN_ID нужен для независимого эксперимента.</p></aside><div class="footer"><span><a href="lecture-08-code/streams/src/main/java/course/Examples.java">lecture-08-code/streams/src/main/java/course/Examples.java</a> · streams minute</span><span class="counter">47 / 108</span></div></div>
+
+<div class="step slide" id="window-types" data-x="2200" data-y="4250">
+    <h1>Три вида временных окон</h1>
+    <table><thead><tr><th>Окно</th><th>Пример</th><th>Особенность</th></tr></thead><tbody><tr><td>Неперекрывающееся</td><td>Каждая календарная минута</td><td>Одно событие — одно окно</td></tr><tr><td>Скользящее с фиксированным шагом</td><td>Последние 5 минут каждые 30 секунд</td><td>Одно событие — несколько окон</td></tr><tr><td>Сессионное</td><td>Активность до паузы в 10 минут</td><td>Границы зависят от событий</td></tr></tbody></table><p class="callout">Позднее событие может даже соединить две сессии.</p>
+    <aside class="notes"><p>Неперекрывающиеся минуты — один вариант. Можно каждые тридцать секунд считать последние пять минут. Окна будут перекрываться, и одна оплата войдёт в несколько результатов.</p><p>Сессионные окна определяются паузами между событиями. Например, события одного пользователя относятся к одной сессии, пока пауза не превышает десять минут.</p><p>Пусть события были в 12:00 и 12:15. Сначала это две сессии. Затем получаем задержавшуюся запись со временем 12:08. Она находится в пределах десяти минут от обоих событий, поэтому при сохранённом состоянии эти сессии могут объединиться.</p><p>Названия sliding и hopping в разных API отличаются. При выборе окна надо смотреть на длину интервала, шаг и правило включения событий.</p></aside>
+    <div class="footer"><span></span><span class="counter">48 / 108</span></div>
+</div>
+
+<div class="step slide" id="code-spark-sliding" data-code-slide="true" data-x="3300" data-y="4250"><h1>PySpark: пять минут с шагом 30 секунд</h1><pre class="code">result = payments.withWatermark(&quot;paid_at&quot;, &quot;2 minutes&quot;).groupBy(
+    &quot;shop_id&quot;, F.window(&quot;paid_at&quot;, &quot;5 minutes&quot;, &quot;30 seconds&quot;)
+).agg(F.sum(&quot;amount&quot;).alias(&quot;total&quot;))</pre><p class="code-explanation">Длина окна и шаг заданы отдельно. Одна оплата попадёт в десять окон. Append выдаёт завершённые оконные суммы.</p><aside class="notes"><p>Длина окна и шаг заданы отдельно. Одна оплата попадёт в десять окон. Append выдаёт завершённые оконные суммы.</p><p>Полная программа: lecture-08-code/spark/job.py. Запуск из lecture-08-code: ./run.sh start spark sliding. Входные сообщения отправляем отдельными фазами через ./run.sh send. Новый RUN_ID нужен для независимого эксперимента.</p></aside><div class="footer"><span><a href="lecture-08-code/spark/job.py">lecture-08-code/spark/job.py</a> · spark sliding</span><span class="counter">49 / 108</span></div></div>
+
+<div class="step slide" id="code-streams-sliding" data-code-slide="true" data-x="4400" data-y="4250"><h1>Kafka Streams: пять минут с шагом 30 секунд</h1><pre class="code">windows = TimeWindows.ofSizeAndGrace(
+    Duration.ofMinutes(5), Duration.ofMinutes(2))
+    .advanceBy(Duration.ofSeconds(30));</pre><p class="code-explanation">Для фиксированного шага используется TimeWindows.advanceBy. Это hopping windows; отдельный API SlidingWindows задаёт другую модель.</p><aside class="notes"><p>Для фиксированного шага используется TimeWindows.advanceBy. Это hopping windows; отдельный API SlidingWindows задаёт другую модель.</p><p>Полная программа: lecture-08-code/streams/src/main/java/course/Examples.java. Запуск из lecture-08-code: ./run.sh start streams sliding. Входные сообщения отправляем отдельными фазами через ./run.sh send. Новый RUN_ID нужен для независимого эксперимента.</p></aside><div class="footer"><span><a href="lecture-08-code/streams/src/main/java/course/Examples.java">lecture-08-code/streams/src/main/java/course/Examples.java</a> · streams sliding</span><span class="counter">50 / 108</span></div></div>
+
+<div class="step slide" id="code-flink-sliding" data-code-slide="true" data-x="5500" data-y="4250"><h1>Flink: пять минут с шагом 30 секунд</h1><pre class="code">byShop.window(SlidingEventTimeWindows.of(
+    Duration.ofMinutes(5), Duration.ofSeconds(30)))
+    .sum(1).print(&quot;RESULT&quot;);</pre><p class="code-explanation">Первый аргумент — длина окна, второй — шаг. Состояние хранится отдельно для каждого магазина и окна.</p><aside class="notes"><p>Первый аргумент — длина окна, второй — шаг. Состояние хранится отдельно для каждого магазина и окна.</p><p>Полная программа: lecture-08-code/flink/src/main/java/course/Examples.java. Запуск из lecture-08-code: ./run.sh start flink sliding. Входные сообщения отправляем отдельными фазами через ./run.sh send. Новый RUN_ID нужен для независимого эксперимента.</p></aside><div class="footer"><span><a href="lecture-08-code/flink/src/main/java/course/Examples.java">lecture-08-code/flink/src/main/java/course/Examples.java</a> · flink sliding</span><span class="counter">51 / 108</span></div></div>
+
+<div class="step slide" id="code-spark-session" data-code-slide="true" data-x="6600" data-y="4250"><h1>PySpark: сессии с паузой 10 минут</h1><pre class="code">result = payments.withWatermark(&quot;paid_at&quot;, &quot;2 minutes&quot;).groupBy(
+    &quot;shop_id&quot;, F.session_window(&quot;paid_at&quot;, &quot;10 minutes&quot;)
+).agg(F.sum(&quot;amount&quot;).alias(&quot;total&quot;))</pre><p class="code-explanation">Сессии строятся отдельно по магазинам. В streaming-запросе для сессий используется append; update не поддерживается.</p><aside class="notes"><p>Сессии строятся отдельно по магазинам. В streaming-запросе для сессий используется append; update не поддерживается.</p><p>Полная программа: lecture-08-code/spark/job.py. Запуск из lecture-08-code: ./run.sh start spark session. Входные сообщения отправляем отдельными фазами через ./run.sh send. Новый RUN_ID нужен для независимого эксперимента.</p></aside><div class="footer"><span><a href="lecture-08-code/spark/job.py">lecture-08-code/spark/job.py</a> · spark session</span><span class="counter">52 / 108</span></div></div>
+
+<div class="step slide" id="code-streams-session" data-code-slide="true" data-x="7700" data-y="4250"><h1>Kafka Streams: сессии с паузой 10 минут</h1><pre class="code">payments.groupBy((k, v) -&gt; text(v, &quot;shop_id&quot;),
+        Grouped.with(Serdes.String(), Serdes.String()))
+    .windowedBy(SessionWindows.ofInactivityGapAndGrace(
+        Duration.ofMinutes(10), Duration.ofMinutes(2)))
+    .aggregate(() -&gt; 0L, (k, v, sum) -&gt; sum + amount(v),
+        (k, a, b) -&gt; a + b,
+        Materialized.with(Serdes.String(), Serdes.Long()))
+    .toStream().foreach((k, v) -&gt; System.out.println(&quot;RESULT &quot; + k + &quot;=&quot; + v));</pre><p class="code-explanation">Когда поздняя запись связывает две сессии, функция (k, a, b) -&gt; a + b объединяет их частичные суммы.</p><aside class="notes"><p>Когда поздняя запись связывает две сессии, функция (k, a, b) -&gt; a + b объединяет их частичные суммы.</p><p>Полная программа: lecture-08-code/streams/src/main/java/course/Examples.java. Запуск из lecture-08-code: ./run.sh start streams session. Входные сообщения отправляем отдельными фазами через ./run.sh send. Новый RUN_ID нужен для независимого эксперимента.</p></aside><div class="footer"><span><a href="lecture-08-code/streams/src/main/java/course/Examples.java">lecture-08-code/streams/src/main/java/course/Examples.java</a> · streams session</span><span class="counter">53 / 108</span></div></div>
+
+<div class="step slide" id="code-flink-session" data-code-slide="true" data-x="8800" data-y="4250"><h1>Flink: сессии с паузой 10 минут</h1><pre class="code">byShop.window(EventTimeSessionWindows.withGap(Duration.ofMinutes(10)))
+    .sum(1).print(&quot;RESULT&quot;);</pre><p class="code-explanation">Event-time-сессии определяются временем оплат, а не темпом чтения Kafka. Запись между двумя сессиями может объединить их.</p><aside class="notes"><p>Event-time-сессии определяются временем оплат, а не темпом чтения Kafka. Запись между двумя сессиями может объединить их.</p><p>Полная программа: lecture-08-code/flink/src/main/java/course/Examples.java. Запуск из lecture-08-code: ./run.sh start flink session. Входные сообщения отправляем отдельными фазами через ./run.sh send. Новый RUN_ID нужен для независимого эксперимента.</p></aside><div class="footer"><span><a href="lecture-08-code/flink/src/main/java/course/Examples.java">lecture-08-code/flink/src/main/java/course/Examples.java</a> · flink session</span><span class="counter">54 / 108</span></div></div>
+
+<div class="step slide" id="close-window" data-x="0" data-y="5100">
+    <h1>Как долго ждать задержавшиеся оплаты</h1>
+    <ul><li>Запись об оплате может ждать обработки в Kafka.</li><li>Или покупатель уже оплатил заказ, а отправитель ещё не сообщил об этом.</li><li>Приложение решает, сколько ждать и что делать с более поздними записями.</li></ul><p class="callout">Можно показать предварительную сумму сразу, а затем некоторое время её исправлять.</p>
+    <aside class="notes"><p>Для первой минуты хотим получить достаточно быстрый и достаточно полный ответ. Эти требования нужно выразить конкретно: когда показываем сумму и сколько ещё принимаем задержавшиеся сообщения.</p><p>Запись может уже находиться в Kafka, но ждать обработки. Или покупатель оплатил заказ, а отправитель ещё не сообщил об этом. Вторая ситуация возможна и при одной партиции. Поэтому чтение до текущего конца журнала не даёт знания обо всех оплатах.</p><p>Приложение выбирает правило ожидания. Например, сначала показывает предварительную сумму, затем принимает исправления, а после определённой границы старые записи обрабатывает отдельно. Для оперативной статистики и последующей финансовой сверки правила могут различаться.</p></aside>
+    <div class="footer"><span></span><span class="counter">55 / 108</span></div>
+</div>
+
+<div class="step slide" id="watermark" data-x="1100" data-y="5100">
+    <h1>Watermark: насколько продвинулось время событий</h1>
+    <p><strong>Watermark W</strong> сообщает, до какой отметки продвинулся вход по времени событий.</p><pre class="diagram">W = 12:01:20
+
+Считаем более ранние события уже полученными.
+Если они всё же придут — применим правила опозданий.</pre><p>Оператор использует W, чтобы выдать результат окна, прекратить исправления или удалить состояние.</p><p>Какие из этих действий выполнить и когда — задают правила конкретной операции.</p>
+    <aside class="notes"><p>Ранее мы выбрали группировку по paid_at. Но часы на стене не говорят, все ли записи первой минуты уже доставлены. Для работы с временем событий движок использует отдельную отметку — watermark.</p><p>Если вход передал W=12:01:20, дальше работаем в предположении, что более ранние события уже получены. Это позволяет перестать ждать их бесконечно. Если запись с более ранним временем всё же придёт, обработаем её как опоздавшую — по заранее выбранным правилам.</p><p>Например, конец первой минуты уже позади W. Можно выдать её сумму. Однако это не обязательно означает немедленное удаление суммы: конкретная операция может ещё некоторое время принимать исправления.</p><p>Watermark может сообщать источник или вычислять движок по времени в записях. На следующем слайде зададим простую формулу и явно договоримся, когда заканчивать расчёт. Это будет учебное правило, а не универсальная настройка всех движков.</p></aside>
+    <div class="footer"><span><a href="https://nightlies.apache.org/flink/flink-docs-release-2.1/docs/concepts/time/">Flink: время и watermarks</a></span><span class="counter">56 / 108</span></div>
+</div>
+
+<div class="step slide" id="watermark-example" data-x="2200" data-y="5100">
+    <h1>Учебный пример продвижения watermark</h1>
+    <p>Учебное правило одного входа:<br><strong>W = самый поздний увиденный paid_at − 2 минуты.</strong></p><table><thead><tr><th>Получили запись</th><th>paid_at</th><th>W</th></tr></thead><tbody><tr><td>C</td><td>12:01:05</td><td>11:59:05</td></tr><tr><td>B</td><td>12:00:40</td><td>11:59:05</td></tr><tr><td>X</td><td>12:02:30</td><td>12:00:30</td></tr><tr><td>Y</td><td>12:03:10</td><td>12:01:10</td></tr></tbody></table><p>В этом примере закрываем окно, когда W достигнет его конца. После Y первая минута закрыта; B уже учтена.</p>
+    <aside class="notes"><p>Возьмём простой вариант для одного входа: из самого позднего увиденного paid_at вычитаем две минуты. Дополнительно договоримся закрывать минутное окно, когда W достигнет его конца. После этого исправлений в основном расчёте не принимаем.</p><p>После C получаем W=11:59:05. B имеет более старое время, поэтому W не меняется. Первое окно ещё открыто, и B увеличивает его сумму со ста до трёхсот.</p><p>Затем условные события X и Y сдвигают максимум. После X watermark равен 12:00:30, после Y — 12:01:10. Теперь первое окно закрываем.</p><p>Это расчёт по времени в записях. Если новые записи перестали поступать, формула не изменится от одного течения настенного времени. А ошибочный timestamp далеко в будущем способен слишком рано сдвинуть W. Это учебный пример; точные правила движков сравним отдельно.</p></aside>
+    <div class="footer"><span></span><span class="counter">57 / 108</span></div>
+</div>
+
+<div class="step slide" id="slow-input" data-x="3300" data-y="5100">
+    <h1>Несколько входов: пример Flink</h1>
+    <pre class="diagram">Вход 0 сообщил W₀ = 12:05 ─┐
+                          ├→ оператор: W = 12:01
+Вход 1 сообщил W₁ = 12:01 ─┘</pre><ul><li>Flink выбирает меньшее значение активных входов.</li><li>Пока оба входа активны, второй удерживает общий watermark на 12:01.</li><li>При настроенном тайм-ауте Flink автоматически исключает неактивный вход из расчёта watermark.</li></ul><p>С поступлением записей вход снова учитывается. Watermark назад не откатывается: старые записи могут оказаться опоздавшими.</p>
+    <aside class="notes"><p>У оператора Flink два активных входа. Первый передал watermark 12:05, второй — 12:01. Оператор устанавливает свой watermark в 12:01 — выбирает меньшее значение. Продвинуть его дальше пока нельзя: второй вход ещё не сообщил о продвижении своего времени событий. То, что первый вход ушёл вперёд, не говорит о прогрессе второго.</p><p>Если второй вход перестал присылать записи, общий watermark может остановиться. Можно настроить тайм-аут неактивности — idleness. Тогда во время работы Flink автоматически помечает вход как неактивный после заданного периода без записей и временно не учитывает его watermark. Когда записи снова поступают, вход снова учитывается. Общий watermark назад не откатывается, поэтому старые записи с вернувшегося входа могут оказаться опоздавшими.</p><p>На этом слайде разбираем именно Flink. В Spark и Kafka Streams время отслеживается иначе; одинаковый результат на одном примере ещё не означает одинаковых правил во всех случаях.</p></aside>
+    <div class="footer"><span><a href="https://nightlies.apache.org/flink/flink-docs-release-2.1/docs/concepts/time/">Flink: прогресс входов</a></span><span class="counter">58 / 108</span></div>
+</div>
+
+<div class="step slide" id="code-flink-watermark" data-code-slide="true" data-x="4400" data-y="5100"><h1>Flink: watermark и тайм-аут неактивности</h1><pre class="code">return WatermarkStrategy.&lt;String&gt;forBoundedOutOfOrderness(Duration.ofMinutes(2))
+    .withTimestampAssigner((value, previous) -&gt; time(value, field))
+    .withIdleness(Duration.ofSeconds(30));</pre><p class="code-explanation">От самого позднего времени событий отстаём на две минуты. После 30 секунд без записей вход помечается неактивным. Это разные настройки: две минуты относятся к event time, 30 секунд — к ожиданию по часам.</p><aside class="notes"><p>От самого позднего времени событий отстаём на две минуты. После 30 секунд без записей вход помечается неактивным. Это разные настройки: две минуты относятся к event time, 30 секунд — к ожиданию по часам.</p><p>Полная программа: lecture-08-code/flink/src/main/java/course/Examples.java. Запуск из lecture-08-code: ./run.sh start flink minute. Входные сообщения отправляем отдельными фазами через ./run.sh send. Новый RUN_ID нужен для независимого эксперимента.</p></aside><div class="footer"><span><a href="lecture-08-code/flink/src/main/java/course/Examples.java">lecture-08-code/flink/src/main/java/course/Examples.java</a> · flink minute</span><span class="counter">59 / 108</span></div></div>
+
+<div class="step slide" id="late-policy" data-x="5500" data-y="5100">
+    <h1>Как обработать слишком позднюю оплату</h1>
+    <p>Основной расчёт первой минуты закончен. Только теперь пришла ещё одна оплата за эту минуту.</p><table><thead><tr><th>Решение приложения</th><th>Последствие</th></tr></thead><tbody><tr><td>Не учитывать</td><td>Оперативная сумма останется неполной</td></tr><tr><td>Отправить на сверку</td><td>Оплата будет учтена отдельно</td></tr><tr><td>Исправить прежний результат</td><td>Нужны прежняя сумма и возможность её обновить</td></tr><tr><td>Пересчитать позже</td><td>Нужна доступная история оплат</td></tr></tbody></table><p>После удаления состояния исправление потребует другого хранилища или нового расчёта.</p>
+    <aside class="notes"><p>Допустим, мы больше не принимаем оплаты в основной расчёт первой минуты, а сообщение за эту минуту только сейчас получено. Надо заранее выбрать, что с ним делать.</p><p>Можно не учитывать его в оперативном показателе. Можно сохранить отдельно для сверки. Можно исправить уже показанную сумму, если сохранились нужные данные и получатель поддерживает обновления. Или позднее пересчитать историю целиком.</p><p>Если промежуточную сумму уже удалили, одной настройки допуска недостаточно для исправления. Её придётся получить из другого хранилища или вычислить заново. Если по прежнему результату уже отправили уведомление, надо отдельно решить, требуется ли отменять или уточнять его.</p><p>Это решения приложения. Конкретный оператор не обязательно поддерживает каждое из них одной настройкой.</p></aside>
+    <div class="footer"><span></span><span class="counter">60 / 108</span></div>
+</div>
+
+<div class="step slide" id="result-updates" data-x="6600" data-y="5100">
+    <h1>Как обновлять показанную сумму</h1>
+    <table><thead><tr><th>После какого события</th><th>Магазин и минута</th><th>Показываем сумму</th></tr></thead><tbody><tr><td>A</td><td>shop-7, 12:00</td><td>100 ₽</td></tr><tr><td>B</td><td>shop-7, 12:00</td><td>300 ₽</td></tr><tr><td>Закрытие окна</td><td>shop-7, 12:00</td><td>300 ₽; больше не исправляем в основном расчёте</td></tr></tbody></table><p class="callout">Здесь 300 заменяет 100. Получатель не должен складывать эти два значения.</p><p>Можно передавать и прибавления, но тогда у выходных записей будет другой смысл.</p>
+    <aside class="notes"><p>После A показываем сто рублей за первую минуту. После B показываем триста по тому же ключу: магазин и начало минуты.</p><p>В этом примере передаём полные значения суммы. Триста заменяет сто. Если получатель сложит обе записи, получится четыреста — ошибка. Поэтому нужно договориться, что означает выходная запись: новое полное значение, прибавление или другая операция.</p><p>Можно записывать полное значение по ключу окна, то есть выполнять upsert. Можно ждать закрытия окна и только потом отправлять результат. Первый вариант даёт более ранний ответ, но требует обновлений. Второй заставляет дольше ждать.</p><p>Слово «финальный» здесь означает, что по нашим правилам основной расчёт этой минуты закончен. Это не доказательство, что все отправители уже сообщили обо всех оплатах.</p></aside>
+    <div class="footer"><span></span><span class="counter">61 / 108</span></div>
+</div>
+
+<div class="step slide section" id="tables" data-x="7700" data-y="5100">
+    <h1>Поток и таблица</h1>
+    <p>История изменений и состояние на данный момент.</p>
+    <aside class="notes"><p>Мы уже получили поток обновлений одной суммы. Теперь посмотрим на связь такого потока с таблицей, которая хранит последнее значение по каждому ключу. Затем используем таблицу для обогащения событий.</p></aside>
+    <div class="footer"><span></span><span class="counter">62 / 108</span></div>
+</div>
+
+<div class="step slide" id="stream-table" data-x="8800" data-y="5100">
+    <h1>Поток изменений и текущее значение</h1>
+    <table><thead><tr><th>Получили обновление</th><th>Теперь в таблице</th></tr></thead><tbody><tr><td>order-42 → Created</td><td>order-42 → Created</td></tr><tr><td>order-42 → Paid</td><td>order-42 → Paid</td></tr><tr><td>order-42 → Shipped</td><td>order-42 → Shipped</td></tr></tbody></table><ul><li>В истории остаются три изменения.</li><li>В таблице — одно последнее применённое значение.</li><li>В Kafka Streams этим подходам соответствуют KStream и KTable.</li></ul>
+    <aside class="notes"><p>У заказа последовательно появились статусы Created, Paid и Shipped. В истории это три записи. В таблице текущих статусов после их применения остаётся одна строка: order-42, Shipped.</p><p>Поток позволяет хранить историю изменений. Таблица позволяет быстро узнать последнее применённое значение. В Kafka Streams эти способы интерпретации записей представлены KStream и KTable.</p><p>В примере «последнее» определяется порядком применения. Если старое обновление поступит после нового, простая запись по порядку получения может вернуть старый статус. Для выбора по времени или версии нужны соответствующие правила и поддержка операции.</p><p>Таблицу можно восстановить по достаточному журналу изменений либо по снимку и последующим обновлениям. Произвольного сохранившегося фрагмента истории для этого может не хватить.</p></aside>
+    <div class="footer"><span><a href="https://kafka.apache.org/41/streams/core-concepts/">Kafka Streams: stream–table duality</a></span><span class="counter">63 / 108</span></div>
+</div>
+
+<div class="step slide" id="stream-table-join" data-x="0" data-y="5950">
+    <h1>Join потока со справочником</h1>
+    <pre class="diagram">Оплата: shop-7
+        +
+Справочник: shop-7 → Москва
+        ↓
+Оплата с добавленным регионом: Москва</pre><p>При обычном поиске берём доступную обработчику версию справочника.</p><p>Для региона на момент оплаты нужны исторические версии и поиск по времени.</p>
+    <aside class="notes"><p>К оплате нужно добавить регион магазина. В сообщении есть shop_id; в справочнике по этому ключу находим Москву и добавляем её в результат. Это join потока оплат с таблицей магазинов по shop_id.</p><p>Справочник можно держать рядом с обработчиком и обновлять отдельным потоком. Но нужно определить, какую версию справочника использовать. Если магазин сменил регион, а вчерашняя оплата пришла сегодня, обычный поиск по текущему значению может дать новый регион.</p><p>Для региона на момент оплаты нужны исторические версии и поиск по времени. Такой поиск называют temporal или as-of join.</p><p>Изменение справочника также не обязано пересчитать ранее выпущенные события. Поэтому заранее определяем, нужен ли только результат поиска во время обработки или ещё и исправление старых результатов.</p></aside>
+    <div class="footer"><span></span><span class="counter">64 / 108</span></div>
+</div>
+
+<div class="step slide" id="code-spark-lookup" data-code-slide="true" data-x="1100" data-y="5950"><h1>PySpark: добавляем регион магазина</h1><pre class="code">shops = spark.createDataFrame(
+    [(&quot;shop-7&quot;, &quot;Москва&quot;)], &quot;shop_id STRING, region STRING&quot;)
+result = payments.join(shops, &quot;shop_id&quot;, &quot;left&quot;)</pre><p class="code-explanation">Справочник здесь статический: создан при запуске запроса. Это stream–static join; он не получает обновления регионов из Kafka.</p><aside class="notes"><p>Справочник здесь статический: создан при запуске запроса. Это stream–static join; он не получает обновления регионов из Kafka.</p><p>Полная программа: lecture-08-code/spark/job.py. Запуск из lecture-08-code: ./run.sh start spark lookup. Входные сообщения отправляем отдельными фазами через ./run.sh send. Новый RUN_ID нужен для независимого эксперимента.</p></aside><div class="footer"><span><a href="lecture-08-code/spark/job.py">lecture-08-code/spark/job.py</a> · spark lookup</span><span class="counter">65 / 108</span></div></div>
+
+<div class="step slide" id="code-streams-lookup" data-code-slide="true" data-x="2200" data-y="5950"><h1>Kafka Streams: добавляем регион магазина</h1><pre class="code">GlobalKTable&lt;String, String&gt; shops = builder.globalTable(
+    &quot;shops&quot;, Consumed.with(Serdes.String(), Serdes.String()));
+payments.leftJoin(shops,
+    (key, payment) -&gt; text(payment, &quot;shop_id&quot;),
+    (payment, region) -&gt; payment + &quot; region=&quot; + region)
+    .foreach((k, v) -&gt; System.out.println(&quot;RESULT &quot; + v));</pre><p class="code-explanation">GlobalKTable хранит справочник из топика shops в каждом экземпляре приложения. Ключ shops — shop_id, значение — JSON с регионом.</p><aside class="notes"><p>GlobalKTable хранит справочник из топика shops в каждом экземпляре приложения. Ключ shops — shop_id, значение — JSON с регионом.</p><p>Полная программа: lecture-08-code/streams/src/main/java/course/Examples.java. Запуск из lecture-08-code: ./run.sh start streams lookup. Входные сообщения отправляем отдельными фазами через ./run.sh send. Новый RUN_ID нужен для независимого эксперимента.</p></aside><div class="footer"><span><a href="lecture-08-code/streams/src/main/java/course/Examples.java">lecture-08-code/streams/src/main/java/course/Examples.java</a> · streams lookup</span><span class="counter">66 / 108</span></div></div>
+
+<div class="step slide" id="code-flink-lookup" data-code-slide="true" data-x="3300" data-y="5950"><h1>Flink: добавляем регион магазина</h1><pre class="code">DataStream&lt;String&gt; shops = env.fromSource(source(&quot;shops&quot;, mode + &quot;-&quot; + run),
+    WatermarkStrategy.noWatermarks(), &quot;shops&quot;);
+payments.connect(shops.broadcast(REGIONS))
+    .process(new AddRegion()).print(&quot;RESULT&quot;);</pre><p class="code-explanation">Обновления справочника рассылаются всем копиям обработчика через broadcast. AddRegion хранит таблицу регионов и выполняет поиск по shop_id.</p><aside class="notes"><p>Обновления справочника рассылаются всем копиям обработчика через broadcast. AddRegion хранит таблицу регионов и выполняет поиск по shop_id.</p><p>Полная программа: lecture-08-code/flink/src/main/java/course/Examples.java. Запуск из lecture-08-code: ./run.sh start flink lookup. Входные сообщения отправляем отдельными фазами через ./run.sh send. Новый RUN_ID нужен для независимого эксперимента.</p></aside><div class="footer"><span><a href="lecture-08-code/flink/src/main/java/course/Examples.java">lecture-08-code/flink/src/main/java/course/Examples.java</a> · flink lookup</span><span class="counter">67 / 108</span></div></div>
+
+<div class="step slide" id="code-flink-region-update" data-code-slide="true" data-x="4400" data-y="5950"><h1>Flink: обновляем справочник</h1><pre class="code">public static final class AddRegion extends BroadcastProcessFunction&lt;String, String, String&gt; {
+    @Override public void processBroadcastElement(String shop, Context ctx, Collector&lt;String&gt; out)
+            throws Exception {
+        ctx.getBroadcastState(REGIONS).put(text(shop, &quot;shop_id&quot;), text(shop, &quot;region&quot;));
+        System.out.println(&quot;REGION loaded &quot; + text(shop, &quot;shop_id&quot;));
+    }</pre><p class="code-explanation">Вход shops изменяет broadcast state. REGIONS — описание таблицы shop_id → region; оно объявлено в полном файле.</p><aside class="notes"><p>Вход shops изменяет broadcast state. REGIONS — описание таблицы shop_id → region; оно объявлено в полном файле.</p><p>Полная программа: lecture-08-code/flink/src/main/java/course/Examples.java. Запуск из lecture-08-code: ./run.sh start flink lookup. Входные сообщения отправляем отдельными фазами через ./run.sh send. Новый RUN_ID нужен для независимого эксперимента.</p></aside><div class="footer"><span><a href="lecture-08-code/flink/src/main/java/course/Examples.java">lecture-08-code/flink/src/main/java/course/Examples.java</a> · flink lookup</span><span class="counter">68 / 108</span></div></div>
+
+<div class="step slide" id="code-flink-region-lookup" data-code-slide="true" data-x="5500" data-y="5950"><h1>Flink: читаем регион для оплаты</h1><pre class="code">    @Override public void processElement(String payment, ReadOnlyContext ctx, Collector&lt;String&gt; out)
+            throws Exception {
+        String region = ctx.getBroadcastState(REGIONS).get(text(payment, &quot;shop_id&quot;));
+        out.collect(payment + &quot; region=&quot; + region);
+    }
+}</pre><p class="code-explanation">Вход payments читает доступную локальную версию справочника. Если регион ещё не получен, результат содержит null; старые оплаты автоматически не пересчитываются.</p><aside class="notes"><p>Вход payments читает доступную локальную версию справочника. Если регион ещё не получен, результат содержит null; старые оплаты автоматически не пересчитываются.</p><p>Полная программа: lecture-08-code/flink/src/main/java/course/Examples.java. Запуск из lecture-08-code: ./run.sh start flink lookup. Входные сообщения отправляем отдельными фазами через ./run.sh send. Новый RUN_ID нужен для независимого эксперимента.</p></aside><div class="footer"><span><a href="lecture-08-code/flink/src/main/java/course/Examples.java">lecture-08-code/flink/src/main/java/course/Examples.java</a> · flink lookup</span><span class="counter">69 / 108</span></div></div>
+
+<div class="step slide" id="stream-stream-join" data-x="6600" data-y="5950">
+    <h1>Join двух потоков: зачем хранить записи</h1>
+    <pre class="diagram">Заказы: order-42, создан 12:00 ──┐
+                               ├→ заказ с оплатой
+Оплаты: order-42, paid_at 12:07 ─┘</pre><ul><li>Условие join: одинаковый order_id.</li><li>Первым может прийти как заказ, так и оплата.</li><li>Первую запись храним до прихода подходящей пары.</li></ul><p>Обе записи направляем обработчику того же order_id. Сколько ждать пару — определим дальше.</p>
+    <aside class="notes"><p>Теперь заказы и оплаты поступают двумя отдельными потоками. Выполняем join по order_id: для каждого заказа ищем запись об оплате с тем же идентификатором.</p><p>Если заказ уже получен, а оплаты ещё нет, заказ нужно сохранить. Возможен и обратный порядок: сообщение об оплате дошло до обработчика раньше сообщения о заказе. Значит, сохранять в ожидании пары может понадобиться любую сторону. Здесь ищем только совпавшие пары — это inner join. В нашем примере у заказа одна успешная оплата; для общего join совпадений может быть несколько.</p><p>При распределённой обработке записи одного order_id из обоих потоков должны встретиться у одного обработчика. Для этого может понадобиться shuffle.</p><p>Сам ключ не говорит, как долго ждать пару. Если ждать бесконечно, неоплаченные заказы и оплаты без найденных заказов будут накапливаться. Следующим шагом зададим условие по времени.</p></aside>
+    <div class="footer"><span></span><span class="counter">70 / 108</span></div>
+</div>
+
+<div class="step slide" id="join-time" data-x="7700" data-y="5950">
+    <h1>Сколько ждать оплату заказа</h1>
+    <p>Ищем оплату того же заказа, проведённую в течение 15 минут после его создания.</p><pre class="diagram">Заказ создан:       12:00
+Подходящие оплаты:  от 12:00 до 12:15
+Оплата в примере:   12:07</pre><p>Сообщение об оплате в 12:07 может быть обработано в 12:20.</p><p class="callout">Заказ храним, пока допускаем приём задержавшихся оплат с paid_at до 12:15.</p>
+    <aside class="notes"><p>Будем соединять заказ с оплатой, если покупатель оплатил его в течение пятнадцати минут после создания. Для заказа в 12:00 подходит оплата с paid_at от 12:00 до 12:15.</p><p>Это условие на время событий. Сообщение об оплате в 12:07 может быть обработано только в 12:20. Поэтому ожидание пятнадцати минут по настенным часам не равнозначно проверке этого условия.</p><p>Чтобы удалить заказ из состояния, оператор должен по правилам обоих входов решить, что больше не принимает для него подходящие пары. Здесь снова нужны watermark и правила опозданий.</p><p>Чем дольше сохраняются записи, тем больше памяти или диска потребуется. Для грубой оценки можно умножить скорость поступления на время хранения и размер записи. Задержавшийся вход способен увеличить это время.</p></aside>
+    <div class="footer"><span></span><span class="counter">71 / 108</span></div>
+</div>
+
+<div class="step slide" id="code-spark-join" data-code-slide="true" data-x="8800" data-y="5950"><h1>PySpark: join заказа и оплаты</h1><pre class="code">o = orders.withWatermark(&quot;created_at&quot;, &quot;2 minutes&quot;).alias(&quot;o&quot;)
+p = payments.withWatermark(&quot;paid_at&quot;, &quot;2 minutes&quot;).alias(&quot;p&quot;)
+condition = F.expr(&quot;&quot;&quot;
+    o.order_id = p.order_id AND
+    p.paid_at &gt;= o.created_at AND
+    p.paid_at &lt;= o.created_at + INTERVAL 15 MINUTES
+&quot;&quot;&quot;)
+result = o.join(p, condition, &quot;inner&quot;)</pre><p class="code-explanation">Оба входа имеют event time и watermark. Совпадают order_id, а paid_at находится в первых 15 минутах после created_at.</p><aside class="notes"><p>Оба входа имеют event time и watermark. Совпадают order_id, а paid_at находится в первых 15 минутах после created_at.</p><p>Полная программа: lecture-08-code/spark/job.py. Запуск из lecture-08-code: ./run.sh start spark join. Входные сообщения отправляем отдельными фазами через ./run.sh send. Новый RUN_ID нужен для независимого эксперимента.</p></aside><div class="footer"><span><a href="lecture-08-code/spark/job.py">lecture-08-code/spark/job.py</a> · spark join</span><span class="counter">72 / 108</span></div></div>
+
+<div class="step slide" id="code-streams-join" data-code-slide="true" data-x="0" data-y="6800"><h1>Kafka Streams: join заказа и оплаты</h1><pre class="code">JoinWindows interval = JoinWindows.ofTimeDifferenceAndGrace(
+    Duration.ofMinutes(15), Duration.ofMinutes(2))
+    .before(Duration.ZERO);
+KStream&lt;String, String&gt; result;
+if (mode.equals(&quot;join&quot;)) {
+    result = orders.join(paid,
+        (order, payment) -&gt; order + &quot; payment=&quot; + payment,
+        interval,
+        StreamJoined.with(Serdes.String(), Serdes.String(), Serdes.String()));
+}</pre><p class="code-explanation">Оба потока заранее получили ключ order_id. before(0) запрещает оплату раньше заказа; after остаётся 15 минут. Grace — две минуты.</p><aside class="notes"><p>Оба потока заранее получили ключ order_id. before(0) запрещает оплату раньше заказа; after остаётся 15 минут. Grace — две минуты.</p><p>Полная программа: lecture-08-code/streams/src/main/java/course/Examples.java. Запуск из lecture-08-code: ./run.sh start streams join. Входные сообщения отправляем отдельными фазами через ./run.sh send. Новый RUN_ID нужен для независимого эксперимента.</p></aside><div class="footer"><span><a href="lecture-08-code/streams/src/main/java/course/Examples.java">lecture-08-code/streams/src/main/java/course/Examples.java</a> · streams join</span><span class="counter">73 / 108</span></div></div>
+
+<div class="step slide" id="code-flink-join" data-code-slide="true" data-x="1100" data-y="6800"><h1>Flink: join заказа и оплаты</h1><pre class="code">String sql = &quot;&quot;&quot;
+    SELECT o.order_id, o.created_at, p.paid_at, p.amount
+    FROM orders o %s payments p
+    ON o.order_id = p.order_id
+    AND p.paid_at BETWEEN o.created_at
+        AND o.created_at + INTERVAL &#x27;15&#x27; MINUTE
+    &quot;&quot;&quot;.formatted(joinKind);
+tables.executeSql(sql).print();</pre><p class="code-explanation">Здесь используем Flink SQL: потоки зарегистрированы как таблицы с event-time-столбцами и watermarks. Для inner join joinKind равен &quot;JOIN&quot;.</p><aside class="notes"><p>Здесь используем Flink SQL: потоки зарегистрированы как таблицы с event-time-столбцами и watermarks. Для inner join joinKind равен &quot;JOIN&quot;.</p><p>Полная программа: lecture-08-code/flink/src/main/java/course/Examples.java. Запуск из lecture-08-code: ./run.sh start flink join. Входные сообщения отправляем отдельными фазами через ./run.sh send. Новый RUN_ID нужен для независимого эксперимента.</p></aside><div class="footer"><span><a href="lecture-08-code/flink/src/main/java/course/Examples.java">lecture-08-code/flink/src/main/java/course/Examples.java</a> · flink join</span><span class="counter">74 / 108</span></div></div>
+
+<div class="step slide" id="absence" data-x="2200" data-y="6800">
+    <h1>Left join: когда выдать заказ без оплаты</h1>
+    <p>Для каждого заказа нужен результат — даже если подходящая оплата не получена.</p><ul><li>Пара найдена → выдаём заказ с оплатой.</li><li>Пары пока нет → продолжаем ждать.</li><li>Ожидание закончено → выдаём заказ с пустыми полями оплаты.</li></ul><p>Если оплата придёт ещё позже, понадобится правило исправления или отдельная сверка.</p><p class="callout">Таймер «15 минут по часам» и условие «оплата совершена в первые 15 минут» решают разные задачи.</p>
+    <aside class="notes"><p>До сих пор мы искали совпавшие пары — это inner join. Теперь нужна строка для каждого заказа, включая заказы без полученной оплаты. Это задача left join: поля оплаты будут пустыми, если подходящей пары не нашлось.</p><p>Совпадение можно подтвердить, как только обе записи получены. Отсутствие совпадения так подтвердить нельзя: пока мы ждём, оплата ещё может прийти. Поэтому для результата «заказ без оплаты» нужно определить конец ожидания.</p><p>В нашем примере подходят оплаты, совершённые в первые пятнадцать минут после создания заказа. Сообщение о такой оплате может задержаться. Завершать ожидание будем по продвижению времени входов и выбранному допуску на задержку. Как именно поддерживается такой join, зависит от движка.</p><p>Можно вместо этого потребовать уведомление ровно через пятнадцать минут по часам, если оплаты пока нет. Это другая постановка: уведомление может уйти даже при уже совершённой, но ещё не доставленной оплате. Если запись придёт после завершения ожидания, заранее решаем, исправлять результат или отправлять её на сверку.</p></aside>
+    <div class="footer"><span></span><span class="counter">75 / 108</span></div>
+</div>
+
+<div class="step slide" id="code-spark-left" data-code-slide="true" data-x="3300" data-y="6800"><h1>PySpark: left join: сохраняем заказы без оплаты</h1><pre class="code">result = o.join(p, condition, &quot;leftOuter&quot;)</pre><p class="code-explanation">Заменили тип join, временное условие осталось прежним. Строка с NULL в полях оплаты появляется после продвижения watermark, а не сразу после получения заказа.</p><aside class="notes"><p>Заменили тип join, временное условие осталось прежним. Строка с NULL в полях оплаты появляется после продвижения watermark, а не сразу после получения заказа.</p><p>Полная программа: lecture-08-code/spark/job.py. Запуск из lecture-08-code: ./run.sh start spark left. Входные сообщения отправляем отдельными фазами через ./run.sh send. Новый RUN_ID нужен для независимого эксперимента.</p></aside><div class="footer"><span><a href="lecture-08-code/spark/job.py">lecture-08-code/spark/job.py</a> · spark left</span><span class="counter">76 / 108</span></div></div>
+
+<div class="step slide" id="code-streams-left" data-code-slide="true" data-x="4400" data-y="6800"><h1>Kafka Streams: left join: сохраняем заказы без оплаты</h1><pre class="code">result = orders.leftJoin(paid,
+    (order, payment) -&gt; order + &quot; payment=&quot; + payment,
+    interval,
+    StreamJoined.with(Serdes.String(), Serdes.String(), Serdes.String()));</pre><p class="code-explanation">leftJoin выдаёт заказ с payment=null после завершения ожидания. На остановившемся коротком потоке для выдачи может понадобиться следующая запись; в сценарии есть фаза tick.</p><aside class="notes"><p>leftJoin выдаёт заказ с payment=null после завершения ожидания. На остановившемся коротком потоке для выдачи может понадобиться следующая запись; в сценарии есть фаза tick.</p><p>Полная программа: lecture-08-code/streams/src/main/java/course/Examples.java. Запуск из lecture-08-code: ./run.sh start streams left. Входные сообщения отправляем отдельными фазами через ./run.sh send. Новый RUN_ID нужен для независимого эксперимента.</p></aside><div class="footer"><span><a href="lecture-08-code/streams/src/main/java/course/Examples.java">lecture-08-code/streams/src/main/java/course/Examples.java</a> · streams left</span><span class="counter">77 / 108</span></div></div>
+
+<div class="step slide" id="code-flink-left" data-code-slide="true" data-x="5500" data-y="6800"><h1>Flink: left join: сохраняем заказы без оплаты</h1><pre class="code">String joinKind = mode.equals(&quot;left&quot;) ? &quot;LEFT JOIN&quot; : &quot;JOIN&quot;;
+// Временное условие одинаково; меняется только тип join.</pre><p class="code-explanation">В том же запросе используем LEFT JOIN. Окончание ожидания определяется event time и watermarks; отсутствие новых событий может задерживать результат.</p><aside class="notes"><p>В том же запросе используем LEFT JOIN. Окончание ожидания определяется event time и watermarks; отсутствие новых событий может задерживать результат.</p><p>Полная программа: lecture-08-code/flink/src/main/java/course/Examples.java. Запуск из lecture-08-code: ./run.sh start flink left. Входные сообщения отправляем отдельными фазами через ./run.sh send. Новый RUN_ID нужен для независимого эксперимента.</p></aside><div class="footer"><span><a href="lecture-08-code/flink/src/main/java/course/Examples.java">lecture-08-code/flink/src/main/java/course/Examples.java</a> · flink left</span><span class="counter">78 / 108</span></div></div>
+
+<div class="step slide section" id="recovery" data-x="6600" data-y="6800">
+    <h1>Восстановление после сбоя</h1>
+    <p>Сохраняем суммы и позиции чтения, чтобы после сбоя продолжить расчёт.</p><p>Такую сохранённую точку восстановления называют <strong>checkpoint</strong>.</p><p>Отдельно проверяем, что уже записано во внешнюю БД.</p>
+    <aside class="notes"><p>Теперь разберём сбой. Нужно вернуть накопленные суммы и продолжить чтение с соответствующего места. Сохранённые состояние обработчиков и позиции чтения задают точку восстановления — checkpoint. Отдельно проверим, что уже успела сохранить внешняя база данных.</p></aside>
+    <div class="footer"><span></span><span class="counter">79 / 108</span></div>
+</div>
+
+<div class="step slide" id="three-pieces" data-x="7700" data-y="6800">
+    <h1>Какую сумму сохранять с позицией чтения</h1>
+    <p>A имеет offset 100, C — 101, B — 102. Здесь показываем только сумму первой минуты.</p><table><thead><tr><th>Что обработано</th><th>Следующий offset</th><th>Сумма</th></tr></thead><tbody><tr><td>A и C; B ещё нет</td><td>102</td><td>100 ₽</td></tr><tr><td>Добавили B</td><td>103</td><td>300 ₽</td></tr></tbody></table><ul><li>Вернём 103 и 100 ₽ — пропустим оплату B.</li><li>Вернём 102 и 300 ₽ — повторное прибавление B даст 500 ₽.</li></ul><p>Внешняя БД при восстановлении обработчика автоматически не откатывается.</p>
+    <aside class="notes"><p>Возьмём тот же журнал: A имеет offset 100, C — 101, B — 102. Показываем только сумму первой минуты. C относится к следующей минуте и её сумму здесь не рисуем.</p><p>После A и C следующая запись — B на позиции 102, сумма первой минуты равна ста. После B следующая позиция станет 103, сумма — триста.</p><p>Если сохранить 103 и старую сумму сто, B больше не прочитаем и потеряем её двести рублей. Если сохранить 102 и новую сумму триста, повторное прибавление B даст пятьсот.</p><p>Следовательно, позицию чтения и сумму нужно восстанавливать вместе. Это ещё не решает вопрос внешней БД: она могла успеть записать результат раньше сбоя. До неё дойдём отдельно.</p></aside>
+    <div class="footer"><span></span><span class="counter">80 / 108</span></div>
+</div>
+
+<div class="step slide" id="replay" data-x="8800" data-y="6800">
+    <h1>Повторное чтение после сбоя</h1>
+    <pre class="diagram">Checkpoint: следующая позиция 102, сумма 100 ₽
+                      ↓
+Прочитали B: сумма стала 300 ₽
+                      ↓
+                    СБОЙ
+                      ↓
+Вернули позицию 102 и сумму 100 ₽
+Повторно прочитали B: снова 300 ₽</pre><p>Прибавление выполнили повторно, но в восстановленной сумме B учтена один раз.</p>
+    <aside class="notes"><p>Сохранили сумму сто и следующую позицию 102. Затем прочитали B, получили триста и упали до следующего завершённого checkpoint.</p><p>Возвращаемся к сохранённой паре: сто рублей и позиция 102. Повторно читаем B и снова получаем триста.</p><p>Функция прибавления выполнилась повторно. Но после восстановления сумма соответствует одному учёту B. Именно в этом смысле повтор вычисления может быть совместим с exactly-once для внутреннего состояния.</p><p>Здесь пока не рассматриваем уже опубликованный результат. И предполагаем, что B всё ещё доступна в Kafka: checkpoint содержит место чтения, а не обязательно копию всех сообщений после него.</p></aside>
+    <div class="footer"><span></span><span class="counter">81 / 108</span></div>
+</div>
+
+<div class="step slide" id="code-spark-recovery" data-code-slide="true" data-x="0" data-y="7650"><h1>PySpark: настройка восстановления</h1><pre class="code">query = (result.writeStream.format(&quot;console&quot;)
+         .outputMode(output_mode)
+         .option(&quot;truncate&quot;, &quot;false&quot;)
+         .option(&quot;checkpointLocation&quot;, f&quot;{state_dir}/{mode}/{run}&quot;)
+         .trigger(processingTime=&quot;2 seconds&quot;).start())
+query.awaitTermination()</pre><p class="code-explanation">Путь checkpoint задаётся в writeStream. Для перезапуска сохраняем путь и структуру запроса. Вывод в консоль может повториться: checkpoint не делает консоль транзакционным приёмником.</p><aside class="notes"><p>Путь checkpoint задаётся в writeStream. Для перезапуска сохраняем путь и структуру запроса. Вывод в консоль может повториться: checkpoint не делает консоль транзакционным приёмником.</p><p>Полная программа: lecture-08-code/spark/job.py. Запуск из lecture-08-code: ./run.sh start spark minute. Входные сообщения отправляем отдельными фазами через ./run.sh send. Новый RUN_ID нужен для независимого эксперимента.</p></aside><div class="footer"><span><a href="lecture-08-code/spark/job.py">lecture-08-code/spark/job.py</a> · spark minute</span><span class="counter">82 / 108</span></div></div>
+
+<div class="step slide" id="code-streams-recovery" data-code-slide="true" data-x="1100" data-y="7650"><h1>Kafka Streams: настройка восстановления</h1><pre class="code">props.put(StreamsConfig.APPLICATION_ID_CONFIG, &quot;lecture08-&quot; + mode + &quot;-&quot; + run);
+props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, System.getenv().getOrDefault(&quot;KAFKA_BOOTSTRAP_SERVERS&quot;, &quot;kafka:29092&quot;));
+props.put(StreamsConfig.STATE_DIR_CONFIG, System.getenv().getOrDefault(&quot;STATE_DIR&quot;, &quot;/state&quot;));
+props.put(StreamsConfig.PROCESSING_GUARANTEE_CONFIG, StreamsConfig.EXACTLY_ONCE_V2);</pre><p class="code-explanation">Сохраняем application.id для продолжения той же обработки. Exactly-once связывает offsets, changelog и выход в Kafka. Вывод foreach в консоль в транзакцию не входит.</p><aside class="notes"><p>Сохраняем application.id для продолжения той же обработки. Exactly-once связывает offsets, changelog и выход в Kafka. Вывод foreach в консоль в транзакцию не входит.</p><p>Полная программа: lecture-08-code/streams/src/main/java/course/Examples.java. Запуск из lecture-08-code: ./run.sh start streams minute. Входные сообщения отправляем отдельными фазами через ./run.sh send. Новый RUN_ID нужен для независимого эксперимента.</p></aside><div class="footer"><span><a href="lecture-08-code/streams/src/main/java/course/Examples.java">lecture-08-code/streams/src/main/java/course/Examples.java</a> · streams minute</span><span class="counter">83 / 108</span></div></div>
+
+<div class="step slide" id="code-flink-recovery" data-code-slide="true" data-x="2200" data-y="7650"><h1>Flink: настройка восстановления</h1><pre class="code">env.enableCheckpointing(5_000);
+Configuration storage = new Configuration();
+storage.set(CheckpointingOptions.CHECKPOINT_STORAGE, &quot;filesystem&quot;);
+storage.set(CheckpointingOptions.CHECKPOINTS_DIRECTORY, System.getenv().getOrDefault(&quot;STATE_URI&quot;, &quot;file:///state&quot;) + &quot;/&quot; + mode + &quot;/&quot; + run);
+env.configure(storage);</pre><p class="code-explanation">Включаем checkpoint каждые пять секунд и указываем хранилище. Здесь file:///state — учебный Docker volume; кластеру нужно общее надёжное хранилище.</p><aside class="notes"><p>Включаем checkpoint каждые пять секунд и указываем хранилище. Здесь file:///state — учебный Docker volume; кластеру нужно общее надёжное хранилище.</p><p>Полная программа: lecture-08-code/flink/src/main/java/course/Examples.java. Запуск из lecture-08-code: ./run.sh start flink minute. Входные сообщения отправляем отдельными фазами через ./run.sh send. Новый RUN_ID нужен для независимого эксперимента.</p></aside><div class="footer"><span><a href="lecture-08-code/flink/src/main/java/course/Examples.java">lecture-08-code/flink/src/main/java/course/Examples.java</a> · flink minute</span><span class="counter">84 / 108</span></div></div>
+
+<div class="step slide" id="retention" data-x="3300" data-y="7650">
+    <h1>Что делать, если нужные записи уже удалены</h1>
+    <p>В checkpoint следующая позиция — <strong>102</strong>. Проверяем, откуда ещё можно читать Kafka:</p><table><thead><tr><th>Начало доступного журнала</th><th>Что это означает</th></tr></thead><tbody><tr><td>90</td><td>Нужные записи ещё доступны</td></tr><tr><td>150</td><td>Записи 102–149 уже недоступны</td></tr></tbody></table><ul><li>Результат более ранних записей уже сохранён в состоянии.</li><li>Для продолжения нужен хвост после checkpoint.</li><li>Новую группу создать можно, но удалённые записи это не вернёт.</li></ul>
+    <aside class="notes"><p>В checkpoint записана следующая позиция 102. Движок спрашивает Kafka о доступном диапазоне. Если журнал начинается с 90, нужная запись ещё доступна. Если с 150, записи 102–149 уже удалены.</p><p>Чтобы обнаружить это, не надо хранить сами сообщения. Достаточно сравнить сохранённую позицию с началом журнала. Пропуски отдельных номеров offsets, например после compaction, сами по себе ещё не означают такую потерю.</p><p>Записи до checkpoint для этого восстановления повторять не нужно: их результат уже сохранён в состоянии. Но последующие записи необходимы. Срок хранения должен учитывать отставание обработки, возможный простой и время догоняющей работы.</p><p>Если нужные записи исчезли, новая группа их не вернёт. Понадобится архив, более свежая согласованная точка восстановления или решение продолжить с потерей данных. В Spark failOnDataLoss позволяет остановить запрос при обнаружении такой проблемы.</p></aside>
+    <div class="footer"><span><a href="https://spark.apache.org/docs/4.0.1/streaming/structured-streaming-kafka-integration.html">Spark: offsets и потеря данных</a></span><span class="counter">85 / 108</span></div>
+</div>
+
+<div class="step slide" id="checkpoint-changelog" data-x="4400" data-y="7650">
+    <h1>Снимок, changelog и replay</h1>
+    <table><thead><tr><th>Механизм</th><th>Что делает</th></tr></thead><tbody><tr><td>Снимок состояния</td><td>Сохраняет суммы и другие промежуточные данные</td></tr><tr><td>Changelog</td><td>Записывает изменения этих данных</td></tr><tr><td>Replay входа</td><td>Повторно обрабатывает исходные сообщения</td></tr></tbody></table><p><strong>Checkpoint</strong> указывает, какое состояние загрузить и откуда продолжить каждый вход.</p><p>Он может ссылаться на снимки, журналы и другие данные восстановления.</p>
+    <aside class="notes"><p>Есть три связанных, но разных механизма. Снимок сохраняет состояние. Changelog записывает изменения состояния. Replay входа повторно выполняет обработку исходных сообщений.</p><p>Например, можно загрузить снимок и применить к нему последующие изменения. Или восстановить состояние на некоторый момент и заново обработать сообщения после этого момента.</p><p>Checkpoint описывает согласованную точку восстановления: какое состояние использовать и откуда продолжать каждый вход. В нём могут храниться ссылки на снимки, журналы и другие данные восстановления.</p><p>Changelog состояния не равен исходному топику оплат. Одно сообщение могло изменить несколько структур; несколько обновлений могли объединиться. Поэтому важно понимать, восстанавливаем ли мы готовые изменения состояния или заново считаем их по оплатам.</p></aside>
+    <div class="footer"><span></span><span class="counter">86 / 108</span></div>
+</div>
+
+<div class="step slide" id="distributed-cut" data-x="5500" data-y="7650">
+    <h1>Как согласовать суммы магазинов и общую сумму</h1>
+    <p>A считает сумму магазина и передаёт изменения B. B считает общую сумму всех магазинов.</p><pre class="diagram">A обновил свою сумму: 100 → 300
+A отправил B изменение «+200»
+Сообщение отправлено, но B ещё не прибавил 200</pre><p>Сохранили A после отправки, а B — до обработки. Если сообщение не восстановить, в общей сумме не будет этих 200.</p><p class="callout">Нужно восстановить и сообщение между A и B либо согласовать снимки так, чтобы оно не потерялось.</p>
+    <aside class="notes"><p>Рассмотрим два последовательных шага потоковой обработки. Первый считает суммы отдельных магазинов, второй — общую сумму по всем магазинам. Такие шаги называют операторами. На схеме A — обработчик одного магазина, B — обработчик общей суммы. A передаёт B каждое изменение своей суммы: например, «прибавить двести», а не полное значение.</p><p>У A была сумма сто. После оплаты на двести он сохранил триста и отправил B сообщение «прибавить двести». Между A и B данные передаются через буферы движка и, если обработчики на разных машинах, по сети. В момент снимка A уже отправил сообщение, но B ещё не обработал его. Это сообщение в пути между двумя шагами вычисления.</p><p>Если сохранить A после отправки сообщения, а B — до его обработки, нужно обеспечить и восстановление самого сообщения. Иначе после сбоя в общей сумме будет не хватать двухсот рублей. A уже учёл оплату, а B не получил её изменение. Каждый локальный снимок сам по себе корректен, но их недостаточно для восстановления всей обработки.</p><p>Нужно либо сохранить сообщение в пути, либо согласовать снимки иначе: например, сохранить B уже после обработки этого сообщения. Во Flink согласование выполняют checkpoint barriers — служебные отметки границы снимка. В некоторых режимах также сохраняют сообщения в каналах. Checkpoint должен описывать одну согласованную точку восстановления всего вычисления.</p></aside>
+    <div class="footer"><span><a href="https://nightlies.apache.org/flink/flink-docs-release-2.1/docs/concepts/stateful-stream-processing/">Flink: согласованное восстановление</a></span><span class="counter">87 / 108</span></div>
+</div>
+
+<div class="step slide" id="checkpoint-sources" data-x="6600" data-y="7650">
+    <h1>Общее состояние и несколько источников</h1>
+    <table><thead><tr><th>Откуда читаем</th><th>Следующая позиция</th></tr></thead><tbody><tr><td>Кластер A, payments, партиция 0</td><td>103</td></tr><tr><td>Кластер A, payments, партиция 1</td><td>250</td></tr><tr><td>Кластер B, orders, партиция 0</td><td>81</td></tr></tbody></table><p>Заказы и оплаты из разных кластеров обновляют состояние join. Сохраняем его вместе с позициями всех входов.</p><p>После сбоя восстанавливаем состояние и продолжаем каждый вход со своей позиции. Нужна поддержка общего checkpoint для всех источников.</p>
+    <aside class="notes"><p>Теперь рассматриваем распределённое вычисление: данные из нескольких источников обновляют общее логическое состояние. Например, заказы приходят из одного Kafka-кластера, а оплаты — из другого; обработчики хранят записи для join. Само состояние может быть распределено между несколькими обработчиками.</p><p>У входов нет одного общего offset. Есть отдельная позиция для каждого кластера, топика и партиции. Для восстановления нужно согласованно сохранить эти позиции и состояние всех обработчиков.</p><p>После сбоя чтение из каждого источника продолжается с его сохранённой позиции. Для разных Kafka-кластеров потоковая система должна поддерживать отдельное подключение к каждому из них и общий checkpoint. Компоненты чтения из Kafka называют коннекторами источника: они должны уметь сохранять позиции партиций и возобновлять чтение с этих позиций по команде системы. При этом нужные записи должны сохраняться во всех источниках.</p><p>Окно, checkpoint и Kafka-транзакция выполняют разные задачи. Окно объединяет события для расчёта. Checkpoint задаёт, как восстановить обработку. Kafka-транзакция подтверждает записи и offsets в одном Kafka-кластере.</p><p>Один checkpoint может включать состояние многих окон; одно окно может сохраняться через много checkpoints. Общий checkpoint не заставляет двух независимых клиентов одновременно опубликовать связанные события. Если нужны обе части операции, приложение должно сопоставлять их и решать, сколько ждать недостающую часть.</p></aside>
+    <div class="footer"><span><a href="https://nightlies.apache.org/flink/flink-docs-release-2.1/docs/concepts/stateful-stream-processing/">Flink: согласованный checkpoint</a></span><span class="counter">88 / 108</span></div>
+</div>
+
+<div class="step slide" id="external-effect" data-x="7700" data-y="7650">
+    <h1>Повтор записи во внешний приёмник</h1>
+    <pre class="diagram">1. Записали результат в БД.
+2. Упали до завершения checkpoint.
+3. Восстановились и повторили обработку.
+4. Снова выполняем запись в БД.</pre><ul><li>«Прибавить 200» повторно — лишние деньги.</li><li>Повтор установки суммы в 300 безопасен, если не затрёт более новое значение.</li><li>Другой способ — проверять идентификатор операции в той же транзакции БД.</li></ul><p>Транзакционный sink может согласовать запись с движком. Обычный checkpoint сам этого не делает.</p>
+    <aside class="notes"><p>Мы записали сумму во внешнюю БД, но не успели завершить checkpoint. После сбоя движок вернулся к предыдущему состоянию и повторил обработку. База данных при этом не откатилась: первая запись в ней уже есть.</p><p>Повтор команды «прибавить двести» добавит лишние деньги. Повтор команды «установить сумму этого окна в триста» может быть безопасным. Но и здесь надо следить, чтобы старый повтор не затёр более новое значение.</p><p>Другой способ — сохранить идентификатор уже выполненной операции вместе с её результатом в одной транзакции БД. Тогда повтор распознаётся. Ещё один вариант — sink с транзакционным протоколом, согласованным с движком.</p><p>Sink — это способ записи результата в выбранный приёмник. Его свойства надо проверять отдельно: внутренний checkpoint не отменяет произвольное действие в БД или внешнем сервисе.</p></aside>
+    <div class="footer"><span></span><span class="counter">89 / 108</span></div>
+</div>
+
+<div class="step slide" id="exactly-once" data-x="8800" data-y="7650">
+    <h1>Что означает exactly-once</h1>
+    <table><thead><tr><th>Что должно выполниться один раз</th><th>Что проверяем</th></tr></thead><tbody><tr><td>Учёт записи в состоянии</td><td>Сохранение и восстановление state и offsets</td></tr><tr><td>Запись результата в Kafka</td><td>Транзакционный протокол и read_committed</td></tr><tr><td>Действие во внешней системе</td><td>Свойства sink и защита от повторов</td></tr><tr><td>Учёт оплаты, присланной дважды</td><td>Проверка event_id</td></tr></tbody></table><p>Однократный учёт входной записи не исключает два разных сообщения об одной оплате.</p>
+    <aside class="notes"><p>Фраза exactly-once без указания результата слишком неопределённа. Для внутренней суммы она может означать: после восстановления каждая входная запись учтена один раз. Для записи в Kafka нужны транзакционный протокол и чтение подтверждённых данных. Для внешней БД нужен подходящий sink или безопасный повтор.</p><p>Два сообщения об одной оплате — отдельная проблема. Движок может корректно обработать каждое по одному разу, а деньги посчитаются дважды. Для этого и требуется прикладная проверка event_id.</p><p>На воспроизведение влияет и сама обработка. Например, повторный запрос к изменившемуся справочнику может дать другой ответ. Checkpoint автоматически не сохраняет произвольную внешнюю БД.</p><p>Поэтому проверяем всю цепочку: откуда читаем, что сохраняем, куда записываем и как обнаруживаем повтор.</p></aside>
+    <div class="footer"><span></span><span class="counter">90 / 108</span></div>
+</div>
+
+<div class="step slide" id="recovery-cost" data-x="0" data-y="8500">
+    <h1>Стоимость checkpoint и восстановления</h1>
+    <ul><li>Чаще сохраняем checkpoint — обычно меньше повторяем после сбоя.</li><li>Но чаще записываем и передаём состояние.</li><li>После восстановления нужно успеть обработать и старые, и новые сообщения.</li></ul><pre class="diagram">Поступает:       1000 записей/с
+Обрабатываем:    1200 записей/с
+Отставание убывает на 200 записей/с</pre>
+    <aside class="notes"><p>Сохранение checkpoint требует записи и иногда передачи данных. Частые checkpoints обычно уменьшают объём повторной обработки после сбоя, но увеличивают расходы во время работы. Реже сохраняемся — дольше переигрываем сообщения.</p><p>На скорость восстановления влияют размер состояния, способ хранения и наличие локальных копий. Восстановить несколько сумм и сотни гигабайт ожидающих записей — разная по стоимости работа.</p><p>После восстановления нужно ещё догнать поток. Если новые сообщения поступают со скоростью тысяча в секунду, а обрабатываем тысячу двести, отставание сокращается только на двести в секунду. На шестьдесят тысяч накопившихся сообщений уйдёт пять минут. Если скорость обработки равна скорости поступления, отставание не сократится.</p></aside>
+    <div class="footer"><span></span><span class="counter">91 / 108</span></div>
+</div>
+
+<div class="step slide section" id="runtimes" data-x="1100" data-y="8500">
+    <h1>Архитектуры потоковой обработки</h1>
+    <p>Где выполняется обработка, где хранятся суммы и как восстанавливается работа.</p>
+    <aside class="notes"><p>Мы разобрали, какие данные надо хранить, как учитывать время и что восстанавливать. Теперь сравним, где всё это выполняется в Kafka Streams, Spark и Flink. Сначала отделим микробатч от временного окна.</p></aside>
+    <div class="footer"><span></span><span class="counter">92 / 108</span></div>
+</div>
+
+<div class="step slide" id="execution" data-x="2200" data-y="8500">
+    <h1>Два способа исполнять потоковую обработку</h1>
+    <pre class="diagram">Непрерывные операторы:
+запись → работающий оператор → обновление суммы
+
+Микробатчи:
+[A, B] → запуск задач → обновление суммы
+[C, D] → следующий запуск → обновление суммы</pre><p>Окно группирует записи по времени событий. Микробатч — порция записей для исполнения.</p><p>Одна минута оплат может обрабатываться многими микробатчами. В одном микробатче могут быть оплаты разных минут.</p>
+    <aside class="notes"><p>В непрерывном режиме уже работающий оператор получает очередные записи и обновляет своё состояние. В микробатчевом режиме движок собирает очередную порцию новых записей и запускает обработку этой порции.</p><p>Минутное окно может получать оплаты из многих микробатчей. И наоборот, один микробатч может содержать записи разных минут, включая задержавшиеся. Размер окна задаёт смысл группировки, а размер микробатча — организацию работы.</p><p>Непрерывный режим тоже может использовать сетевые буферы и пакетную запись. Это не обещание отдельного сетевого вызова на каждое событие. И ни один режим сам по себе не определяет, когда показать окончательную сумму: для этого остаются правила окон и публикации.</p></aside>
+    <div class="footer"><span></span><span class="counter">93 / 108</span></div>
+</div>
+
+<div class="step slide" id="spark-table" data-x="3300" data-y="8500">
+    <h1>Spark: поток как пополняемая таблица</h1>
+    <pre class="diagram">Таблица оплат пополняется
+          ↓
+Запрос: сумма по магазину и минуте
+          ↓
+Таблица сумм обновляется</pre><p>DataFrame описывает таблицу со схемой. Запрос задаёт, что вычислять по новым строкам.</p><p>Всю историю не обязательно держать в памяти: сохраняется состояние, нужное операциям.</p>
+    <aside class="notes"><p>Ранее в курсе мы разбирали Spark и RDD. Structured Streaming использует DataFrame: таблицу со схемой, над которой задают запрос.</p><p>Представим входную таблицу, куда всё время добавляются оплаты. Запрос группирует их по магазину и минуте. Новые строки меняют соответствующие суммы в таблице результата.</p><p>Это описание вычисления, а не требование держать всю историю в памяти. Движок читает новые порции и сохраняет промежуточные данные, нужные запросу.</p><p>Не любую операцию над конечной таблицей можно так выполнить над бесконечным входом. Поддержка зависит от запроса. Но для оконной суммы основная идея проста: один и тот же запрос постоянно обновляет результат по новым данным.</p></aside>
+    <div class="footer"><span><a href="https://spark.apache.org/docs/4.0.1/streaming/getting-started.html">Spark: модель непрерывного запроса</a></span><span class="counter">94 / 108</span></div>
+</div>
+
+<div class="step slide" id="kafka-architecture" data-x="4400" data-y="8500">
+    <h1>Kafka Streams: библиотека внутри приложения</h1>
+    <pre class="diagram">                 Kafka: входные партиции
+                      ↙           ↘
+             Экземпляр A        Экземпляр B
+             tasks + state     tasks + state
+                      ↘           ↙
+                Kafka: выход и changelog</pre><ul><li>Task обрабатывает назначенные партиции и хранит их состояние. Tasks распределяются между экземплярами приложения.</li><li>Отдельный вычислительный кластер Streams не нужен.</li><li>Вход, выход и changelog хранятся в Kafka.</li></ul>
+    <aside class="notes"><p>Kafka Streams — библиотека внутри приложения. Мы описываем обработку и запускаем несколько экземпляров приложения. Они распределяют между собой tasks — задачи, связанные с входными партициями соответствующей части обработки.</p><p>Каждый экземпляр читает свои записи, выполняет операции и хранит локальное состояние. Результаты отправляются в Kafka. Там же находятся журналы изменений состояния и, если нужны, топики для перераспределения данных.</p><p>Отдельный вычислительный сервис Kafka Streams не требуется. Но сами приложения нужно развёртывать, наблюдать и обновлять. Один процесс может выполнять несколько tasks; task и процесс — не одно и то же.</p></aside>
+    <div class="footer"><span><a href="https://kafka.apache.org/41/streams/architecture/">Kafka Streams: архитектура</a></span><span class="counter">95 / 108</span></div>
+</div>
+
+<div class="step slide" id="kafka-state" data-x="5500" data-y="8500">
+    <h1>Kafka Streams: локальный state и changelog</h1>
+    <pre class="diagram">Обработчик ↔ локальное хранилище состояния
+                    ↓ изменения
+               changelog в Kafka</pre><ul><li>Для постоянного локального хранилища часто используют RocksDB.</li><li>При потере локальной копии её восстанавливают по changelog.</li><li>Standby-копия может сократить время восстановления.</li></ul><p>В режиме exactly-once транзакции Kafka связывают offsets, выходные записи и changelog.</p>
+    <aside class="notes"><p>Чтобы быстро обновлять состояние, Kafka Streams хранит его рядом с обработчиком. Для постоянного локального хранилища часто используется RocksDB. Это встроенная база, а не отдельный сервер, к которому обращаются по сети.</p><p>Изменения восстанавливаемого хранилища записываются в changelog в Kafka. Если локальная копия потеряна, другой обработчик может восстановить её по журналу. Standby-копии поддерживают часть этой работы заранее и могут сократить время восстановления.</p><p>При включённом exactly-once Kafka-транзакции связывают входные offsets, выходные записи и изменения changelog. Внешний HTTP-вызов или запись в постороннюю БД в эту транзакцию автоматически не входят.</p></aside>
+    <div class="footer"><span><a href="https://kafka.apache.org/41/streams/architecture/">Kafka Streams: tasks и state</a></span><span class="counter">96 / 108</span></div>
+</div>
+
+<div class="step slide" id="spark-architecture" data-x="6600" data-y="8500">
+    <h1>Spark: driver, executors и checkpoint</h1>
+    <pre class="diagram">Driver определяет порцию и управляет задачами
+                  ↓
+Kafka → Executors: обработка + state → приёмник
+                  ↓
+       Checkpoint в надёжном хранилище</pre><ul><li>Каждый микробатч читает новую порцию записей.</li><li>Состояние сохраняется для следующего микробатча.</li><li>При сбое запрос восстанавливается из checkpoint.</li></ul>
+    <aside class="notes"><p>В микробатчевом режиме Spark driver определяет очередную порцию входа и координирует её обработку. Executors выполняют задачи, обновляют состояние и записывают результат через выбранный sink.</p><p>После порции работа продолжается на следующих данных. Сумма одного окна сохраняется между микробатчами. Checkpoint в надёжном хранилище позволяет восстановить и состояние, и место чтения.</p><p>Это не то же самое, что persist для ускорения повторных вычислений над RDD. Кэш можно потерять и пересчитать, если доступен вход. Checkpoint потокового запроса нужен для согласованного продолжения работы.</p><p>Состояние не обязано навсегда оставаться на одном executor. После сбоя или переназначения задач его загрузка тоже занимает время. Здесь рассматриваем именно микробатчевый режим Structured Streaming.</p></aside>
+    <div class="footer"><span><a href="https://spark.apache.org/docs/4.0.1/streaming/apis-on-dataframes-and-datasets.html">Spark: checkpoint и восстановление</a></span><span class="counter">97 / 108</span></div>
+</div>
+
+<div class="step slide" id="spark-output" data-x="7700" data-y="8500">
+    <h1>Spark: что публикует оконная агрегация</h1>
+    <table><thead><tr><th>Режим</th><th>Что выдаём для оконной суммы</th></tr></thead><tbody><tr><td>Append</td><td>Суммы окон, которые больше не будут обновляться</td></tr><tr><td>Update</td><td>Изменившиеся суммы</td></tr><tr><td>Complete</td><td>Всю текущую таблицу сумм</td></tr></tbody></table><p>Запрос и sink должны поддерживать выбранный режим.</p><p>Если запись микробатча повторится после сбоя, sink должен обработать её безопасно.</p>
+    <aside class="notes"><p>Для оконной суммы Spark предлагает несколько способов выдавать результат. Append добавляет результат окна после того, как оно больше не будет обновляться по правилам запроса. Update выдаёт изменившиеся суммы. Complete выдаёт всю текущую таблицу результата на каждом шаге.</p><p>Режим должен поддерживаться и запросом, и sink. Complete может передавать много данных; он также не означает автоматическое удаление старых сумм по watermark.</p><p>Режим вывода описывает результат запроса, но не отменяет проблему повторной записи после сбоя. Например, foreachBatch по умолчанию допускает повтор выполнения callback. Для безопасной записи можно использовать batchId. Встроенный Kafka sink тоже не даёт автоматически exactly-once только потому, что у запроса есть checkpoint.</p></aside>
+    <div class="footer"><span><a href="https://spark.apache.org/docs/4.0.1/streaming/apis-on-dataframes-and-datasets.html">Spark: output modes и sinks</a></span><span class="counter">98 / 108</span></div>
+</div>
+
+<div class="step slide" id="flink-architecture" data-x="8800" data-y="8500">
+    <h1>Flink: операторы, состояние и время</h1>
+    <pre class="diagram">Источник → операторы обработки → приёмник
+                 │
+             состояние
+                 ↓
+       сохранение в checkpoint</pre><ul><li>Операторы работают и получают новые записи.</li><li>Watermarks помогают решать, когда закрыть окно.</li><li>Таймеры запускают действия по часам или по продвижению watermark.</li></ul>
+    <aside class="notes"><p>Во Flink задание развёрнуто как граф работающих операторов. Записи проходят от источника через преобразования к приёмнику. Если следующему оператору нужно другое распределение по ключам, данные направляются соответствующим обработчикам.</p><p>Операторы хранят состояние. Watermarks проходят по графу и позволяют принимать решения о времени событий. Timers запускают действие при достижении заданного времени — например, проверяют, закончено ли ожидание пары.</p><p>Несколько операторов могут выполняться в одном процессе. Поэтому стрелка между ними не всегда означает сетевую передачу. Flink поддерживает и другие способы описания обработки, включая SQL; на схеме показаны основные части исполнения.</p></aside>
+    <div class="footer"><span><a href="https://nightlies.apache.org/flink/flink-docs-release-2.1/docs/concepts/time/">Flink: время в графе операторов</a></span><span class="counter">99 / 108</span></div>
+</div>
+
+<div class="step slide" id="flink-checkpoint" data-x="0" data-y="9350">
+    <h1>Flink: checkpoint и восстановление</h1>
+    <table><thead><tr><th>Что нужно сделать</th><th>Что для этого требуется</th></tr></thead><tbody><tr><td>Вернуть состояние и позиции</td><td>Завершённый checkpoint</td></tr><tr><td>Повторить сообщения после него</td><td>Доступная история источников</td></tr><tr><td>Не повторить действие снаружи</td><td>Подходящий sink или безопасная повторная запись</td></tr></tbody></table><p><strong>Savepoint</strong> создают по команде, например перед переносом или обновлением задания.</p><p>Новая версия задания должна уметь прочитать сохранённое состояние.</p>
+    <aside class="notes"><p>Flink сохраняет согласованные позиции источников и состояния операторов в checkpoint. После сбоя загружает завершённый checkpoint и повторно читает сообщения после сохранённых позиций.</p><p>Для внешнего результата нужны свойства sink: участие в поддерживаемом транзакционном протоколе или безопасное повторение записи. Восстановление внутреннего состояния этого не заменяет.</p><p>Savepoint — точка состояния, которую создают по команде для остановки, переноса или обновления задания. При изменении задания нужно проверить, сможет ли новая версия прочитать и сопоставить сохранённые данные. Наличие savepoint не делает произвольное изменение схемы состояния безопасным.</p></aside>
+    <div class="footer"><span><a href="https://nightlies.apache.org/flink/flink-docs-release-2.1/docs/concepts/stateful-stream-processing/">Flink: state и checkpoints</a></span><span class="counter">100 / 108</span></div>
+</div>
+
+<div class="step slide" id="time-differences" data-x="1100" data-y="9350">
+    <h1>Как системы завершают расчёт окна</h1>
+    <table><thead><tr><th>Система</th><th>По чему решает, что пора завершать</th></tr></thead><tbody><tr><td>Kafka Streams</td><td>Stream-time продвигается по timestamps. Grace задаёт дополнительное ожидание</td></tr><tr><td>Spark</td><td>Watermark позволяет завершать оконные суммы. Режим вывода определяет, какие суммы публикуются</td></tr><tr><td>Flink DataStream</td><td>Watermark продвигает время. Отдельно настраиваются выдача результата и приём поздних записей</td></tr></tbody></table><p>Одинаковый допуск «2 минуты» в разных системах не означает одинакового поведения.</p>
+    <aside class="notes"><p>Мы обсуждали общую задачу, но настройки времени у систем различаются.</p><p>В Kafka Streams оконная агрегация использует stream-time и grace. После того как stream-time прошёл конец окна с учётом grace, оператор больше не принимает в него записи. Выдачу только окончательного результата настраивают отдельно.</p><p>В Spark watermark вычисляется по наблюдаемому времени событий; выдача суммы зависит от output mode. При этом записи с опозданием больше указанного допуска могут быть обработаны или отброшены. Из настройки нельзя вывести универсальное правило отбрасывания для любого запроса.</p><p>Во Flink DataStream watermarks задают время оператора, triggers определяют выдачу результата, allowed lateness позволяет некоторым оконным операциям принимать более поздние записи, а timers запускают действия по времени.</p><p>Поэтому сравниваем поведение на одних и тех же данных: меняем порядок получения записей, останавливаем вход, добавляем старые timestamps. Одинаковое число минут в двух настройках ещё не означает одинаковый результат.</p></aside>
+    <div class="footer"><span><a href="https://kafka.apache.org/41/streams/developer-guide/dsl-api/">Kafka Streams: окна, stream-time и grace</a></span><span class="counter">101 / 108</span></div>
+</div>
+
+<div class="step slide" id="compare" data-x="2200" data-y="9350">
+    <h1>Что потребуется развернуть и восстанавливать</h1>
+    <table><thead><tr><th>Вопрос</th><th>Kafka Streams</th><th>Spark</th><th>Flink</th></tr></thead><tbody><tr><td>Где работает код?</td><td>В экземплярах приложения</td><td>В кластере Spark</td><td>В кластере Flink</td></tr><tr><td>Как исполняется?</td><td>Постоянно работающие обработчики</td><td>Микробатчи в нашем примере</td><td>Постоянно работающие операторы</td></tr><tr><td>Откуда вернуть состояние?</td><td>Локальная копия и changelog в Kafka</td><td>Checkpoint в надёжном хранилище</td><td>Checkpoint в надёжном хранилище</td></tr></tbody></table><p>Ожидание закрытия окна и скорость записи результата влияют на задержку независимо от способа исполнения.</p>
+    <aside class="notes"><p>Сравним, что придётся запускать и восстанавливать. Kafka Streams — библиотека в нашем приложении. Запускаем экземпляры приложения; Kafka хранит входные данные и журналы изменений состояния.</p><p>Для Spark отправляем потоковый запрос в кластер Spark. В рассмотренном режиме driver организует микробатчи, а executors выполняют задачи. Для Flink отправляем задание в кластер Flink, где операторы обрабатывают поступающие записи. Spark и Flink сохраняют checkpoints в надёжном хранилище, которое также нужно предоставить и обслуживать.</p><p>Все три системы умеют хранить состояние, работать с окнами и восстанавливаться. Различаются устройство исполнения и требования к эксплуатации. Таблица не ранжирует их по скорости.</p><p>Даже быстрый обработчик может долго ждать закрытия окна, прежде чем выдать окончательный результат. Медленный приёмник тоже увеличивает задержку. Поэтому сравнивать нужно весь путь записи и время восстановления, а не только непрерывное исполнение с микробатчами.</p></aside>
+    <div class="footer"><span></span><span class="counter">102 / 108</span></div>
+</div>
+
+<div class="step slide" id="beam" data-x="3300" data-y="9350">
+    <h1>Apache Beam: модель и runner</h1>
+    <pre class="diagram">Программа на Beam → runner → например, Flink</pre><ul><li>В программе описывают преобразования, окна и работу со временем.</li><li>Runner запускает её на выбранной платформе.</li><li>Поддержку нужных операций проверяют для конкретного runner.</li></ul>
+    <aside class="notes"><p>Apache Beam позволяет описать обработку отдельно от системы, которая её исполняет. В программе задают преобразования, окна и работу со временем. Затем runner запускает эту программу на выбранной платформе, например Flink.</p><p>Это позволяет использовать общую модель для разных способов исполнения. Но не гарантирует одинаковую поддержку всех возможностей и одинаковую скорость. Для конкретного runner нужно проверить, поддерживает ли он требуемые операции.</p><p>Поэтому Beam здесь занимает другое место: это модель и средства описания программы, а не ещё один аналогичный runtime рядом со Spark и Flink.</p></aside>
+    <div class="footer"><span><a href="https://beam.apache.org/documentation/basics/">Apache Beam: модель и runners</a></span><span class="counter">103 / 108</span></div>
+</div>
+
+<div class="step slide" id="choice" data-x="4400" data-y="9350">
+    <h1>Что проверить при выборе системы</h1>
+    <table><thead><tr><th>Что уже есть или требуется</th><th>Что стоит рассмотреть</th></tr></thead><tbody><tr><td>Приложение вокруг Kafka</td><td>Kafka Streams</td></tr><tr><td>Spark и SQL в аналитическом конвейере</td><td>Spark Structured Streaming</td></tr><tr><td>Подробное управление state, временем и timers</td><td>Flink</td></tr></tbody></table><p>Проверяем допустимую задержку, объём состояния, восстановление, поддержку источников и приёмников.</p>
+    <aside class="notes"><p>Если обработка является частью приложения вокруг Kafka, стоит рассмотреть Kafka Streams. Если команда уже использует Spark и SQL для аналитических задач, Structured Streaming может продолжить существующий подход. Если требуется подробная работа с состоянием, временем и timers, стоит проверить Flink.</p><p>Это причины начать изучение с определённой системы, а не запреты для остальных. У Flink есть SQL, у Kafka Streams — окна и joins, у Spark — много вариантов обработки потоков.</p><p>Дальше сравниваем конкретные требования: сколько ждать результата, сколько хранить данных, как долго восстанавливаться, какие источники и приёмники поддерживаются. Добавляем стоимость эксплуатации: кто будет наблюдать систему, разбирать сбои и обновлять задания с накопленным состоянием.</p></aside>
+    <div class="footer"><span></span><span class="counter">104 / 108</span></div>
+</div>
+
+<div class="step slide" id="whole-picture" data-x="5500" data-y="9350">
+    <h1>Обработка оплаты B</h1>
+    <pre class="diagram">B: shop-7, 200 ₽, paid_at = 12:00:40
+  → выбираем обработчик по shop_id
+  → относим к минуте [12:00, 12:01)
+  → меняем сумму со 100 на 300 ₽
+  → отправляем обновление результата</pre><p>После сбоя восстанавливаем сумму и место чтения. Повторную запись результата получатель должен обработать безопасно.</p>
+    <aside class="notes"><p>Проследим оплату B. По shop_id выбираем обработчик. По paid_at=12:00:40 относим её к первой минуте. Если по нашим правилам окно ещё принимает записи, прибавляем двести к ста и получаем триста.</p><p>Если предварительные сто уже показаны, отправляем обновление того же результата. Получатель должен заменить сто на триста, а не сложить их.</p><p>При сбое возвращаем согласованную сумму и позицию чтения. Если запись результата повторяется, получатель должен обработать её безопасно.</p><p>Если B получена после окончания допустимого ожидания, применяем выбранное правило для поздних данных. Оно должно быть определено до запуска, а не придумано после неожиданного результата.</p></aside>
+    <div class="footer"><span></span><span class="counter">105 / 108</span></div>
+</div>
+
+<div class="step slide" id="takeaways" data-x="6600" data-y="9350">
+    <h1>Основные понятия потоковой обработки</h1>
+    <ul><li>Выбираем ключ и время, по которым считаем.</li><li>Решаем, когда показать сумму и сколько принимать исправления.</li><li>Храним промежуточные данные и определяем срок их хранения.</li><li>Сохраняем состояние вместе с позициями чтения.</li><li>Проверяем, что произойдёт при повторной записи результата.</li></ul>
+    <aside class="notes"><p>При работе с потоком надо определить несколько вещей. По какому ключу собирать записи? Какое время использовать? Когда показать результат и сколько принимать исправления? Какие данные хранить между сообщениями?</p><p>Для восстановления сохраняем состояние вместе с позициями чтения. Необходимые для повтора записи должны оставаться в источнике. Запись во внешний приёмник проверяем отдельно: checkpoint не отменяет уже отправленное уведомление или завершённую транзакцию БД.</p><p>Kafka Streams, Spark и Flink предоставляют разные способы выполнить эту работу. Выбирать между ними стоит по требованиям к результату и эксплуатации.</p><p>Далее перейдём к ClickHouse: будем хранить события и суммы так, чтобы быстро выполнять аналитические запросы.</p></aside>
+    <div class="footer"><span></span><span class="counter">106 / 108</span></div>
+</div>
+
+<div class="step slide" id="sources-model" data-x="7700" data-y="9350">
+    <h1>Материалы: модель вычисления</h1>
+    <ul><li><a href="https://kafka.apache.org/41/streams/core-concepts/">Kafka Streams: потоки, таблицы и время</a></li><li><a href="https://spark.apache.org/docs/4.0.1/streaming/getting-started.html">Spark: модель непрерывного запроса</a></li><li><a href="https://nightlies.apache.org/flink/flink-docs-release-2.1/docs/concepts/time/">Flink: event time и watermarks</a></li><li><a href="https://beam.apache.org/documentation/basics/">Beam: окна, триггеры и runners</a></li></ul><p>Принципы общие; детали окон и опозданий проверяем для конкретного оператора.</p>
+    <aside class="notes"><p>Здесь материалы по понятиям лекции. У Kafka Streams полезно прочитать объяснение потоков и таблиц. У Spark — модель запроса над пополняемой таблицей. У Flink — работу со временем событий и watermarks. У Beam — описание окон и выдачи результатов.</p><p>Чтобы сравнить документы, можно держать в уме один пример: запись B получена после C. Куда попадёт B, изменится ли сумма и когда она будет показана? Так различия становятся заметнее, чем при сравнении названий настроек.</p><p>[Kafka Streams — основные понятия](https://kafka.apache.org/41/streams/core-concepts/), [Spark — модель запроса](https://spark.apache.org/docs/4.0.1/streaming/getting-started.html), [Flink — время и watermarks](https://nightlies.apache.org/flink/flink-docs-release-2.1/docs/concepts/time/), [Beam — модель вычисления](https://beam.apache.org/documentation/basics/).</p></aside>
+    <div class="footer"><span></span><span class="counter">107 / 108</span></div>
+</div>
+
+<div class="step slide" id="sources-runtime" data-x="8800" data-y="9350">
+    <h1>Материалы: исполнение и восстановление</h1>
+    <ul><li><a href="https://kafka.apache.org/41/streams/architecture/">Kafka Streams: tasks, state stores, changelog</a></li><li><a href="https://kafka.apache.org/41/streams/developer-guide/dsl-api/">Kafka Streams: joins, окна и grace</a></li><li><a href="https://spark.apache.org/docs/4.0.1/streaming/apis-on-dataframes-and-datasets.html">Spark: output modes, sinks и checkpointing</a></li><li><a href="https://nightlies.apache.org/flink/flink-docs-release-2.1/docs/concepts/stateful-stream-processing/">Flink: state и согласованные checkpoints</a></li></ul><p>Опорные версии: Kafka 4.1 · Spark 4.0.1 · Flink 2.1.</p>
+    <aside class="notes"><p>Здесь ссылки на устройство исполнения и восстановления. У Kafka Streams смотрим tasks, локальные хранилища и changelog. У Spark — output modes, sinks и checkpoints. У Flink — сохранение состояния нескольких операторов.</p><p>Документация указана для определённых версий. При работе с другой установкой нужно проверить поддержку используемых операций и приёмников.</p><p>На семинаре эти материалы помогут объяснить результаты экспериментов: почему сумма ещё не появилась, почему повторилась запись и откуда запрос начал чтение после перезапуска.</p><p>[Kafka Streams — архитектура](https://kafka.apache.org/41/streams/architecture/), [Kafka Streams — окна и joins](https://kafka.apache.org/41/streams/developer-guide/dsl-api/), [Spark — вывод и восстановление](https://spark.apache.org/docs/4.0.1/streaming/apis-on-dataframes-and-datasets.html), [Flink — stateful processing](https://nightlies.apache.org/flink/flink-docs-release-2.1/docs/concepts/stateful-stream-processing/).</p></aside>
+    <div class="footer"><span></span><span class="counter">108 / 108</span></div>
+</div>
+<div class="step" id="overview" data-x="4400" data-y="4675" data-scale="14"></div>
+</div>
+<div class="impress-progressbar"><div></div></div>
+<div class="impress-progress"></div>
+<a class="ov" href="#/overview">Обзор</a>
+<script src="js/impress.js"></script>
+<script>impress().init();</script>
+</body>
+</html>
