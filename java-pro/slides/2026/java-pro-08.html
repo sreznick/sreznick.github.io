@@ -1,0 +1,837 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1024" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <title>Память JVM и сборка мусора</title>
+
+    <link href="//fonts.googleapis.com/css?family=Open+Sans:regular,semibold,italic,italicsemibold|PT+Sans:400,700,400italic,700italic|PT+Serif:400,700,400italic,700italic" rel="stylesheet" />
+
+    <link href="css/impress-demo.css" rel="stylesheet" />
+    <link href="css/impress-common.css" rel="stylesheet" />
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/default.min.css">
+
+    <style>
+        /* Стили кода, таблиц и разделов лекции. */
+
+        .slide {
+            font-size: 27px;
+            line-height: 1.3;
+            letter-spacing: -.5px;
+        }
+
+        .slide h1 {
+            font-size: 40px;
+            line-height: 1.15;
+            margin: 0 0 .5em;
+            text-align: left;
+        }
+
+        .slide ul,
+        .slide ol {
+            margin: 0;
+            padding-left: 1.1em;
+        }
+
+        .slide li {
+            margin: .25em 0;
+        }
+
+        .slide p {
+            margin: .6em 0 0;
+        }
+
+        .slide pre {
+            margin: 0 0 12px;
+            letter-spacing: 0;
+            text-shadow: none;
+        }
+
+        .slide pre code.hljs {
+            padding: 12px 16px;
+            font-size: 17px;
+            line-height: 1.35;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .slide pre.small code.hljs {
+            font-size: 15.5px;
+        }
+
+        .slide code:not(.hljs) {
+            background: #e2e8f0;
+            color: #1e293b;
+            padding: 0 .3em;
+            border-radius: 4px;
+            font-size: .85em;
+            letter-spacing: 0;
+        }
+
+        .slide.section code:not(.hljs),
+        .slide.title code:not(.hljs) {
+            background: rgba(255,255,255,.28);
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .slide table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 22px;
+            line-height: 1.25;
+        }
+
+        .slide th,
+        .slide td {
+            border-bottom: 1px solid #ccc;
+            padding: 6px 10px;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .slide th {
+            background: #e2e8f0;
+            color: #1e293b;
+        }
+
+        .slide .hl {
+            color: #b91c1c;
+        }
+
+        .slide.section {
+            background: linear-gradient(135deg,#0f766e,#1d4ed8);
+            color: #fff;
+            text-shadow: none;
+        }
+
+        .slide.section h1 {
+            color: #fff;
+            font-size: 50px;
+        }
+
+        .slide.section .num {
+            position: absolute;
+            right: 40px;
+            top: 0;
+            font-size: 200px;
+            font-weight: 700;
+            opacity: .18;
+            line-height: 1;
+        }
+
+        .slide.title .hint {
+            font-size: 20px;
+            color: #999;
+            margin-top: 40px;
+        }
+
+        .notes {
+            display: none;
+        }
+
+        .ov {
+            position: fixed;
+            left: 14px;
+            bottom: 12px;
+            color: #93c5fd;
+            font-size: 14px;
+            text-decoration: none;
+            z-index: 10;
+        }
+
+        #overview {
+            background: none!important;
+            border: 0!important;
+            box-shadow: none!important;
+            pointer-events: none;
+        }
+    </style>
+
+    <style>
+        .slide { background: #111; color: #fff; }
+        .slide h2 { font-size: 30px; margin: .7em 0; }
+        .slide .lead { font-size: 32px; margin: 1em 0; }
+        .slide .takeaway { border-left: 4px solid #38bdf8; padding-left: 16px; margin-top: 24px; font-size: 24px; }
+        .slide .muted { color: #b8c4d4; font-size: 21px; }
+        .slide .counter { position: absolute; bottom: 18px; right: 28px; font-size: 15px; color: #94a3b8; }
+        .slide ol { list-style-type: decimal; }
+        .slide pre code { display: block; white-space: pre; background: #f3f4f6; color: #111827; padding: 12px 16px; font: 17px/1.35 monospace; border-radius: 8px; }
+        .slide table { font-size: 21px; }
+        .slide a { color: #7dd3fc; background: none; text-shadow: none; text-decoration: underline; }
+        .slide.section { background: linear-gradient(135deg,#0f766e,#1d4ed8); }
+        .slide.section .muted { color: #e2e8f0; }
+        .slide .flow { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 30px 0; font-size: 22px; }
+        .slide .box { border: 1px solid #38bdf8; border-radius: 8px; padding: 16px 12px; text-align: center; }
+        #overview { color: #fff; }
+        .ov { color: #164e63; }
+        @media print {
+            html, body { background: #fff !important; min-height: 0; }
+            #impress { position: static !important; transform: none !important; }
+            .step.slide { position: relative !important; transform: none !important; opacity: 1 !important; margin: 0 auto !important; break-after: page; box-shadow: none; }
+            #overview, .ov, .impress-progress, .impress-progressbar, .fallback-message { display: none !important; }
+            * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+    </style>
+<style>
+.slide .flow { flex-wrap: nowrap; }
+.slide .box { flex: 1; }
+.slide li { margin: .4em 0; }
+.slide pre code { font-size: 17px; line-height: 1.35; }
+.slide pre code.hljs { font-size: 17px; line-height: 1.35; }
+#demo-code pre code { font-size: 16px; line-height: 1.25; }
+.slide .counter { pointer-events: none; }
+</style>
+</head>
+
+<body class="impress-not-supported">
+<div class="fallback-message"><p>Для показа используйте браузер с поддержкой impress.js. Навигация: стрелки или пробел.</p></div>
+<div id="impress" data-transition-duration="600" data-width="1024" data-height="768" data-max-scale="100" data-min-scale="0" data-perspective="1000">
+
+<div id="intro" class="step slide" data-x="0" data-y="0">
+<h1>Память JVM и сборка мусора</h1>
+<h2>Промышленная разработка на JVM · Лекция 8</h2><p class="lead">От создания объекта до поиска утечки памяти</p><p class="muted">Где хранятся данные, что освобождает GC<br>и почему процессу бывает мало памяти.</p>
+<div class="counter">1 / 82</div>
+</div>
+
+<div id="goals" class="step slide" data-x="1100" data-y="0">
+<h1>Что разберём</h1>
+<ul><li>Из каких областей складывается память процесса JVM.</li><li>Как устроены объекты и что определяет их время жизни.</li><li>Как сборщик находит и освобождает ненужную память.</li><li>Чем различаются цели и подходы сборщиков.</li><li>Как отличить высокую скорость аллокаций от утечки.</li></ul><p class="takeaway">В конце — демонстрация: GC log, heap dump и поиск удерживающей ссылки.</p>
+<div class="counter">2 / 82</div>
+</div>
+
+<div id="memory" class="step slide section" data-x="2200" data-y="0">
+<h1>Карта памяти процесса</h1>
+<div class="num">01</div><p class="lead">От устройства Unix-процесса к областям памяти HotSpot</p>
+<div class="counter">3 / 82</div>
+</div>
+
+<div id="unix-layout" class="step slide" data-x="3300" data-y="0">
+<h1>Память обычного Unix-процесса</h1>
+<pre><code class="language-text">Адресное пространство процесса
+├── Код и данные только для чтения
+├── Статические данные: .data и .bss
+├── Область brk: традиционная куча
+├── Отображения: библиотеки, файлы, анонимная память
+└── Стеки потоков</code></pre><ul><li>Код обращается к виртуальным адресам своего процесса.</li><li>ОС создаёт отображения при загрузке программы и по запросам процесса.</li></ul><p class="takeaway">Это схема состава памяти. Порядок областей и их адреса зависят от ОС, загрузчика и ASLR.</p>
+<div class="counter">4 / 82</div>
+</div>
+
+<div id="unix-storage" class="step slide" data-x="4400" data-y="0">
+<h1>Статические, автоматические и динамические данные</h1>
+<pre><code class="language-c">int total = 7;             // статические данные: .data
+static int requests;       // статические данные: .bss
+
+void work(void) {
+    int local = 3;         // автоматическая переменная
+    char *buffer = malloc(1024);
+    if (buffer == NULL) return;
+    /* Используем buffer. */
+    free(buffer);
+}</code></pre><ul><li>total и requests существуют всё время работы программы.</li><li>local обычно хранится в стеке или регистре; buffer — указатель на отдельный динамический блок.</li></ul><p class="takeaway">Возврат из work() сам по себе не освобождает блок malloc. Это делает free().</p>
+<div class="counter">5 / 82</div>
+</div>
+
+<div id="unix-malloc" class="step slide" data-x="5500" data-y="0">
+<h1>Как malloc получает память</h1>
+<ul><li><code>malloc()</code> и <code>free()</code> — функции аллокатора в библиотеке, а не системные вызовы.</li><li>Аллокатор получает память у ОС крупными областями и выдаёт из них блоки нужного размера.</li><li>В Linux аллокатор glibc может использовать <code>brk()</code> и анонимные отображения <code>mmap()</code>.</li><li><code>brk()</code> меняет границу традиционной области динамических данных; <code>mmap()</code> создаёт отдельные отображения.</li></ul><p class="takeaway">free() возвращает блок аллокатору. Аллокатор может сохранить его для следующих malloc(), поэтому RSS не обязан уменьшиться.</p>
+<div class="counter">6 / 82</div>
+</div>
+
+<div id="virtual-pages" class="step slide" data-x="6600" data-y="0">
+<h1>Виртуальный адрес и физическая страница</h1>
+<ul><li>Адрес в указателе относится к виртуальному адресному пространству процесса.</li><li>MMU переводит виртуальные адреса в физические с помощью таблиц страниц, которыми управляет ОС.</li><li>Для диапазона задаются правила: доступ на чтение, запись, исполнение и источник данных.</li><li>Существование диапазона адресов не означает наличия отдельной физической страницы для каждой его страницы.</li></ul><p class="takeaway">Например, ОС может создать анонимное отображение сейчас, а физические страницы предоставлять позже, по мере записи.</p>
+<div class="counter">7 / 82</div>
+</div>
+
+<div id="mmap-basics" class="step slide" data-x="7700" data-y="0">
+<h1>mmap: отдельная область памяти</h1>
+<pre><code class="language-c">size_t size = 1024 * 1024;
+void *p = mmap(NULL, size, PROT_READ | PROT_WRITE,
+               MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+if (p == MAP_FAILED) { /* Обрабатываем ошибку. */ }
+else {
+    /* Читаем и записываем данные через p. */
+    munmap(p, size);
+}</code></pre><ul><li><code>NULL</code>: адрес выбирает ядро; <code>size</code>: длина области.</li><li><code>PROT_READ | PROT_WRITE</code>: разрешены чтение и запись.</li><li><code>MAP_ANONYMOUS</code>: данные не берутся из файла; <code>munmap()</code> удаляет отображение.</li></ul><p class="takeaway">Здесь mmap создаёт динамическую память вне области brk.</p>
+<div class="counter">8 / 82</div>
+</div>
+
+<div id="mmap-reservation" class="step slide" data-x="8800" data-y="0">
+<h1>Как HotSpot резервирует адреса в Linux</h1>
+<pre><code class="language-c">void *base = mmap(NULL, size, PROT_NONE,
+                  MAP_PRIVATE | MAP_ANONYMOUS
+                              | MAP_NORESERVE,
+                  -1, 0);</code></pre><ul><li><code>PROT_NONE</code>: доступ к данным по этим адресам пока запрещён.</li><li>Ядро создаёт отображение: диапазон занят в адресном пространстве процесса.</li><li><code>MAP_NORESERVE</code> относится к резервированию swap; виртуальные адреса при этом заняты.</li></ul><p class="takeaway">Это обычный путь резервирования HotSpot. Обращение к такой памяти до разрешения доступа вызовет ошибку.</p>
+<div class="counter">9 / 82</div>
+</div>
+
+<div id="mmap-commit" class="step slide" data-x="9900" data-y="0">
+<h1>Как HotSpot делает часть области доступной</h1>
+<pre><code class="language-c">mmap(base, committed_size, PROT_READ | PROT_WRITE,
+     MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED,
+     -1, 0);</code></pre><ul><li>Обычный Linux-путь HotSpot заменяет часть своего резервирования доступным отображением.</li><li><code>MAP_FIXED</code> задаёт точный адрес; заменять чужие отображения таким способом опасно.</li><li>Размер доступной части учитывается JVM как <b>committed</b>.</li></ul><p class="takeaway">Committed означает доступную JVM ёмкость. Это ещё не число физических страниц, находящихся в RAM.</p>
+<div class="counter">10 / 82</div>
+</div>
+
+<div id="demand-paging" class="step slide" data-x="11000" data-y="0">
+<h1>Что происходит при первом обращении</h1>
+<ul><li>Отображение разрешает запись, но физическая страница для данного адреса может ещё отсутствовать.</li><li>При первой записи процессор вызывает <b>page fault</b> и передаёт управление ядру.</li><li>Ядро проверяет права и предоставляет физическую страницу; инструкция продолжает выполнение.</li><li>Для анонимной памяти чтение может использовать общую нулевую страницу, а запись — потребовать отдельную.</li></ul><p class="takeaway">Page fault может быть штатным механизмом. Доступ к PROT_NONE или несуществующему отображению — другая ситуация.</p>
+<div class="counter">11 / 82</div>
+</div>
+
+<div id="unix-maps" class="step slide" data-x="12100" data-y="0">
+<h1>Как увидеть отображения процесса в Linux</h1>
+<pre><code class="language-bash">cat /proc/PID/maps
+cat /proc/PID/smaps_rollup
+
+# Условный фрагмент maps:
+70000000-80000000 rw-p 00000000 00:00 0
+80000000-b0000000 ---p 00000000 00:00 0</code></pre><ul><li><code>maps</code>: диапазоны адресов, права и связанные файлы.</li><li><code>rw-p</code>: чтение и запись; <code>---p</code>: доступа нет; <code>p</code>: private.</li><li><code>smaps_rollup</code>: суммарные показатели резидентной памяти и другие данные учёта ОС.</li></ul><p class="takeaway">Подпись [heap] в maps обозначает область brk, а не всю динамическую память и не Java heap.</p>
+<div class="counter">12 / 82</div>
+</div>
+
+<div id="specification" class="step slide" data-x="13200" data-y="0">
+<h1>Спецификация и реализация</h1>
+<ul><li>JVMS описывает абстрактную машину: heap, стеки, область методов и другие структуры.</li><li>Размещение данных, формат объектов и алгоритм GC выбирает реализация JVM.</li><li>Далее рассматриваем HotSpot на 64-битной платформе.</li><li>Команды демонстрации рассчитаны на JDK 25; детали могут отличаться между версиями.</li></ul><p class="takeaway">Модель языка, устройство HotSpot и показатели ОС описывают разные стороны работы программы.</p>
+<div class="counter">13 / 82</div>
+</div>
+
+<div id="process-address-space" class="step slide" data-x="14300" data-y="0">
+<h1>Где находится Java heap</h1>
+<ul>
+<li>У процесса есть <b>виртуальное адресное пространство</b>: адреса, которыми пользуется выполняемый код.</li>
+<li><b>ОС управляет отображениями:</b> какие диапазоны доступны процессу и связаны ли они с памятью или файлами.</li>
+</ul>
+<pre><code class="language-text">Адресное пространство процесса JVM
+├── Java heap: объекты и массивы
+├── Metaspace: метаданные классов
+├── Code cache: машинный код
+├── Стеки платформенных потоков
+└── Библиотеки, буферы, отображения файлов…</code></pre>
+<p class="takeaway">Java heap — часть памяти процесса. Metaspace и code cache находятся в том же процессе, но вне Java heap.</p>
+<p class="muted">Схема показывает состав, а не порядок и размеры областей в адресах.</p>
+<div class="counter">14 / 82</div>
+</div>
+
+<div id="areas" class="step slide" data-x="15400" data-y="0">
+<h1>Из чего складывается память</h1>
+<table><thead><tr><th>Область</th><th>Что в ней хранится</th></tr></thead><tbody><tr><td>Heap — куча</td><td>Объекты и массивы Java.</td></tr><tr><td>Стеки потоков</td><td>Фреймы вызовов, локальные значения, служебные данные.</td></tr><tr><td>Metaspace</td><td>Метаданные загруженных классов.</td></tr><tr><td>Code cache</td><td>Машинный код, созданный JIT-компилятором.</td></tr><tr><td>Прочая нативная память</td><td>Direct-буферы, структуры GC, библиотеки и другие данные.</td></tr></tbody></table><p class="takeaway">Часть областей общая для процесса; часть связана с отдельными потоками.</p>
+<div class="counter">15 / 82</div>
+</div>
+
+<div id="limits" class="step slide" data-x="16500" data-y="0">
+<h1>Что ограничивает -Xmx</h1>
+<pre><code class="language-bash">java -Xms256m -Xmx1g -Xss1m App</code></pre><ul><li><code>-Xms</code> задаёт начальный размер heap, <code>-Xmx</code> — его верхнюю границу.</li><li><code>-Xss</code> задаёт размер стека платформенного потока.</li><li>Лимит памяти контейнера относится ко всему процессу, а не только к heap.</li></ul><p class="takeaway">Нельзя выделить под -Xmx всю доступную контейнеру память.</p>
+<div class="counter">16 / 82</div>
+</div>
+
+<div id="native-limits" class="step slide" data-x="17600" data-y="0">
+<h1>Лимиты памяти вне heap</h1>
+<table><thead><tr><th>Область</th><th>Параметр HotSpot и пример</th></tr></thead><tbody>
+<tr><td>Metaspace</td><td><code>-XX:MaxMetaspaceSize=256m</code></td></tr>
+<tr><td>Code cache</td><td><code>-XX:ReservedCodeCacheSize=128m</code></td></tr>
+<tr><td>Direct-буферы NIO</td><td><code>-XX:MaxDirectMemorySize=256m</code></td></tr>
+</tbody></table>
+<ul><li>Без MaxMetaspaceSize верхний предел metaspace явно не задан.</li><li>Для code cache JVM выбирает конечный лимит по умолчанию.</li><li>Лимит direct-буферов выбирается автоматически, если не задан явно; он не ограничивает всю нативную память.</li></ul>
+<p class="takeaway">Числа приведены для примера. Все области вместе должны укладываться в доступную процессу память.</p>
+<div class="counter">17 / 82</div>
+</div>
+
+<div id="os-memory" class="step slide" data-x="18700" data-y="0">
+<h1>Адреса, ёмкость и занятое место</h1>
+<p class="muted">Пример обычного mmap-пути HotSpot в Linux: резерв 1 GiB, доступно 256 MiB.</p>
+<table><thead><tr><th>Показатель</th><th>Пример</th><th>Что это означает</th></tr></thead><tbody>
+<tr><td>Reserved</td><td>1 GiB</td><td>mmap создал диапазон 1 GiB. Вне committed доступ запрещён (PROT_NONE).</td></tr>
+<tr><td>Committed</td><td>256 MiB</td><td>Для 256 MiB разрешены чтение и запись. Физические страницы могут предоставляться по мере обращения.</td></tr>
+<tr><td>Used</td><td>96 MiB</td><td>Аллокатор JVM учитывает 96 MiB как занятые данными внутри committed.</td></tr>
+</tbody></table>
+<p class="takeaway">Осталось 160 MiB внутри committed. Чтобы использовать больше 256 MiB, JVM потребуется увеличить committed.</p>
+<p class="muted">Рост committed может завершиться ошибкой, даже если в reserved ещё есть адреса.</p>
+<div class="counter">18 / 82</div>
+</div>
+
+<div id="resident-memory" class="step slide" data-x="19800" data-y="0">
+<h1>Почему после GC RSS может не уменьшиться</h1>
+<ul>
+<li><b>RSS</b> — объём страниц процесса, находящихся в физической памяти по учёту ОС. Он включает heap и другие области.</li>
+<li>GC освободил объекты: <b>used уменьшился</b>, а внутри heap появилось место для новых объектов.</li>
+<li>JVM может сохранить ёмкость heap: <b>committed не изменился</b>.</li>
+<li>Если страницы остались в RAM, <b>RSS тоже может не измениться</b>. Возврат памяти ОС — отдельное действие.</li>
+</ul>
+<p class="takeaway">Например: used уменьшился с 200 до 80 MiB, committed остался 256 MiB. Неизменный RSS в такой ситуации не доказывает утечку.</p>
+<div class="counter">19 / 82</div>
+</div>
+
+<div id="native-stacks" class="step slide" data-x="20900" data-y="0">
+<h1>Стеки платформенных потоков</h1>
+<ul><li><b>Содержимое:</b> фреймы, локальные значения и служебные данные, в том числе для нативных вызовов.</li><li><b>Освобождение:</b> фреймы снимаются при возврате; стек потока освобождается после его завершения.</li><li><b>Разработчик:</b> ограничивает число потоков и глубину вызовов; размер стека задаёт <code>-Xss</code>.</li><li><b>Наблюдение:</b> ThreadMXBean — число потоков; Thread.print — вызовы; NMT, категория Thread — память.</li></ul><pre><code class="language-bash">jcmd PID Thread.print
+jcmd PID VM.native_memory summary</code></pre><p class="takeaway">Стеки виртуальных потоков хранятся в heap; стеки потоков-носителей — вне heap.</p>
+<div class="counter">20 / 82</div>
+</div>
+
+<div id="metaspace" class="step slide" data-x="22000" data-y="0">
+<h1>Metaspace: метаданные классов</h1>
+<ul><li><b>Содержимое:</b> описания классов и методов, байткод, пулы констант и другие метаданные HotSpot.</li><li><b>Освобождение:</b> JVM освобождает метаданные при выгрузке классов; важна достижимость их загрузчика.</li><li><b>Разработчик:</b> устраняет удержание старых загрузчиков; ограничивает динамическое создание классов.</li><li><b>Наблюдение:</b> пулы Metaspace и Compressed Class Space через MemoryPoolMXBean; число классов — ClassLoadingMXBean.</li></ul><pre><code class="language-bash">jcmd PID VM.metaspace basic
+jcmd PID VM.classloader_stats</code></pre><p class="takeaway">Объекты java.lang.Class находятся в heap. Недостижимость загрузчика не означает немедленной выгрузки.</p>
+<div class="counter">21 / 82</div>
+</div>
+
+<div id="code-cache" class="step slide" data-x="23100" data-y="0">
+<h1>Code cache: машинный код</h1>
+<ul><li><b>Содержимое:</b> скомпилированные версии методов, адаптеры вызовов и служебные фрагменты машинного кода.</li><li><b>Освобождение:</b> HotSpot удаляет устаревший и больше не используемый код, когда это безопасно.</li><li><b>Разработчик:</b> выбирает лимит; исследует чрезмерную генерацию классов и методов.</li><li><b>Наблюдение:</b> пулы CodeHeap через MemoryPoolMXBean; заполнение и границы — Compiler.codecache.</li></ul><pre><code class="language-bash">jcmd PID Compiler.codecache</code></pre><p class="takeaway">Code cache не очищается вызовом close(). При его заполнении работа JIT может ограничиваться.</p>
+<div class="counter">22 / 82</div>
+</div>
+
+<div id="direct" class="step slide" data-x="24200" data-y="0">
+<h1>Direct-буферы: данные вне heap</h1>
+<ul><li><b>Содержимое:</b> байты, выделенные через <code>ByteBuffer.allocateDirect()</code>; обёртки находятся в heap.</li><li><b>Освобождение:</b> в HotSpot — через Cleaner после потери достижимости буфера и удерживающих его представлений.</li><li><b>Разработчик:</b> контролирует ссылки и переиспользование; у обычного ByteBuffer нет <code>close()</code>.</li><li><b>Наблюдение:</b> BufferPoolMXBean, пул <code>direct</code>: Count, TotalCapacity, MemoryUsed.</li></ul><p class="takeaway">clear() сбрасывает позицию и лимит; нативную память буфера он не освобождает.</p>
+<div class="counter">23 / 82</div>
+</div>
+
+<div id="mapped-memory" class="step slide" data-x="25300" data-y="0">
+<h1>Отображения файлов в память</h1>
+<ul><li><b>Содержимое:</b> страницы файла, отображённые в адресное пространство через <code>FileChannel.map()</code>.</li><li><b>Освобождение:</b> для MappedByteBuffer снятие отображения связано с GC; ОС отдельно управляет резидентностью страниц.</li><li><b>Разработчик:</b> контролирует число и размер отображений; закрытие канала не снимает существующее отображение.</li><li><b>Наблюдение:</b> BufferPoolMXBean, пул <code>mapped</code>; карты памяти и RSS средствами ОС.</li></ul><p class="takeaway">force() синхронизирует изменения с файлом, но не снимает отображение.</p>
+<div class="counter">24 / 82</div>
+</div>
+
+<div id="arena-memory" class="step slide" data-x="26400" data-y="0">
+<h1>Arena: явное время жизни памяти</h1>
+<ul><li><b>Содержимое:</b> нативные сегменты данных, выделенные через Foreign Function &amp; Memory API.</li><li><b>Освобождение:</b> для <code>ofConfined()</code> и <code>ofShared()</code> разработчик вызывает <code>close()</code>.</li><li><code>ofAuto()</code> связывает освобождение с GC; <code>global()</code> не освобождает сегменты до завершения процесса.</li><li><b>Наблюдение:</b> учёт числа арен и выделенных байтов в приложении; NMT и показатели ОС — для общей картины.</li></ul><p class="takeaway">Сегмент не продлевает жизнь закрытой арены: доступ после close() запрещён.</p>
+<div class="counter">25 / 82</div>
+</div>
+
+<div id="vm-native" class="step slide" data-x="27500" data-y="0">
+<h1>Служебная память JVM и GC</h1>
+<ul><li><b>Содержимое:</b> таблицы карт, remembered sets, структуры маркировки, данные JIT и другие структуры HotSpot.</li><li><b>Освобождение:</b> JVM переиспользует и освобождает их по правилам соответствующей подсистемы.</li><li><b>Разработчик:</b> влияет косвенно — выбором GC, размером heap и характером нагрузки.</li><li><b>Наблюдение:</b> категории GC, Compiler и Internal в NMT; динамика reserved и committed.</li></ul><pre><code class="language-bash">jcmd PID VM.native_memory summary</code></pre><p class="takeaway">Увеличение heap может увеличивать и служебные расходы вне него. Для NMT нужен флаг при запуске.</p>
+<div class="counter">26 / 82</div>
+</div>
+
+<div id="native-libraries" class="step slide" data-x="28600" data-y="0">
+<h1>Память нативных библиотек</h1>
+<ul><li><b>Содержимое:</b> рабочие области JNI-библиотек, кодеков, TLS и других нативных компонентов.</li><li><b>Освобождение:</b> зависит от API библиотеки; возможны явные <code>close()</code>, release или уничтожение контекста.</li><li><b>Разработчик:</b> соблюдает контракт владения и освобождает ресурс на всех путях, включая исключения.</li><li><b>Наблюдение:</b> метрики библиотеки, RSS и карты памяти; при необходимости — профилировщик нативных аллокаций.</li></ul><p class="takeaway">NMT не видит все выделения сторонних библиотек. Стабильный heap не исключает нативную утечку.</p>
+<div class="counter">27 / 82</div>
+</div>
+
+<div id="native-monitoring" class="step slide" data-x="29700" data-y="0">
+<h1>Как наблюдать память вне heap</h1>
+<ul><li><b>Metaspace и code cache:</b> MemoryPoolMXBean; в JConsole — раздел Memory.</li><li><b>Direct и mapped:</b> BufferPoolMXBean; в JConsole — раздел MBeans, домен java.nio.</li><li><b>Потоки:</b> ThreadMXBean и Thread.print; объём нативных структур — NMT.</li><li><b>Прочая нативная память:</b> NMT, метрики библиотек и инструменты ОС.</li><li><b>На графиках:</b> расход, предел, темп роста; для буферов и классов — также количество.</li></ul><p class="takeaway">Для NMT: -XX:NativeMemoryTracking=summary. Показатель JMX non-heap не включает всю память вне heap.</p>
+<div class="counter">28 / 82</div>
+</div>
+
+<div id="objects" class="step slide section" data-x="30800" data-y="0">
+<h1>Объекты и ссылки</h1>
+<div class="num">02</div><p class="lead">Размер объекта и размер его данных — разные величины</p>
+<div class="counter">29 / 82</div>
+</div>
+
+<div id="values" class="step slide" data-x="31900" data-y="0">
+<h1>Значение, ссылка и объект</h1>
+<pre><code class="language-java">final class Entry {
+    int count;
+    byte[] payload;
+}
+
+Entry first = new Entry();
+Entry second = first;
+first.payload = new byte[1024];</code></pre><ul><li><code>count</code> хранит примитивное значение внутри Entry.</li><li><code>payload</code> хранит ссылку; массив — отдельный объект.</li><li><code>first</code> и <code>second</code> ссылаются на один Entry.</li></ul>
+<div class="counter">30 / 82</div>
+</div>
+
+<div id="layout" class="step slide" data-x="33000" data-y="0">
+<h1>Из чего состоит объект</h1>
+<div class="flow"><div class="box">Заголовок</div><span>→</span><div class="box">Поля</div><span>→</span><div class="box">Выравнивание</div></div><ul><li>Заголовок содержит служебную информацию JVM и сведения о классе.</li><li>Поля содержат примитивные значения и ссылки на другие объекты.</li><li>Выравнивание может добавлять неиспользуемые байты.</li><li>JVM может выбирать порядок размещения полей; порядок объявления не задаёт точную раскладку.</li></ul><p class="takeaway">Размер заголовка и ссылок зависит от версии и настроек HotSpot.</p>
+<div class="counter">31 / 82</div>
+</div>
+
+<div id="compressed" class="step slide" data-x="34100" data-y="0">
+<h1>Сжатые ссылки</h1>
+<ul><li>На 64-битной платформе ссылка внутри heap может занимать 4 байта.</li><li>HotSpot может кодировать её как смещение с учётом выравнивания.</li><li>Возможность сжатия зависит, в частности, от размера и размещения heap.</li><li>Сжатые ссылки на объекты и на метаданные классов — разные механизмы.</li></ul><p class="takeaway">Формула «64-битная JVM → любая ссылка занимает 8 байт» неверна.</p>
+<div class="counter">32 / 82</div>
+</div>
+
+<div id="size" class="step slide" data-x="35200" data-y="0">
+<h1>Пример расчёта размера</h1>
+<pre><code class="language-java">final class Sample {
+    int count;
+    Object value;
+}</code></pre><ul><li>Для примера: заголовок 12 байт, ссылка 4 байта, выравнивание 8 байт.</li><li>Поля занимают 4 + 4 байта; вместе с заголовком — 20 байт.</li><li>После выравнивания получаем 24 байта.</li><li>Объект, на который указывает value, в эти 24 байта не входит.</li></ul><p class="takeaway">Это расчёт для заданной конфигурации, а не гарантия языка. Раскладку можно исследовать с помощью JOL.</p>
+<div class="counter">33 / 82</div>
+</div>
+
+<div id="arrays" class="step slide" data-x="36300" data-y="0">
+<h1>Массив — отдельный объект</h1>
+<pre><code class="language-java">int[] numbers = new int[1000];
+Entry[] entries = new Entry[1000];</code></pre><ul><li><code>int[]</code> содержит примитивные значения: 4000 байт данных плюс заголовок и выравнивание.</li><li><code>Entry[]</code> содержит 1000 ссылок; изначально каждая равна null.</li><li>Конструкторы Entry при создании массива не вызываются.</li><li>Созданные впоследствии Entry и их payload занимают память отдельно.</li></ul>
+<div class="counter">34 / 82</div>
+</div>
+
+<div id="allocation" class="step slide" data-x="37400" data-y="0">
+<h1>Как выделяется память</h1>
+<ul><li>В HotSpot небольшие объекты часто выделяются в TLAB — локальном участке heap для потока.</li><li>Быстрый путь выделения может сводиться к сдвигу указателя свободного места.</li><li>TLAB принадлежит потоку для выделения памяти; созданные объекты могут быть доступны другим потокам.</li><li>Пополнение TLAB и выделение крупных объектов требуют других путей обработки.</li></ul><p class="takeaway">Создать объект часто дёшево. Стоимость зависит и от того, сколько объектов остаётся жить.</p>
+<div class="counter">35 / 82</div>
+</div>
+
+<div id="stack" class="step slide section" data-x="38500" data-y="0">
+<h1>Стек и время жизни</h1>
+<div class="num">03</div><p class="lead">Возврат из метода не уничтожает созданные в нём объекты</p>
+<div class="counter">36 / 82</div>
+</div>
+
+<div id="frames" class="step slide" data-x="39600" data-y="0">
+<h1>Что хранится во фрейме</h1>
+<ul><li>При вызове метода JVM создаёт фрейм: локальные переменные, стек операндов и служебные данные.</li><li>Локальная переменная может содержать примитивное значение или ссылку.</li><li>При завершении вызова его фрейм удаляется.</li><li>JIT может хранить значения в регистрах, устранять переменные и встраивать вызовы.</li></ul><p class="takeaway">Фрейм — модель исполнения JVM. Машинный код может выглядеть иначе.</p>
+<div class="counter">37 / 82</div>
+</div>
+
+<div id="returned" class="step slide" data-x="40700" data-y="0">
+<h1>Объект переживает вызов метода</h1>
+<pre><code class="language-java">static byte[] create() {
+    byte[] data = new byte[1024];
+    return data;
+}
+
+byte[] result = create();</code></pre><div class="flow"><div class="box">Вызывающий метод<br>result</div><span>→</span><div class="box">byte[1024]<br>в heap</div></div><p class="takeaway">Фрейм create() завершён, но массив остаётся достижимым через result.</p>
+<div class="counter">38 / 82</div>
+</div>
+
+<div id="scope" class="step slide" data-x="41800" data-y="0">
+<h1>Область видимости и достижимость</h1>
+<ul><li>Область видимости определяет, где имя доступно в исходном коде.</li><li>Достижимость определяет, может ли выполнение программы ещё обратиться к объекту.</li><li>Если ссылка больше не нужна, JVM может перестать считать её живой до выхода из метода.</li><li>Присваивание null одной переменной не удаляет другие ссылки на тот же объект.</li></ul><p class="takeaway">По строке исходного кода нельзя точно определить момент освобождения памяти.</p>
+<div class="counter">39 / 82</div>
+</div>
+
+<div id="escape" class="step slide" data-x="42900" data-y="0">
+<h1>Escape analysis</h1>
+<pre><code class="language-java">static int sum(int a, int b) {
+    Point p = new Point(a, b);
+    return p.x + p.y;
+}
+
+static final class Point {
+    final int x, y;
+    Point(int x, int y) { this.x = x; this.y = y; }
+}</code></pre><p class="takeaway">Если JIT докажет, что объект не нужен как самостоятельная сущность, он может устранить выделение и работать с отдельными значениями полей.</p><p class="muted">Это оптимизация, а не гарантия размещения объекта на стеке.</p>
+<div class="counter">40 / 82</div>
+</div>
+
+<div id="stack-overflow" class="step slide" data-x="44000" data-y="0">
+<h1>Когда заканчивается стек</h1>
+<pre><code class="language-java">static void recurse() {
+    recurse();
+}</code></pre><ul><li>Неограниченная рекурсия создаёт всё новые фреймы.</li><li>При превышении допустимого размера стека возникает <code>StackOverflowError</code>.</li><li>Увеличение <code>-Xmx</code> эту проблему не решает.</li><li>Увеличение <code>-Xss</code> может отложить ошибку, но не исправляет бесконечную рекурсию.</li></ul>
+<div class="counter">41 / 82</div>
+</div>
+
+<div id="reachability" class="step slide section" data-x="45100" data-y="0">
+<h1>Достижимость</h1>
+<div class="num">04</div><p class="lead">Сборщик определяет, какие объекты остаются достижимыми</p>
+<div class="counter">42 / 82</div>
+</div>
+
+<div id="roots" class="step slide" data-x="46200" data-y="0">
+<h1>Откуда начинается поиск</h1>
+<ul><li>GC начинает обход с корней достижимости — GC roots.</li><li>К ним относятся, например, живые ссылки во фреймах активных потоков и JNI-ссылки определённых видов.</li><li>Статические поля достижимых классов могут удерживать графы объектов.</li><li>Из корней сборщик проходит по ссылкам и определяет достижимые объекты.</li></ul><p class="takeaway">Список корней и способ их представления зависят от реализации JVM.</p>
+<div class="counter">43 / 82</div>
+</div>
+
+<div id="graph" class="step slide" data-x="47300" data-y="0">
+<h1>Граф объектов</h1>
+<div class="flow"><div class="box">GC root</div><span>→</span><div class="box">Service</div><span>→</span><div class="box">List</div><span>→</span><div class="box">byte[]</div></div><div class="flow"><div class="box">Объект A</div><span>→</span><div class="box">Объект B<br>↩ ссылка на A</div></div><ul><li>Объекты верхней цепочки достижимы от корня и сохраняются.</li><li>Нижний цикл можно освободить, если к нему нет пути от корней.</li><li>Циклические ссылки сами по себе не мешают трассирующему GC.</li></ul>
+<div class="counter">44 / 82</div>
+</div>
+
+<div id="null" class="step slide" data-x="48400" data-y="0">
+<h1>Почему null не означает удаление</h1>
+<pre><code class="language-java">byte[] first = new byte[1024];
+byte[] second = first;
+first = null;
+// Массив всё ещё доступен через second.
+System.out.println(second.length);</code></pre><ul><li>Удалена одна ссылка, а не сам объект.</li><li>После исчезновения всех удерживающих путей объект может стать кандидатом на сборку.</li><li>Точный момент сборки программа обычно не контролирует.</li></ul>
+<div class="counter">45 / 82</div>
+</div>
+
+<div id="reference-types" class="step slide" data-x="49500" data-y="0">
+<h1>Сила ссылки имеет значение</h1>
+<table><thead><tr><th>Ссылка</th><th>Особенности</th></tr></thead><tbody><tr><td>Strong</td><td>Обычная ссылка; удерживает объект.</td></tr><tr><td>SoftReference</td><td>Может быть очищена при нехватке памяти; срок хранения непредсказуем.</td></tr><tr><td>WeakReference</td><td>Очищается при обнаружении слабой достижимости.</td></tr><tr><td>PhantomReference</td><td>Позволяет через ReferenceQueue отслеживать фантомную достижимость для организации очистки; get() возвращает null.</td></tr></tbody></table><p class="takeaway">SoftReference не заменяет кеш с явными ограничениями размера и политикой вытеснения.</p>
+<div class="counter">46 / 82</div>
+</div>
+
+<div id="resources" class="step slide" data-x="50600" data-y="0">
+<h1>GC и внешние ресурсы</h1>
+<pre><code class="language-java">try (Connection c = dataSource.getConnection()) {
+    // Работа с соединением.
+}</code></pre><ul><li>Память Java-объекта и ресурс, которым он управляет, имеют разные жизненные циклы.</li><li>Соединения, файлы и другие закрываемые ресурсы освобождаем явно.</li><li>Cleaner не гарантирует своевременного выполнения очистки.</li><li>Финализация устарела и предназначена к удалению; не используем finalize() для управления ресурсами.</li></ul><p class="takeaway">В примере close() возвращает соединение в пул.</p>
+<div class="counter">47 / 82</div>
+</div>
+
+<div id="gc" class="step slide section" data-x="51700" data-y="0">
+<h1>Как работает GC</h1>
+<div class="num">05</div><p class="lead">Найти живые объекты и вернуть остальную память для повторного использования</p>
+<div class="counter">48 / 82</div>
+</div>
+
+<div id="algorithms" class="step slide" data-x="52800" data-y="0">
+<h1>Основные операции</h1>
+<table><thead><tr><th>Операция</th><th>Что происходит</th></tr></thead><tbody><tr><td>Marking — маркировка</td><td>Определяется множество достижимых объектов.</td></tr><tr><td>Sweeping — освобождение</td><td>Память недостижимых объектов становится доступна для выделения.</td></tr><tr><td>Copying — копирование</td><td>Живые объекты переносятся в другую область.</td></tr><tr><td>Compaction — уплотнение</td><td>Живые объекты перемещаются, уменьшая фрагментацию.</td></tr></tbody></table><p class="takeaway">Сборщики сочетают эти операции по-разному. Не каждый цикл выполняет их все.</p>
+<div class="counter">49 / 82</div>
+</div>
+
+<div id="moving" class="step slide" data-x="53900" data-y="0">
+<h1>Что происходит при перемещении</h1>
+<div class="flow"><div class="box">Объект по адресу A</div><span>→</span><div class="box">Копирование</div><span>→</span><div class="box">Объект по адресу B</div></div><ul><li>Сборщик должен сохранить корректность ссылок на перемещённый объект.</li><li>Для этого ссылки обновляются либо обрабатываются специальными механизмами доступа.</li><li>Обычный Java-код продолжает работать с тем же объектом.</li><li>Стабильность адреса не входит в гарантии обычной ссылки Java.</li></ul>
+<div class="counter">50 / 82</div>
+</div>
+
+<div id="pauses" class="step slide" data-x="55000" data-y="0">
+<h1>Паузы и конкурентная работа</h1>
+<ul><li>Stop-the-world: выполнение Java-кода приложения приостанавливается для работы JVM.</li><li>Safepoint — состояние, в котором JVM может безопасно выполнить определённую служебную операцию.</li><li>Некоторые этапы GC могут идти одновременно с приложением.</li><li>Барьеры чтения или записи помогают учитывать обращения и изменения ссылок.</li></ul><p class="takeaway">Конкурентный GC уменьшает часть пауз ценой дополнительной работы и запаса памяти.</p>
+<div class="counter">51 / 82</div>
+</div>
+
+<div id="parallel-concurrent" class="step slide" data-x="56100" data-y="0">
+<h1>Parallel и concurrent</h1>
+<table><thead><tr><th>Термин</th><th>Что он означает</th></tr></thead><tbody><tr><td>Parallel</td><td>Несколько потоков сборщика выполняют работу одновременно.</td></tr><tr><td>Concurrent</td><td>Сборщик выполняет часть работы одновременно с приложением.</td></tr></tbody></table><ul><li>Сборщик может использовать оба подхода.</li><li>Параллельная фаза сама по себе не означает отсутствие остановки приложения.</li><li>Даже сборщик с преимущественно конкурентной работой может иметь короткие паузы.</li></ul>
+<div class="counter">52 / 82</div>
+</div>
+
+<div id="generations" class="step slide" data-x="57200" data-y="0">
+<h1>Зачем нужны поколения</h1>
+<ul><li>Во многих приложениях большинство объектов живёт недолго.</li><li>Молодые объекты выгодно собирать чаще, отдельно от основной массы долгоживущих.</li><li>Объекты, пережившие несколько сборок, могут переходить в старое поколение.</li><li>Разделение на поколения — инженерный приём, а не свойство объектов Java.</li></ul><p class="takeaway">Число пережитых сборок — не возраст объекта в секундах.</p>
+<div class="counter">53 / 82</div>
+</div>
+
+<div id="young" class="step slide" data-x="58300" data-y="0">
+<h1>Модель молодого поколения</h1>
+<div class="flow"><div class="box">Eden<br>новые объекты</div><span>→</span><div class="box">Survivor<br>пережившие сборку</div><span>→</span><div class="box">Old<br>долгоживущие</div></div><ul><li>Так удобно объяснять Serial, Parallel и некоторые аспекты G1.</li><li>Во время молодой сборки живые объекты обычно копируются.</li><li>Часть объектов переводится в старое поколение — promotion.</li><li>Крупные объекты и отдельные сборщики могут использовать другие пути размещения.</li></ul><p class="takeaway">Эта схема иллюстрирует общий принцип; она не описывает все сборщики буквально.</p>
+<div class="counter">54 / 82</div>
+</div>
+
+<div id="remembered" class="step slide" data-x="59400" data-y="0">
+<h1>Ссылки между поколениями</h1>
+<div class="flow"><div class="box">Old: долгоживущий список</div><span>→</span><div class="box">Young: новый элемент</div></div><ul><li>Молодой объект может быть достижим через старый.</li><li>Чтобы не обходить всё старое поколение при каждой молодой сборке, JVM учитывает такие связи.</li><li>Для этого применяются барьеры записи, таблицы карт и remembered sets.</li><li>Поддержание этих структур тоже расходует CPU и память.</li></ul>
+<div class="counter">55 / 82</div>
+</div>
+
+<div id="cost" class="step slide" data-x="60500" data-y="0">
+<h1>От чего зависит стоимость GC</h1>
+<ul><li>Сколько памяти выделяется за единицу времени — allocation rate.</li><li>Сколько данных остаётся достижимым — live set.</li><li>Как устроен граф ссылок и как часто он меняется.</li><li>Сколько ресурсов CPU и памяти доступно сборщику.</li><li>Каковы требования к паузам и общей производительности.</li></ul><p class="takeaway">Одинаковое число созданных объектов не означает одинаковую стоимость сборки.</p>
+<div class="counter">56 / 82</div>
+</div>
+
+<div id="collectors" class="step slide section" data-x="61600" data-y="0">
+<h1>Выбор сборщика</h1>
+<div class="num">06</div><p class="lead">Сопоставляем требования приложения с измерениями</p>
+<div class="counter">57 / 82</div>
+</div>
+
+<div id="tradeoffs" class="step slide" data-x="62700" data-y="0">
+<h1>Три ориентира</h1>
+<table><thead><tr><th>Ориентир</th><th>Что измерять</th></tr></thead><tbody><tr><td>Throughput</td><td>Объём полезной работы за единицу времени.</td></tr><tr><td>Latency</td><td>Время ответа и распределение пауз, включая редкие длинные.</td></tr><tr><td>Footprint</td><td>Объём памяти, необходимый процессу.</td></tr></tbody></table><p class="takeaway">При сравнении фиксируем JDK, нагрузку, лимиты CPU и памяти. Среднее время паузы не показывает худшие случаи.</p>
+<div class="counter">58 / 82</div>
+</div>
+
+<div id="serial-parallel" class="step slide" data-x="63800" data-y="0">
+<h1>Serial и Parallel</h1>
+<table><thead><tr><th>Сборщик</th><th>Подход</th></tr></thead><tbody><tr><td>Serial</td><td>Основную работу сборки выполняет один поток; приложение при этом остановлено.</td></tr><tr><td>Parallel</td><td>Основные фазы выполняют несколько потоков; приложение также останавливается.</td></tr></tbody></table><ul><li>Serial может подходить небольшим приложениям с ограниченными ресурсами.</li><li>Parallel ориентирован на высокую пропускную способность.</li><li>Допустимость пауз проверяем на своей нагрузке.</li></ul>
+<div class="counter">59 / 82</div>
+</div>
+
+<div id="g1" class="step slide" data-x="64900" data-y="0">
+<h1>G1: heap из регионов</h1>
+<ul><li>Heap разбит на регионы, которые могут относиться к разным поколениям.</li><li>Молодые сборки и смешанные сборки переносят живые объекты во время пауз.</li><li>Маркировка старого поколения в значительной части выполняется конкурентно.</li><li>Цель по длительности пауз помогает планировать работу, но не является жёсткой гарантией.</li></ul><p class="takeaway">При нехватке ресурсов возможны более дорогие сценарии, включая Full GC.</p>
+<div class="counter">60 / 82</div>
+</div>
+
+<div id="zgc" class="step slide" data-x="66000" data-y="0">
+<h1>ZGC: акцент на коротких паузах</h1>
+<ul><li>Значительная часть работы, включая перемещение объектов, выполняется конкурентно.</li><li>Для корректного доступа применяются специальные представления ссылок и барьеры.</li><li>В JDK 25 ZGC работает с поколениями.</li><li>Сборщику нужны ресурсы CPU и запас памяти, чтобы успевать за приложением.</li></ul><p class="takeaway">Короткие паузы GC не гарантируют короткого времени ответа всего приложения.</p>
+<div class="counter">61 / 82</div>
+</div>
+
+<div id="select" class="step slide" data-x="67100" data-y="0">
+<h1>Как выбирать на практике</h1>
+<pre><code class="language-bash">java -XX:+UseSerialGC App
+java -XX:+UseParallelGC App
+java -XX:+UseG1GC App
+java -XX:+UseZGC App</code></pre><ul><li>Сначала определяем требования и получаем исходные измерения.</li><li>Сравниваем подходящие сборщики при одинаковой нагрузке.</li><li>Проверяем паузы, пропускную способность, CPU и память.</li><li>Доступность сборщика и значения по умолчанию проверяем в выбранной сборке JDK.</li></ul><p class="takeaway">Меняем один существенный фактор за раз.</p>
+<div class="counter">62 / 82</div>
+</div>
+
+<div id="leaks" class="step slide section" data-x="68200" data-y="0">
+<h1>Утечки и нехватка памяти</h1>
+<div class="num">07</div><p class="lead">Объект может быть ненужным приложению и всё ещё достижимым для GC</p>
+<div class="counter">63 / 82</div>
+</div>
+
+<div id="leak" class="step slide" data-x="69300" data-y="0">
+<h1>Что называют утечкой в Java</h1>
+<div class="flow"><div class="box">GC root</div><span>→</span><div class="box">Долгоживущий владелец</div><span>→</span><div class="box">Ненужные данные</div></div><ul><li>Программа больше не использует данные по назначению, но продолжает их удерживать.</li><li>Сборщик видит достижимые объекты и обязан сохранить их.</li><li>Причиной могут быть кеш, очередь, подписка на события или контекст потока.</li><li>Увеличение heap лишь откладывает сбой, если удержание растёт без границы.</li></ul>
+<div class="counter">64 / 82</div>
+</div>
+
+<div id="holders" class="step slide" data-x="70400" data-y="0">
+<h1>Типичные источники удержания</h1>
+<table><thead><tr><th>Источник</th><th>Что проверить</th></tr></thead><tbody><tr><td>Кеш или Map</td><td>Ограничен ли размер? Когда удаляются записи?</td></tr><tr><td>Очередь</td><td>Успевают ли потребители? Есть ли ограничение ёмкости?</td></tr><tr><td>Слушатели событий</td><td>Снимается ли подписка после завершения работы?</td></tr><tr><td>ThreadLocal</td><td>Удаляется ли значение после обработки задачи в пуле?</td></tr><tr><td>Загрузчик классов</td><td>Нет ли внешних ссылок на классы и объекты старого приложения?</td></tr></tbody></table>
+<div class="counter">65 / 82</div>
+</div>
+
+<div id="threadlocal" class="step slide" data-x="71500" data-y="0">
+<h1>ThreadLocal в пуле потоков</h1>
+<pre><code class="language-java">try {
+    context.set(requestContext);
+    handleRequest();
+} finally {
+    context.remove();
+}</code></pre><ul><li>Поток пула обычно живёт дольше отдельного запроса.</li><li>Значение ThreadLocal может удерживаться после завершения задачи.</li><li>Слабая ссылка на ключ внутри реализации не гарантирует немедленного удаления значения.</li></ul><p class="takeaway">Очистку связываем с границей операции.</p>
+<div class="counter">66 / 82</div>
+</div>
+
+<div id="oom" class="step slide" data-x="72600" data-y="0">
+<h1>Разные причины нехватки памяти</h1>
+<table><thead><tr><th>Симптом</th><th>Возможная причина</th></tr></thead><tbody><tr><td>Java heap space</td><td>Heap недостаточен для живых данных или очередного выделения.</td></tr><tr><td>Metaspace</td><td>Нехватка памяти для метаданных классов.</td></tr><tr><td>Direct buffer memory</td><td>Не удалось выделить память direct-буфера в рамках доступных ресурсов.</td></tr><tr><td>Unable to create native thread</td><td>Не хватает памяти или достигнут системный лимит потоков.</td></tr><tr><td>Процесс завершён ОС / контейнером</td><td>Превышен общий лимит памяти; Java-исключения может не быть.</td></tr></tbody></table><p class="takeaway">Текст ошибки — отправная точка расследования, а не готовый диагноз.</p>
+<div class="counter">67 / 82</div>
+</div>
+
+<div id="patterns" class="step slide" data-x="73700" data-y="0">
+<h1>Аллокации и удержание</h1>
+<table><thead><tr><th>Наблюдение</th><th>Что проверять</th></tr></thead><tbody><tr><td>Heap быстро растёт и заметно уменьшается после GC</td><td>Много временных объектов; оценить стоимость аллокаций и сборок.</td></tr><tr><td>После сопоставимых циклов GC остаётся всё больше данных</td><td>Растёт live set: полезные данные, кеш, очередь или утечка.</td></tr><tr><td>Heap стабилен, RSS растёт</td><td>Нативную память, потоки, direct-буферы и особенности учёта ОС.</td></tr></tbody></table><p class="takeaway">Рост памяти сам по себе не доказывает утечку. Сопоставляем его с нагрузкой и временем жизни данных.</p>
+<div class="counter">68 / 82</div>
+</div>
+
+<div id="diagnostics" class="step slide section" data-x="74800" data-y="0">
+<h1>Демонстрация и диагностика</h1>
+<div class="num">08</div><p class="lead">Симптом → измерения → удерживающая ссылка → исправление</p>
+<div class="counter">69 / 82</div>
+</div>
+
+<div id="demo-code" class="step slide" data-x="75900" data-y="0">
+<h1>Одна программа, два режима</h1>
+<pre><code class="language-java">import java.util.ArrayList;
+import java.util.List;
+
+public class MemoryDemo {
+    static volatile int checksum;
+    public static void main(String[] args) throws Exception {
+        boolean retain = args.length &gt; 0;
+        List&lt;byte[]&gt; kept = new ArrayList&lt;&gt;();
+        for (int i = 0; i &lt; 320; i++) {
+            byte[] block = new byte[256 * 1024];
+            block[0] = (byte) i;
+            checksum = block[0];
+            if (retain) kept.add(block);
+            Thread.sleep(25);
+        }
+        System.out.println(&quot;kept=&quot; + kept.size());
+    }
+}</code></pre><p class="muted">Без аргумента блоки становятся ненужными. С аргументом список удерживает их до конца цикла.</p>
+<div class="counter">70 / 82</div>
+</div>
+
+<div id="demo-run" class="step slide" data-x="77000" data-y="0">
+<h1>Запуск с ограниченным heap</h1>
+<pre><code class="language-bash">javac MemoryDemo.java
+
+java -Xms32m -Xmx32m -XX:+UseG1GC \
+  -Xlog:gc*:file=temporary-gc.log:time,uptime,level,tags \
+  MemoryDemo
+
+java -Xms32m -Xmx32m -XX:+UseG1GC \
+  -Xlog:gc*:file=retained-gc.log:time,uptime,level,tags \
+  -XX:+HeapDumpOnOutOfMemoryError \
+  -XX:HeapDumpPath=retained.hprof \
+  MemoryDemo retain</code></pre><p class="takeaway">Первый запуск завершается; второй исчерпывает heap. Для повторного снятия дампа указываем новое имя файла.</p>
+<div class="counter">71 / 82</div>
+</div>
+
+<div id="gc-log" class="step slide" data-x="78100" data-y="0">
+<h1>Как читать GC log</h1>
+<pre><code class="language-text">[2.100s][info][gc] GC(4) Pause Young ... 23M-&gt;5M(32M) 2.1ms</code></pre><ul><li>Строка условная: формат и состав полей зависят от JDK и сборщика.</li><li><code>GC(4)</code> — идентификатор события сборки.</li><li><code>23M → 5M</code> — занято в heap до и после; <code>32M</code> — его текущая ёмкость.</li><li><code>2.1ms</code> — длительность указанной паузы.</li><li>Смотрим ряд событий: частоту, длительность и остаток после сопоставимых сборок.</li></ul>
+<div class="counter">72 / 82</div>
+</div>
+
+<div id="jcmd" class="step slide" data-x="79200" data-y="0">
+<h1>Что можно узнать у работающей JVM</h1>
+<pre><code class="language-bash">jcmd -l
+jcmd PID VM.flags
+jcmd PID GC.heap_info
+jcmd PID GC.class_histogram
+jcmd PID GC.heap_dump /tmp/memory-live.hprof</code></pre><ul><li><code>PID</code> заменяем идентификатором процесса; команды выполняем от того же пользователя.</li><li>Гистограмма показывает число экземпляров и их суммарный собственный размер по классам.</li><li>Гистограмма и heap dump могут вызвать заметную паузу; дамп по умолчанию запрашивает Full GC.</li></ul><p class="muted">Дамп снимаем у ещё работающего процесса; после завершения используем файл, созданный при OOME.</p>
+<div class="counter">73 / 82</div>
+</div>
+
+<div id="dump" class="step slide" data-x="80300" data-y="0">
+<h1>Что искать в heap dump</h1>
+<ul><li>Открываем <code>retained.hprof</code> в Eclipse Memory Analyzer (MAT).</li><li>В Histogram находим массивы <code>byte[]</code>: представление имени может быть <code>[B</code>.</li><li>В Dominator Tree ищем объекты, удерживающие большой объём данных.</li><li>В Paths to GC Roots исследуем путь через список kept и фрейм main.</li><li>Формулируем причину: данные остаются в списке, хотя обработка каждого блока уже закончена.</li></ul><p class="takeaway">Heap dump содержит объекты heap; он не показывает всю нативную память процесса.</p>
+<div class="counter">74 / 82</div>
+</div>
+
+<div id="retained-size" class="step slide" data-x="81400" data-y="0">
+<h1>Shallow size и retained size</h1>
+<table><thead><tr><th>Размер</th><th>Что учитывается</th></tr></thead><tbody><tr><td>Shallow size</td><td>Память самого объекта, включая его поля и служебные данные.</td></tr><tr><td>Retained size</td><td>Память, которая могла бы освободиться, если бы этот объект стал недостижимым.</td></tr></tbody></table><ul><li>Небольшой контейнер может удерживать большой граф.</li><li>Объект доминирует над другим, если каждый путь от корней ко второму проходит через первый.</li><li>При разделяемых ссылках нельзя просто сложить размеры всех объектов, достижимых из контейнера.</li></ul>
+<div class="counter">75 / 82</div>
+</div>
+
+<div id="fix" class="step slide" data-x="82500" data-y="0">
+<h1>Как проверить исправление</h1>
+<ul><li>В демонстрации убираем сохранение обработанных блоков в kept.</li><li>В реальном коде задаём срок хранения, ограничение ёмкости или явное удаление данных.</li><li>Повторяем ту же нагрузку с теми же настройками JVM.</li><li>Сравниваем объём живых данных после GC, паузы и успешность обработки.</li><li>Проверяем, что потребление памяти стабилизировалось и нужные данные не теряются.</li></ul><p class="takeaway">Успешный запуск с увеличенным -Xmx не доказывает устранение причины.</p>
+<div class="counter">76 / 82</div>
+</div>
+
+<div id="native-diagnostics" class="step slide" data-x="83600" data-y="0">
+<h1>Если растёт память вне heap</h1>
+<pre><code class="language-bash">java -XX:NativeMemoryTracking=summary App
+
+jcmd PID VM.native_memory summary
+jcmd PID VM.native_memory baseline
+# После продолжения нагрузки:
+jcmd PID VM.native_memory summary.diff</code></pre><ul><li>Native Memory Tracking включается при запуске HotSpot.</li><li>Отчёт группирует учитываемую нативную память: Class, Thread, Code, GC и другие категории.</li><li>NMT не охватывает все выделения стороннего нативного кода и не заменяет показатели ОС.</li></ul><p class="takeaway">Reserved и committed в NMT не равны RSS процесса.</p>
+<div class="counter">77 / 82</div>
+</div>
+
+<div id="questions" class="step slide" data-x="84700" data-y="0">
+<h1>Вопросы для обсуждения</h1>
+<ul><li>Почему недостижимый цикл объектов можно освободить?</li><li>Почему объект может жить после выхода из создавшего его метода?</li><li>Почему RSS может превышать -Xmx?</li><li>Чем высокая скорость аллокаций отличается от утечки?</li><li>Что показывает путь к GC roots?</li><li>Почему GC не заменяет закрытие соединения с БД?</li></ul>
+<div class="counter">78 / 82</div>
+</div>
+
+<div id="summary" class="step slide" data-x="85800" data-y="0">
+<h1>Что стоит запомнить</h1>
+<ul><li>Память процесса складывается из heap и нескольких других областей.</li><li>Время жизни объекта определяется достижимостью, а не областью видимости имени.</li><li>GC освобождает недостижимые объекты; лишние удерживающие ссылки остаются задачей разработчика.</li><li>Выбор сборщика — компромисс между паузами, CPU, памятью и пропускной способностью.</li><li>Диагностика связывает рост памяти с конкретным владельцем и временем жизни данных.</li></ul>
+<div class="counter">79 / 82</div>
+</div>
+
+<div id="sources" class="step slide" data-x="86900" data-y="0">
+<h1>Материалы</h1>
+<ul><li><a href="https://docs.oracle.com/javase/specs/jvms/se25/html/jvms-2.html">JVMS 25, глава 2: области памяти и фреймы</a></li><li><a href="https://docs.oracle.com/en/java/javase/25/gctuning/">HotSpot: Garbage Collection Tuning Guide</a></li><li><a href="https://docs.oracle.com/en/java/javase/25/troubleshoot/diagnostic-tools.html">HotSpot: диагностические инструменты и NMT</a></li><li><a href="https://docs.oracle.com/en/java/javase/25/docs/specs/man/jcmd.html">Справочник команд jcmd</a></li><li><a href="https://openjdk.org/projects/code-tools/jol/">JOL: исследование размещения объектов</a></li><li><a href="https://help.eclipse.org/latest/topic/org.eclipse.mat.ui.help/welcome.html">Eclipse MAT: анализ heap dump</a></li></ul><p class="muted">Проверяйте документацию для той версии JDK, на которой работает приложение.</p>
+<div class="counter">80 / 82</div>
+</div>
+<div id="native-sources" class="step slide" data-x="88000" data-y="0">
+<h1>Материалы: память вне heap</h1>
+<ul>
+<li><a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.management/java/lang/management/MemoryPoolMXBean.html">MemoryPoolMXBean: пулы памяти JVM</a></li>
+<li><a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.management/java/lang/management/BufferPoolMXBean.html">BufferPoolMXBean: direct- и mapped-буферы</a></li>
+<li><a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/nio/MappedByteBuffer.html">MappedByteBuffer: время жизни отображения</a></li>
+<li><a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/foreign/Arena.html">Arena: управление временем жизни сегментов</a></li>
+<li><a href="https://docs.oracle.com/en/java/javase/25/docs/specs/man/jcmd.html">jcmd: metaspace, code cache, потоки и NMT</a></li>
+</ul><p class="takeaway">Используем контракт API для времени жизни и документацию HotSpot для деталей реализации.</p>
+<div class="counter">81 / 82</div>
+</div>
+<div id="unix-sources" class="step slide" data-x="89100" data-y="0">
+<h1>Материалы: память процесса и mmap</h1>
+<ul><li><a href="https://man7.org/linux/man-pages/man3/malloc.3.html">malloc и free: библиотечный аллокатор</a></li><li><a href="https://man7.org/linux/man-pages/man2/brk.2.html">brk: граница традиционной области данных</a></li><li><a href="https://man7.org/linux/man-pages/man2/mmap.2.html">mmap и munmap: отображения памяти</a></li><li><a href="https://man7.org/linux/man-pages/man5/proc_pid_maps.5.html">/proc/PID/maps: адреса и права доступа</a></li><li><a href="https://github.com/openjdk/jdk/blob/jdk-25%2B36/src/hotspot/os/posix/os_posix.cpp">HotSpot 25: резервирование через mmap</a></li><li><a href="https://github.com/openjdk/jdk/blob/jdk-25%2B36/src/hotspot/os/linux/os_linux.cpp">HotSpot 25 в Linux: commit памяти</a></li></ul>
+<div class="counter">82 / 82</div>
+</div>
+
+</div>
+<div class="impress-progressbar"><div></div></div>
+<div class="impress-progress"></div>
+<a class="ov" href="#/intro">В начало</a>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<script>if (window.hljs) { hljs.highlightAll(); }</script>
+<script src="js/impress.js"></script>
+<script>impress().init();</script>
+</body>
+</html>
