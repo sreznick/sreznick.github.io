@@ -1,0 +1,1193 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1024" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <title>Рефлексия и метапрограммирование на JVM через Kotlin</title>
+
+    <link href="//fonts.googleapis.com/css?family=Open+Sans:regular,semibold,italic,italicsemibold|PT+Sans:400,700,400italic,700italic|PT+Serif:400,700,400italic,700italic" rel="stylesheet" />
+
+    <link href="css/impress-demo.css" rel="stylesheet" />
+    <link href="css/impress-common.css" rel="stylesheet" />
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/default.min.css">
+
+    <style>
+        .slide {
+            font-size: 27px;
+            line-height: 1.3;
+            letter-spacing: -.5px;
+        }
+
+        .slide h1 {
+            font-size: 40px;
+            line-height: 1.15;
+            margin: 0 0 .5em;
+            text-align: left;
+        }
+
+        .slide ul,
+        .slide ol {
+            margin: 0;
+            padding-left: 1.1em;
+        }
+
+        .slide li {
+            margin: .25em 0;
+        }
+
+        .slide p {
+            margin: .6em 0 0;
+        }
+
+        .slide pre {
+            margin: 0 0 12px;
+            letter-spacing: 0;
+            text-shadow: none;
+        }
+
+        .slide pre code.hljs {
+            padding: 12px 16px;
+            font-size: 17px;
+            line-height: 1.35;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .slide pre.small code.hljs {
+            font-size: 15.5px;
+        }
+
+        .slide code:not(.hljs) {
+            background: #e2e8f0;
+            color: #1e293b;
+            padding: 0 .3em;
+            border-radius: 4px;
+            font-size: .85em;
+            letter-spacing: 0;
+        }
+
+        .slide.section code:not(.hljs),
+        .slide.title code:not(.hljs) {
+            background: rgba(255,255,255,.28);
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .slide table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 22px;
+            line-height: 1.25;
+        }
+
+        .slide th,
+        .slide td {
+            border-bottom: 1px solid #ccc;
+            padding: 6px 10px;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .slide th {
+            background: #e2e8f0;
+            color: #1e293b;
+        }
+
+        .slide .hl {
+            color: #b91c1c;
+        }
+
+        .slide.section {
+            background: linear-gradient(135deg,#7c3aed,#db2777);
+            color: #fff;
+            text-shadow: none;
+        }
+
+        .slide.section h1 {
+            color: #fff;
+            font-size: 50px;
+        }
+
+        .slide.section .num {
+            position: absolute;
+            right: 40px;
+            top: 0;
+            font-size: 200px;
+            font-weight: 700;
+            opacity: .18;
+            line-height: 1;
+        }
+
+        .slide.title .hint {
+            font-size: 20px;
+            color: #999;
+            margin-top: 40px;
+        }
+
+        .notes {
+            display: none;
+        }
+
+        .ov {
+            pointer-events: auto;
+            position: fixed;
+            left: 14px;
+            bottom: 12px;
+            color: #93c5fd;
+            font-size: 14px;
+            text-decoration: none;
+            z-index: 10;
+        }
+
+        #overview {
+            background: none!important;
+            border: 0!important;
+            box-shadow: none!important;
+            pointer-events: none;
+        }
+    </style>
+
+    <style>
+        .slide .topic {
+            margin: 0 0 12px;
+            font-size: 15px;
+            line-height: 1.2;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            opacity: .75;
+        }
+        .slide.section h1 { font-size: 40px; }
+        .slide pre { margin-top: 18px; }
+        .slide pre code,
+        .slide pre code:not(.hljs) {
+            display: block;
+            padding: 12px 16px;
+            font: 17px/1.35 monospace;
+            white-space: pre;
+            border-radius: 8px;
+            background: #f3f3f3;
+            color: #252525;
+            letter-spacing: 0;
+        }
+        #topics {
+            pointer-events: auto;
+            position: fixed;
+            inset: 8vh 10vw;
+            z-index: 20;
+            overflow: auto;
+            padding: 28px;
+            background: #fff;
+            color: #1e293b;
+            border: 1px solid #94a3b8;
+            border-radius: 10px;
+            box-shadow: 0 0 0 20vw rgba(0,0,0,.6);
+            font: 20px/1.5 Arial, sans-serif;
+        }
+        #topics[hidden] { display: none; }
+        #topics ul { columns: 2; }
+        #topics a { color: #5b21b6; }
+        #topics h2 { font-size: 26px; }
+        .topics-link { left: auto; right: 14px; }
+        @media print {
+            #topics, .ov { display: none!important; }
+        }
+    </style>
+</head>
+
+<body class="impress-not-supported">
+<div class="fallback-message">
+    <p>Ваш браузер <b>не поддерживает возможности, необходимые для impress.js</b>, поэтому показана упрощённая версия презентации.</p>
+    <p>Лучше всего использовать свежие <b>Chrome</b>, <b>Safari</b> или <b>Firefox</b>.</p>
+</div>
+<div id="impress" data-transition-duration="1000" data-width="1024" data-height="768"
+     data-max-scale="3" data-min-scale="0" data-perspective="1000">
+    <div id="slide-1" class="step slide title" data-x="-1000" data-y="-1500">
+<p class="topic">Основа</p>
+<h1>Рефлексия и метапрограммирование на JVM</h1>
+<ul>
+<li>Программа может исследовать собственную структуру: классы, свойства, методы и их параметры.</li>
+<li>JVM предоставляет механизмы динамического вызова, генерации и загрузки классов.</li>
+<li>Kotlin дополняет их моделью своих объявлений и возможностями inline и reified.</li>
+</ul>
+<div class="notes">Тема: Основа. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-2" class="step slide" data-x="0" data-y="-1500">
+<p class="topic">Основа</p>
+<h1>Компиляция и выполнение</h1>
+<ul>
+<li>Компилятор Kotlin проверяет исходный код и создаёт JVM-байткод.</li>
+<li>Во время выполнения JVM загружает классы и исполняет методы; JIT может скомпилировать их в машинный код.</li>
+<li>От этапа принятия решения зависит, какие сведения доступны и когда обнаружится ошибка.</li>
+</ul>
+<pre><code class="language-plaintext">Исходный Kotlin → компилятор → class-файлы
+                                 ↓
+                    загрузка → исполнение
+                                 ↓
+                     JIT: машинный код</code></pre>
+<div class="notes">Тема: Основа. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-3" class="step slide" data-x="1000" data-y="-1500">
+<p class="topic">Основа</p>
+<h1>Объект, класс и описание класса</h1>
+<ul>
+<li>У каждого объекта есть фактический класс, определённый во время выполнения.</li>
+<li>Объект Class&lt;T&gt; представляет JVM-класс или интерфейс; Class также используется для примитивных типов и void.</li>
+<li>KClass&lt;T&gt; представляет класс средствами Kotlin. Это описание класса, а не экземпляр T.</li>
+</ul>
+<pre><code class="language-kotlin">val value = &quot;billing&quot;
+val javaType: Class&lt;String&gt; = String::class.java
+val kotlinType: KClass&lt;String&gt; = String::class
+val actualClass = value.javaClass</code></pre>
+<div class="notes">Тема: Основа. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-4" class="step slide" data-x="2000" data-y="-1500">
+<p class="topic">Основа</p>
+<h1>Что называют метапрограммированием</h1>
+<ul>
+<li>Метапрограмма работает со структурой другой программы или собственной программы: исследует её либо создаёт код.</li>
+<li>Рефлексия предоставляет описания объявлений и позволяет обращаться к ним во время выполнения.</li>
+<li>Генератор создаёт исходный код или байткод при сборке либо во время выполнения.</li>
+</ul>
+<div class="notes">Тема: Основа. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-5" class="step slide section" data-x="3000" data-y="-1500">
+<p class="topic">Java reflection</p>
+<h1>Представление класса на JVM</h1>
+<ul>
+<li>Class описывает методы, поля, конструкторы, интерфейсы, родительский класс и модификаторы.</li>
+<li>Свойство Kotlin представляется JVM-полем и методами доступа; конкретное представление зависит от объявления.</li>
+<li>Вычисляемому свойству может не требоваться собственное поле.</li>
+</ul>
+<pre><code class="language-kotlin">class Service(val service: String)
+
+// Для service компилятор создаст:
+// private-поле и public-метод getService().</code></pre>
+<div class="notes">Тема: Java reflection. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-6" class="step slide" data-x="4000" data-y="-1500">
+<p class="topic">Java reflection</p>
+<h1>Class и выбор исследуемого типа</h1>
+<ul>
+<li>Type::class.java возвращает объект Class для указанного типа.</li>
+<li>obj.javaClass возвращает фактический класс объекта; статический тип ссылки может быть более общим.</li>
+<li>Class.forName ищет класс по имени. Вариант с одним аргументом также инициирует его инициализацию.</li>
+</ul>
+<pre><code class="language-kotlin">val text: Any = &quot;billing&quot;
+text.javaClass == String::class.java // true
+// Статический тип text при этом остаётся Any.</code></pre>
+<div class="notes">Тема: Java reflection. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-7" class="step slide" data-x="5000" data-y="-1500">
+<p class="topic">Java reflection</p>
+<h1>Публичные и объявленные члены</h1>
+<ul>
+<li>Java-метод getMethods(), доступный в Kotlin как methods, возвращает публичные методы, включая унаследованные.</li>
+<li>getDeclaredMethods() / declaredMethods возвращает методы самого класса, в том числе непубличные.</li>
+<li>Обнаружение метода не даёт права его вызвать. Порядок методов в возвращённом массиве не гарантируется.</li>
+</ul>
+<div class="notes">Тема: Java reflection. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-8" class="step slide" data-x="6000" data-y="-1500">
+<p class="topic">Java reflection</p>
+<h1>Поиск метода и JVM-типы параметров</h1>
+<ul>
+<li>getMethod ищет публичный метод по имени и точным классам параметров, включая унаследованные методы.</li>
+<li>Перегруженные методы различаются параметрами; для поиска одного имени недостаточно.</li>
+<li>Примитивный int и ссылочный java.lang.Integer — разные типы. getMethod не подбирает перегрузку с учётом упаковки.</li>
+</ul>
+<pre><code class="language-kotlin">val intType = Int::class.javaPrimitiveType!!
+val method = Calculator::class.java.getMethod(
+    &quot;add&quot;, intType, intType
+)</code></pre>
+<div class="notes">Тема: Java reflection. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-9" class="step slide" data-x="7000" data-y="-1500">
+<p class="topic">Java reflection</p>
+<h1>Рефлексивный вызов метода</h1>
+<ul>
+<li>Method.invoke принимает объект-получатель (receiver) и аргументы. Результат имеет тип Any?.</li>
+<li>Для нестатического метода нужен объект подходящего класса. Для статического метода можно передать null.</li>
+<li>При вызове проверяются аргументы, выполняются допустимые распаковка и расширение примитивов. Примитивный результат упаковывается; void даёт null.</li>
+</ul>
+<pre><code class="language-kotlin">val receiver = Calculator()
+val result = method.invoke(receiver, 2, 3) // 5</code></pre>
+<div class="notes">Тема: Java reflection. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-10" class="step slide" data-x="8000" data-y="-1500">
+<p class="topic">Java reflection</p>
+<h1>Три разных источника ошибок</h1>
+<ul>
+<li>При поиске: NoSuchMethodException означает, что метод с указанными параметрами не найден.</li>
+<li>При вызове: IllegalAccessException сообщает о запрете доступа, IllegalArgumentException — о неверном получателе или аргументах.</li>
+<li>Ошибка внутри целевого метода оборачивается в InvocationTargetException; исходное исключение доступно через cause.</li>
+</ul>
+<pre><code class="language-kotlin">val intType = Int::class.javaPrimitiveType!!
+val divide = Calculator::class.java.getMethod(
+    &quot;divide&quot;, intType, intType)
+divide.invoke(Calculator(), 1, 0)
+// InvocationTargetException → ArithmeticException</code></pre>
+<div class="notes">Тема: Java reflection. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md. Источник: <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/reflect/Method.html">документация</a>.</div>
+    </div>
+
+    <div id="slide-11" class="step slide" data-x="9000" data-y="-1500">
+<p class="topic">Java reflection</p>
+<h1>Рефлексия и ограничения доступа</h1>
+<ul>
+<li>По умолчанию рефлексивный вызов учитывает видимость членов и границы модулей.</li>
+<li>setAccessible(true) и trySetAccessible() позволяют подавить часть проверок, если модульная система это разрешает.</li>
+<li>exports открывает публичный API пакета другим модулям; opens разрешает глубокую рефлексию, в том числе доступ к непубличным членам.</li>
+</ul>
+<div class="notes">Тема: Java reflection. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-12" class="step slide section" data-x="10000" data-y="-1500">
+<p class="topic">MethodHandles</p>
+<h1>MethodHandle как значение</h1>
+<ul>
+<li>MethodHandle — типизированная исполняемая ссылка на метод, конструктор, доступ к полю или другую низкоуровневую операцию.</li>
+<li>Её можно хранить, передавать, связывать с аргументами и адаптировать.</li>
+<li>Method описывает объявление метода; MethodHandle представляет операцию с определёнными типами аргументов и результата.</li>
+</ul>
+<div class="notes">Тема: MethodHandles. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-13" class="step slide" data-x="11000" data-y="-1500">
+<p class="topic">MethodHandles</p>
+<h1>Lookup задаёт контекст доступа</h1>
+<ul>
+<li>MethodHandles.lookup() создаёт Lookup, связанный с классом вызывающего кода.</li>
+<li>При поиске метода Lookup проверяет доступ от имени этого класса.</li>
+<li>Готовый MethodHandle можно передать другому коду. При его вызове доступ не проверяется заново от имени нового вызывающего класса.</li>
+</ul>
+<pre><code class="language-kotlin">val lookup = MethodHandles.lookup()
+val handle = lookup.findVirtual(type, &quot;add&quot;, signature)</code></pre>
+<div class="notes">Тема: MethodHandles. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md. Источник: <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/invoke/MethodHandles.Lookup.html">документация</a>.</div>
+    </div>
+
+    <div id="slide-14" class="step slide" data-x="12000" data-y="-1500">
+<p class="topic">MethodHandles</p>
+<h1>MethodType описывает точную сигнатуру</h1>
+<ul>
+<li>MethodType содержит тип результата и упорядоченный список типов аргументов.</li>
+<li>В нём используются JVM-классы: например, List без аргумента String.</li>
+<li>У ссылки, полученной через findVirtual, первый аргумент — объект-получатель. В сигнатуре метода для поиска он не указывается.</li>
+</ul>
+<pre><code class="language-plaintext">// Сигнатура для поиска: (int, int) → int
+// Тип полученного MethodHandle:
+// (Calculator, int, int) → int</code></pre>
+<div class="notes">Тема: MethodHandles. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-15" class="step slide" data-x="13000" data-y="-1500">
+<p class="topic">MethodHandles</p>
+<h1>invokeExact и invoke</h1>
+<ul>
+<li>invokeExact требует точного совпадения типов аргументов и ожидаемого результата с типом MethodHandle.</li>
+<li>invoke допускает адаптацию по правилам asType: например, некоторые преобразования примитивов и приведения ссылок.</li>
+<li>Несовпадение сигнатур может привести к WrongMethodTypeException; приведение неподходящего объекта — к ClassCastException.</li>
+</ul>
+<pre><code class="language-kotlin">val result = bound.invokeExact(2, 3) as Int
+// as Int задаёт JVM-тип результата: int.
+// Аргументы 2L и 3L не подходят для invokeExact.</code></pre>
+<div class="notes">Тема: MethodHandles. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md. Источник: <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/invoke/MethodHandle.html">документация</a>.</div>
+    </div>
+
+    <div id="slide-16" class="step slide" data-x="14000" data-y="-1500">
+<p class="topic">MethodHandles</p>
+<h1>Связывание аргументов MethodHandle</h1>
+<ul>
+<li>bindTo фиксирует первый аргумент, который должен иметь ссылочный тип.</li>
+<li>Для ссылки на нестатический метод так можно связать объект-получатель и больше не передавать его при каждом вызове.</li>
+<li>Другие адаптеры позволяют фиксировать аргументы, изменять типы и строить композиции операций.</li>
+</ul>
+<pre><code class="language-plaintext">(Calculator, int, int) → int
+            bindTo(calculator)
+                     ↓
+          (int, int) → int</code></pre>
+<div class="notes">Тема: MethodHandles. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-17" class="step slide" data-x="15000" data-y="-1500">
+<p class="topic">MethodHandles</p>
+<h1>Рефлексия и MethodHandles</h1>
+<ul>
+<li>Рефлексия предоставляет сведения о методе и вызов через универсальный набор аргументов.</li>
+<li>MethodHandle представляет вызов с точной сигнатурой и поддерживает адаптеры.</li>
+<li>Исключение целевого метода передаётся напрямую. Скорость зависит от способа использования; в JDK 18 вызовы Method, Constructor и Field переведены на MethodHandles.</li>
+</ul>
+<div class="notes">Тема: MethodHandles. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md. Источник: <a href="https://openjdk.org/jeps/416">документация</a>.</div>
+    </div>
+
+    <div id="slide-18" class="step slide section" data-x="16000" data-y="-1500">
+<p class="topic">JDK Proxy</p>
+<h1>Прокси как объект-посредник</h1>
+<ul>
+<li>Прокси предоставляет клиенту интерфейс и перехватывает обращения к нему.</li>
+<li>Он может добавлять журналирование, проверку доступа, кеширование или удалённый вызов.</li>
+<li>Прокси может делегировать вызов целевому объекту (target), но не обязан иметь такой объект.</li>
+</ul>
+<pre><code class="language-plaintext">Клиент → прокси → дополнительное поведение → target</code></pre>
+<div class="notes">Тема: JDK Proxy. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-19" class="step slide" data-x="17000" data-y="-1500">
+<p class="topic">JDK Proxy</p>
+<h1>Контракт JDK Dynamic Proxy</h1>
+<ul>
+<li>JDK Proxy создаёт во время выполнения класс, реализующий заданные интерфейсы.</li>
+<li>Прокси совместим с этими интерфейсами, но не наследует прикладный класс целевого объекта.</li>
+<li>Его родительский класс — java.lang.reflect.Proxy; вызовы обрабатывает InvocationHandler.</li>
+</ul>
+<div class="notes">Тема: JDK Proxy. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-20" class="step slide" data-x="18000" data-y="-1500">
+<p class="topic">JDK Proxy</p>
+<h1>InvocationHandler получает вызов как данные</h1>
+<ul>
+<li>InvocationHandler получает объект прокси, Method и массив аргументов. При отсутствии аргументов массив может быть null.</li>
+<li>Обработчик возвращает результат нужного типа либо выбрасывает исключение.</li>
+<li>Для примитивного результата требуется соответствующая обёртка, например Integer для int; null приведёт к NullPointerException.</li>
+</ul>
+<pre><code class="language-plaintext">// Вызов add(2, 3) передаётся обработчику как:
+// proxy + объект Method для add + массив [2, 3]</code></pre>
+<div class="notes">Тема: JDK Proxy. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-21" class="step slide" data-x="19000" data-y="-1500">
+<p class="topic">JDK Proxy</p>
+<h1>Делегирование и исключения</h1>
+<ul>
+<li>При делегировании через Method.invoke массив аргументов в Kotlin разворачивается оператором *.</li>
+<li>Обработчик обычно распаковывает InvocationTargetException, чтобы передать клиенту исходную ошибку.</li>
+<li>Checked-исключение, не разрешённое контрактом интерфейса, оборачивается в UndeclaredThrowableException.</li>
+</ul>
+<pre><code class="language-kotlin">try {
+    method.invoke(target, *(args ?: emptyArray()))
+} catch (error: InvocationTargetException) {
+    throw error.targetException
+}</code></pre>
+<div class="notes">Тема: JDK Proxy. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md. Источник: <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/reflect/InvocationHandler.html">документация</a>.</div>
+    </div>
+
+    <div id="slide-22" class="step slide" data-x="20000" data-y="-1500">
+<p class="topic">JDK Proxy</p>
+<h1>equals, hashCode и toString у прокси</h1>
+<ul>
+<li>Вызовы этих трёх методов также передаются InvocationHandler.</li>
+<li>Обработчик определяет их поведение: например, equals по идентичности и System.identityHashCode для согласованного hashCode.</li>
+<li>Вызов proxy.toString() из обработчика toString снова вызовет тот же обработчик и приведёт к рекурсии.</li>
+</ul>
+<div class="notes">Тема: JDK Proxy. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-23" class="step slide" data-x="21000" data-y="-1500">
+<p class="topic">JDK Proxy</p>
+<h1>Внутренний вызов при делегировании</h1>
+<ul>
+<li>Если прокси делегирует отдельному объекту target, внутри метода this указывает на target.</li>
+<li>Поэтому this.otherMethod() вызывает метод целевого объекта напрямую, минуя прокси.</li>
+<li>Это относится к данной схеме делегирования. Перехват в сгенерированном подклассе может работать иначе.</li>
+</ul>
+<pre><code class="language-plaintext">proxy.twice(4) → handler → target.twice(4)
+                                    ↓
+                              target.add(4, 4)</code></pre>
+<div class="notes">Тема: JDK Proxy. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-24" class="step slide section" data-x="22000" data-y="-1500">
+<p class="topic">CGLIB</p>
+<h1>Генерация подкласса</h1>
+<ul>
+<li>Enhancer из CGLIB создаёт класс-наследник заданного родительского класса.</li>
+<li>Перехват работает через переопределение доступных нестатических методов, не объявленных final.</li>
+<li>Созданный объект совместим с родительским типом; интерфейс для этого не обязателен.</li>
+</ul>
+<pre><code class="language-plaintext">OpenCalculator
+       ↑ extends
+GeneratedCalculatorProxy</code></pre>
+<div class="notes">Тема: CGLIB. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-25" class="step slide" data-x="23000" data-y="-1500">
+<p class="topic">CGLIB</p>
+<h1>Открытость классов и методов в Kotlin</h1>
+<ul>
+<li>Обычный класс Kotlin по умолчанию final; для наследования нужен open или abstract.</li>
+<li>Новый метод open-класса тоже final без open или abstract. Переопределённый метод с override остаётся открытым, если не указан final.</li>
+<li>Генератор подкласса подчиняется тем же ограничениям: final-класс нельзя расширить, final-метод — переопределить.</li>
+</ul>
+<pre><code class="language-kotlin">open class Service {
+    open fun intercepted() = &quot;open&quot;
+    fun ordinary() = &quot;final&quot;
+}</code></pre>
+<div class="notes">Тема: CGLIB. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-26" class="step slide" data-x="24000" data-y="-1500">
+<p class="topic">CGLIB</p>
+<h1>MethodInterceptor и исходная реализация</h1>
+<ul>
+<li>MethodInterceptor получает объект-получатель, Method, аргументы и MethodProxy.</li>
+<li>MethodProxy.invokeSuper вызывает реализацию родительского класса на сгенерированном объекте.</li>
+<li>Если вместо этого вызвать переопределённый метод на том же объекте, вызов может снова попасть в перехватчик.</li>
+</ul>
+<pre><code class="language-plaintext">interceptor → дополнительное поведение
+           → methodProxy.invokeSuper(receiver, args)</code></pre>
+<div class="notes">Тема: CGLIB. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-27" class="step slide" data-x="25000" data-y="-1500">
+<p class="topic">CGLIB</p>
+<h1>JDK Proxy и CGLIB</h1>
+<ul>
+<li>JDK Proxy реализует интерфейсы и передаёт вызовы InvocationHandler.</li>
+<li>CGLIB создаёт подкласс и перехватывает переопределяемые методы.</li>
+<li>Выбор зависит от доступного контракта, ограничений наследования и того, как организовано выполнение исходной логики.</li>
+</ul>
+<div class="notes">Тема: CGLIB. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-28" class="step slide" data-x="26000" data-y="-1500">
+<p class="topic">CGLIB</p>
+<h1>Генерация классов и совместимость JVM</h1>
+<ul>
+<li>Генератор создаёт байткод и определяет новый класс через механизмы JVM.</li>
+<li>Старая библиотека может обращаться к закрытым API и требовать открытия пакетов через --add-opens.</li>
+<li>CGLIB не поддерживается активно. В материалах зафиксированы версия 3.3.0 и JDK 21; пример показывает механизм генерации подкласса.</li>
+</ul>
+<div class="notes">Тема: CGLIB. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md. Источник: <a href="https://github.com/cglib/cglib">документация</a>.</div>
+    </div>
+
+    <div id="slide-29" class="step slide section" data-x="27000" data-y="-1500">
+<p class="topic">ClassLoader</p>
+<h1>От байткода к загруженному классу</h1>
+<ul>
+<li>Загрузчик получает определение класса по его бинарному имени, например lab.payload.Plugin.</li>
+<li>Источником байткода может быть каталог, JAR, сеть или генератор.</li>
+<li>Класс загружается и связывается до инициализации. Разрешение символических ссылок может откладываться до их использования.</li>
+</ul>
+<pre><code class="language-plaintext">Байткод → загрузка → связывание → инициализация
+
+// Связывание: проверка, подготовка, разрешение ссылок.
+// Разрешение ссылок может быть ленивым.</code></pre>
+<div class="notes">Тема: ClassLoader. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md. Источник: <a href="https://docs.oracle.com/javase/specs/jvms/se21/html/jvms-5.html">документация</a>.</div>
+    </div>
+
+    <div id="slide-30" class="step slide" data-x="28000" data-y="-1500">
+<p class="topic">ClassLoader</p>
+<h1>Делегирование родителю</h1>
+<ul>
+<li>Стандартная реализация ClassLoader.loadClass сначала проверяет, загружен ли класс.</li>
+<li>Затем делегирует запрос родителю. Если родителя нет, используется встроенный загрузчик JVM (bootstrap).</li>
+<li>Если делегирование не нашло класс, вызывается findClass. Пользовательский загрузчик может изменить этот порядок.</li>
+</ul>
+<pre><code class="language-plaintext">child.loadClass(name)
+  → findLoadedClass
+  → parent.loadClass
+  → findClass, если родитель не нашёл</code></pre>
+<div class="notes">Тема: ClassLoader. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-31" class="step slide" data-x="29000" data-y="-1500">
+<p class="topic">ClassLoader</p>
+<h1>Кто запросил класс и кто его определил</h1>
+<ul>
+<li>Загрузчик, инициировавший поиск, может вернуть класс, определённый родителем.</li>
+<li>Определяющий загрузчик (defining loader) — тот, кто создал определение класса в JVM.</li>
+<li>Идентичность класса зависит от определяющего загрузчика, а не только от того, через кого вызвали loadClass.</li>
+</ul>
+<div class="notes">Тема: ClassLoader. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-32" class="step slide" data-x="30000" data-y="-1500">
+<p class="topic">ClassLoader</p>
+<h1>Идентичность класса на JVM</h1>
+<ul>
+<li>Обычный класс определяется парой: бинарное имя и определяющий загрузчик.</li>
+<li>Если два загрузчика независимо определили классы с одинаковым именем, это разные типы.</li>
+<li>Экземпляр одного из этих классов нельзя привести к другому: такое приведение завершится ClassCastException.</li>
+</ul>
+<pre><code class="language-plaintext">(&quot;plugins.Service&quot;, loaderA)
+             ≠
+(&quot;plugins.Service&quot;, loaderB)</code></pre>
+<div class="notes">Тема: ClassLoader. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md. Источник: <a href="https://docs.oracle.com/javase/specs/jvms/se21/html/jvms-5.html#jvms-5.3">документация</a>.</div>
+    </div>
+
+    <div id="slide-33" class="step slide" data-x="31000" data-y="-1500">
+<p class="topic">ClassLoader</p>
+<h1>Общий API для изолированных реализаций</h1>
+<ul>
+<li>Разные загрузчики могут определять изолированные реализации общего интерфейса.</li>
+<li>Сам интерфейс должен быть одним типом, например определённым общим родительским загрузчиком.</li>
+<li>Независимые копии интерфейса у дочерних загрузчиков не обеспечат совместимость, даже если их имена совпадут.</li>
+</ul>
+<pre><code class="language-plaintext">             parent: PluginApi
+                  /       \
+      loaderA: Plugin   loaderB: Plugin</code></pre>
+<div class="notes">Тема: ClassLoader. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-34" class="step slide" data-x="32000" data-y="-1500">
+<p class="topic">ClassLoader</p>
+<h1>Загрузчики и освобождение классов</h1>
+<ul>
+<li>Выгрузка класса возможна, когда определивший его загрузчик может быть собран GC; немедленная выгрузка не гарантируется.</li>
+<li>Ссылки на экземпляры, Class и объекты рефлексии могут удерживать загрузчик. Так возникают утечки через внешние кеши и ThreadLocal.</li>
+<li>Изоляция загрузки разделяет типы, но сама по себе не ограничивает полномочия исполняемого кода.</li>
+</ul>
+<div class="notes">Тема: ClassLoader. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-35" class="step slide section" data-x="33000" data-y="-1500">
+<p class="topic">Kotlin reflection</p>
+<h1>Представление объявлений Kotlin</h1>
+<ul>
+<li>Kotlin reflection описывает классы, свойства, функции, параметры и типы в терминах языка Kotlin.</li>
+<li>На JVM библиотека использует скомпилированные классы и метаданные Kotlin.</li>
+<li>Можно узнать, есть ли у параметра значение по умолчанию. Само выражение и его результат через эти метаданные не извлекаются.</li>
+</ul>
+<div class="notes">Тема: Kotlin reflection. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-36" class="step slide" data-x="34000" data-y="-1500">
+<p class="topic">Kotlin reflection</p>
+<h1>Основные типы Kotlin reflection</h1>
+<ul>
+<li>KClass представляет класс, KType — тип с аргументами и признаком допустимости null.</li>
+<li>KCallable описывает вызываемое объявление; его разновидности KFunction и KProperty представляют функции и свойства.</li>
+<li>KParameter описывает параметр: его роль, тип и признаки isOptional и isVararg.</li>
+</ul>
+<div class="notes">Тема: Kotlin reflection. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-37" class="step slide" data-x="35000" data-y="-1500">
+<p class="topic">Kotlin reflection</p>
+<h1>Связь Class и KClass</h1>
+<ul>
+<li>Class используется в Java API; KClass предоставляет представление класса для Kotlin API.</li>
+<li>Расширения .java и .kotlin связывают эти представления на JVM.</li>
+<li>Для расширенного исследования нужна библиотека kotlin-reflect. Литерал класса Type::class доступен и без неё.</li>
+</ul>
+<pre><code class="language-kotlin">val javaType = Event::class.java
+val kotlinType = javaType.kotlin
+
+// В build.gradle.kts:
+// implementation(kotlin(&quot;reflect&quot;))</code></pre>
+<div class="notes">Тема: Kotlin reflection. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-38" class="step slide" data-x="36000" data-y="-1500">
+<p class="topic">Kotlin reflection</p>
+<h1>Свойство и хранящее его поле</h1>
+<ul>
+<li>Свойство предоставляет чтение через getter, а var — также изменение через setter.</li>
+<li>Backing field хранит значение, когда свойству нужно собственное хранилище. Вычисляемому свойству оно не обязательно.</li>
+<li>javaField и javaGetter показывают соответствующие JVM-члены; при отсутствии такого члена возвращается null.</li>
+</ul>
+<pre><code class="language-kotlin">val label: String
+    get() = &quot;$service:$duration&quot;
+// Getter есть. Собственного хранилища label нет.</code></pre>
+<div class="notes">Тема: Kotlin reflection. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-39" class="step slide" data-x="37000" data-y="-1500">
+<p class="topic">Kotlin reflection</p>
+<h1>Ссылка на свойство и чтение значения</h1>
+<ul>
+<li>KProperty описывает свойство и его тип; значение свойства читается отдельно.</li>
+<li>Для несвязанной ссылки Event::service при чтении нужно передать объект Event.</li>
+<li>Изменение var доступно через KMutableProperty. Для val операция setter отсутствует.</li>
+</ul>
+<pre><code class="language-kotlin">val property = Event::service
+val name = property.name
+val value = property.get(event)</code></pre>
+<div class="notes">Тема: Kotlin reflection. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-40" class="step slide" data-x="38000" data-y="-1500">
+<p class="topic">Kotlin reflection</p>
+<h1>KClass и KType описывают разное</h1>
+<ul>
+<li>KClass обозначает класс без аргументов конкретного использования обобщённого типа.</li>
+<li>KType может описывать List&lt;String?&gt; и отдельно допустимость null для самого списка.</li>
+<li>Описание типа само по себе не проверяет соответствие произвольного объекта этому типу.</li>
+</ul>
+<pre><code class="language-kotlin">List::class
+typeOf&lt;List&lt;String?&gt;&gt;()
+typeOf&lt;List&lt;String?&gt;?&gt;()</code></pre>
+<div class="notes">Тема: Kotlin reflection. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-41" class="step slide" data-x="39000" data-y="-1500">
+<p class="topic">Kotlin reflection</p>
+<h1>Параметры вызова и получатели</h1>
+<ul>
+<li>KFunction.parameters включает получателей вызова, если они есть, и обычные параметры.</li>
+<li>KParameter.kind различает INSTANCE, EXTENSION_RECEIVER и VALUE. У получателей имя равно null.</li>
+<li>При call и callBy нужны все обязательные параметры, включая несвязанных получателей. У связанной ссылки зафиксированный получатель уже исключён.</li>
+</ul>
+<div class="notes">Тема: Kotlin reflection. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-42" class="step slide section" data-x="40000" data-y="-1500">
+<p class="topic">Конструкторы</p>
+<h1>Основной конструктор</h1>
+<ul>
+<li>primaryConstructor возвращает основной конструктор либо null, если его нет.</li>
+<li>call передаёт все аргументы по позициям; callBy использует карту с ключами KParameter.</li>
+<li>В callBy можно пропускать параметры с isOptional, а также vararg: для него будет использован пустой массив.</li>
+</ul>
+<pre><code class="language-kotlin">val ctor = Event::class.primaryConstructor!!
+val parameters = ctor.parameters.associateBy { it.name }
+val args = mapOf(
+    parameters.getValue(&quot;service&quot;) to &quot;billing&quot;,
+    parameters.getValue(&quot;duration&quot;) to 1500.0)
+val event = ctor.callBy(args)</code></pre>
+<div class="notes">Тема: Конструкторы. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md. Источник: <a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.reflect/-k-callable/call-by.html">документация</a>.</div>
+    </div>
+
+    <div id="slide-43" class="step slide" data-x="41000" data-y="-1500">
+<p class="topic">Конструкторы</p>
+<h1>Допустимость null и пропуск аргумента</h1>
+<ul>
+<li>Nullable-тип разрешает явно передать null.</li>
+<li>Значение по умолчанию разрешает пропустить обычный параметр при вызове.</li>
+<li>У String? без значения по умолчанию аргумент остаётся обязательным. Правило пропуска vararg рассматривается отдельно.</li>
+</ul>
+<pre><code class="language-kotlin">class Options(
+    val a: String,          // null: нет; пропуск: нет
+    val b: String?,         // null: да;  пропуск: нет
+    val c: String = &quot;x&quot;,    // null: нет; пропуск: да
+    val d: String? = null   // null: да;  пропуск: да
+)</code></pre>
+<div class="notes">Тема: Конструкторы. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md. Источник: <a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.reflect/-k-parameter/is-optional.html">документация</a>.</div>
+    </div>
+
+    <div id="slide-44" class="step slide" data-x="42000" data-y="-1500">
+<p class="topic">Конструкторы</p>
+<h1>Как строится вызов из карты имён</h1>
+<ul>
+<li>Входные строковые ключи сопоставляются с параметрами конструктора KParameter.</li>
+<li>Приложение проверяет неизвестные ключи, обязательные аргументы и допустимость значений.</li>
+<li>После проверки вызывается конструктор. Преобразование строк и обработка вложенных типов требуют отдельных правил.</li>
+</ul>
+<pre><code class="language-plaintext">Map&lt;String, Any?&gt;
+       ↓ сопоставление + проверка
+Map&lt;KParameter, Any?&gt;
+       ↓ callBy
+     объект</code></pre>
+<div class="notes">Тема: Конструкторы. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-45" class="step slide" data-x="43000" data-y="-1500">
+<p class="topic">Конструкторы</p>
+<h1>Границы конструктора из карты</h1>
+<ul>
+<li>Рефлексия предоставляет сведения о конструкторе и возможность его вызвать.</li>
+<li>Она не задаёт правила обработки внешних данных: строка &quot;1500&quot; не преобразуется в Double по смыслу поля.</li>
+<li>Выбор конструктора, преобразования значений и вложенные объекты определяются кодом приложения.</li>
+</ul>
+<div class="notes">Тема: Конструкторы. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-46" class="step slide section" data-x="44000" data-y="-1500">
+<p class="topic">Аннотации и генерация</p>
+<h1>Аннотация как структурированные данные</h1>
+<ul>
+<li>Аннотация прикрепляет структурированные метаданные к объявлению или другой разрешённой позиции.</li>
+<li>Поведение задаёт обработчик: компилятор, процессор при сборке или код приложения во время выполнения.</li>
+<li>Аргументы аннотации передают данные этому обработчику.</li>
+</ul>
+<pre><code class="language-kotlin">annotation class InputName(val value: String)</code></pre>
+<div class="notes">Тема: Аннотации и генерация. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-47" class="step slide" data-x="45000" data-y="-1500">
+<p class="topic">Аннотации и генерация</p>
+<h1>Место аннотации: Target и @param:</h1>
+<ul>
+<li>@Target ограничивает позиции, в которых разрешена аннотация.</li>
+<li>Параметр конструктора с val или var связан с параметром, свойством, полем и методами доступа.</li>
+<li>Префикс @param:, @field: или @get: явно выбирает место аннотации. Обработчик читает аннотацию именно с этого элемента.</li>
+</ul>
+<pre><code class="language-kotlin">data class Input(
+    @param:InputName(&quot;service_name&quot;)
+    val service: String
+)
+// InputName находится на параметре конструктора.</code></pre>
+<div class="notes">Тема: Аннотации и генерация. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-48" class="step slide" data-x="46000" data-y="-1500">
+<p class="topic">Аннотации и генерация</p>
+<h1>Срок хранения аннотации: Retention</h1>
+<ul>
+<li>SOURCE: аннотация доступна в исходнике и не сохраняется в class-файле.</li>
+<li>BINARY: сохраняется в class-файле, но недоступна через рефлексию во время выполнения.</li>
+<li>RUNTIME: сохраняется и доступна через рефлексию. Этот вариант нужен для нашего InputName.</li>
+</ul>
+<pre><code class="language-kotlin">@Target(AnnotationTarget.VALUE_PARAMETER)
+@Retention(AnnotationRetention.RUNTIME)
+annotation class InputName(val value: String)</code></pre>
+<div class="notes">Тема: Аннотации и генерация. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md. Источник: <a href="https://kotlinlang.org/docs/annotations.html">документация</a>.</div>
+    </div>
+
+    <div id="slide-49" class="step slide" data-x="47000" data-y="-1500">
+<p class="topic">Аннотации и генерация</p>
+<h1>Обработка аннотации во время выполнения</h1>
+<ul>
+<li>Обработчик получает описание объявления и ищет нужную аннотацию.</li>
+<li>Её аргументы задают прикладные правила: например, внешнее имя параметра.</li>
+<li>Приложение определяет, что делать без аннотации и как обнаруживать конфликтующие имена.</li>
+</ul>
+<pre><code class="language-kotlin">val externalName =
+    parameter.findAnnotation&lt;InputName&gt;()?.value
+        ?: parameter.name</code></pre>
+<div class="notes">Тема: Аннотации и генерация. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-50" class="step slide" data-x="48000" data-y="-1500">
+<p class="topic">Аннотации и генерация</p>
+<h1>Генерация при сборке и рефлексия</h1>
+<ul>
+<li>Процессор, например на базе KSP, анализирует объявления при сборке и создаёт исходный код.</li>
+<li>Сгенерированный код проверяется компилятором. Проверки значений внешних данных могут оставаться на время выполнения.</li>
+<li>При рефлексии объявления выбираются и исследуются во время выполнения.</li>
+</ul>
+<pre><code class="language-kotlin">// Возможный результат генерации:
+Event(
+    service = input.getValue(&quot;service_name&quot;) as String,
+    duration = input.getValue(&quot;duration&quot;) as Double)</code></pre>
+<div class="notes">Тема: Аннотации и генерация. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-51" class="step slide section" data-x="49000" data-y="-1500">
+<p class="topic">Inline</p>
+<h1>Функция высшего порядка</h1>
+<ul>
+<li>Функция высшего порядка принимает функции как аргументы или возвращает функцию.</li>
+<li>В обычном вызове параметр-лямбда передаётся как значение функционального типа и затем вызывается.</li>
+<li>Компилятор выбирает представление лямбды; JIT может дополнительно устранить вызовы и выделение объектов.</li>
+</ul>
+<pre><code class="language-kotlin">fun regular(block: () -&gt; Int): Int = block()
+fun compute(seed: Int) = regular { seed + 1 }</code></pre>
+<div class="notes">Тема: Inline. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-52" class="step slide" data-x="50000" data-y="-1500">
+<p class="topic">Inline</p>
+<h1>Семантика inline</h1>
+<ul>
+<li>При прямом вызове inline-функции компилятор встраивает её тело в место вызова.</li>
+<li>Лямбды для встраиваемых параметров раскрываются вместе с телом функции.</li>
+<li>При этом у функции может сохраняться JVM-метод: inline не означает, что объявление полностью исчезнет из class-файла.</li>
+</ul>
+<pre><code class="language-kotlin">inline fun inlined(block: () -&gt; Int) = block()
+fun compute(seed: Int) = inlined { seed + 1 }
+// Смысл места вызова после встраивания: seed + 1</code></pre>
+<div class="notes">Тема: Inline. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-53" class="step slide" data-x="51000" data-y="-1500">
+<p class="topic">Inline</p>
+<h1>Что видно в байткоде</h1>
+<ul>
+<li>В обычном месте вызова передаётся функция и вызывается regular.</li>
+<li>В месте вызова inlined арифметика лямбды находится непосредственно в вызывающем методе.</li>
+<li>Байткод показывает результат компиляции Kotlin. Последующие оптимизации JIT требуют отдельного анализа.</li>
+</ul>
+<pre><code class="language-plaintext">useRegular: создать/получить callback → вызвать regular
+useInline:  загрузить seed → прибавить 1 → вернуть</code></pre>
+<div class="notes">Тема: Inline. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-54" class="step slide" data-x="52000" data-y="-1500">
+<p class="topic">Inline</p>
+<h1>Выход из внешней функции</h1>
+<ul>
+<li>return внутри встраиваемой лямбды может завершить внешнюю именованную функцию.</li>
+<li>Такой нелокальный возврат разрешён для inline-параметра без noinline и crossinline.</li>
+<li>return@label завершает лямбду с указанной меткой, а выполнение внешней функции продолжается.</li>
+</ul>
+<pre><code class="language-kotlin">fun find(): Int {
+    inlined { return 42 }
+    return -1
+}
+// При выполнении вернётся 42, а не -1.</code></pre>
+<div class="notes">Тема: Inline. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md. Источник: <a href="https://kotlinlang.org/docs/inline-functions.html#non-local-jump-expressions">документация</a>.</div>
+    </div>
+
+    <div id="slide-55" class="step slide" data-x="53000" data-y="-1500">
+<p class="topic">Inline</p>
+<h1>noinline сохраняет функцию как значение</h1>
+<ul>
+<li>Встраиваемый параметр-лямбду нельзя сохранить в поле или вернуть как обычное значение.</li>
+<li>noinline отключает встраивание для выбранного параметра и разрешает эти операции.</li>
+<li>Другие параметры той же функции могут оставаться встраиваемыми.</li>
+</ul>
+<pre><code class="language-kotlin">inline fun choose(now: () -&gt; Int,
+                  noinline later: () -&gt; Int): () -&gt; Int {
+    now()
+    return later
+}</code></pre>
+<div class="notes">Тема: Inline. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-56" class="step slide" data-x="54000" data-y="-1500">
+<p class="topic">Inline</p>
+<h1>crossinline запрещает нелокальный возврат</h1>
+<ul>
+<li>crossinline запрещает return, который выходит из внешней функции.</li>
+<li>Это позволяет вызвать переданную лямбду из другого контекста, например внутри возвращаемой функции.</li>
+<li>Лямбда остаётся встраиваемой; локальные возвраты с меткой разрешены.</li>
+</ul>
+<pre><code class="language-kotlin">inline fun deferred(
+    crossinline block: () -&gt; Int
+): () -&gt; Int = { block() }</code></pre>
+<div class="notes">Тема: Inline. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-57" class="step slide" data-x="55000" data-y="-1500">
+<p class="topic">Inline</p>
+<h1>Цена и границы inline</h1>
+<ul>
+<li>Встраивание уменьшает часть накладных расходов на вызовы, но может увеличивать объём кода.</li>
+<li>Тело публичной inline-функции попадает в код клиента. Для обновления встроенного тела клиент перекомпилируют.</li>
+<li>Доступ к непубличным объявлениям ограничен. @PublishedApi позволяет использовать подходящие internal-объявления из публичного inline-кода.</li>
+</ul>
+<div class="notes">Тема: Inline. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md. Источник: <a href="https://kotlinlang.org/docs/inline-functions.html#restrictions-for-public-api-inline-functions">документация</a>.</div>
+    </div>
+
+    <div id="slide-58" class="step slide section" data-x="56000" data-y="-1500">
+<p class="topic">Reified</p>
+<h1>Стирание обобщённых типов</h1>
+<ul>
+<li>Обычный параметр типа T не позволяет получить T::class: конкретный тип в теле функции неизвестен.</li>
+<li>JVM-проверка List не проверяет его аргумент типа, например String.</li>
+<li>Описания обобщённых типов в объявлениях могут сохраняться в метаданных. Стирание ограничивает проверки объектов, а не удаляет все сведения о типах.</li>
+</ul>
+<div class="notes">Тема: Reified. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-59" class="step slide" data-x="57000" data-y="-1500">
+<p class="topic">Reified</p>
+<h1>Передача типа явным параметром</h1>
+<ul>
+<li>Алгоритм, которому нужен класс, может принимать его явно.</li>
+<li>KClass&lt;T&gt; связывает описание класса с параметром типа T в сигнатуре Kotlin.</li>
+<li>Такой API не требует inline: вызывающий код передаёт описание аргументом.</li>
+</ul>
+<pre><code class="language-kotlin">// Сигнатура API; тело здесь опущено.
+fun &lt;T : Any&gt; construct(
+    type: KClass&lt;T&gt;, values: Map&lt;String, Any?&gt;
+): T = TODO(&quot;Реализация из раздела о конструкторах&quot;)
+
+construct(Event::class, values)</code></pre>
+<div class="notes">Тема: Reified. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-60" class="step slide" data-x="58000" data-y="-1500">
+<p class="topic">Reified</p>
+<h1>Параметр типа с reified</h1>
+<ul>
+<li>Параметр типа inline-функции можно пометить reified.</li>
+<li>При встраивании компилятор использует информацию о типе из места вызова.</li>
+<li>Это разрешает T::class и value is T, но не добавляет объектам JVM недостающие аргументы обобщённых типов.</li>
+</ul>
+<pre><code class="language-kotlin">inline fun &lt;reified T&gt; matches(value: Any?): Boolean =
+    value is T</code></pre>
+<div class="notes">Тема: Reified. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-61" class="step slide" data-x="59000" data-y="-1500">
+<p class="topic">Reified</p>
+<h1>reified как обёртка обычного API</h1>
+<ul>
+<li>Короткая inline-обёртка получает T::class и передаёт его основной функции.</li>
+<li>Основная функция остаётся обычной: её тело не копируется целиком в каждое место вызова.</li>
+<li>Если основная функция использует рефлексию, эта работа по-прежнему выполняется при запуске.</li>
+</ul>
+<pre><code class="language-kotlin">inline fun &lt;reified T : Any&gt; construct(
+    values: Map&lt;String, Any?&gt;
+): T = construct(T::class, values)
+
+construct&lt;Event&gt;(values)</code></pre>
+<div class="notes">Тема: Reified. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-62" class="step slide" data-x="60000" data-y="-1500">
+<p class="topic">Reified</p>
+<h1>Передача обычного T в reified-вызов</h1>
+<ul>
+<li>Обычная обобщённая функция не располагает конкретным типом для своего T.</li>
+<li>Передача такого T в reified-вызов не создаёт недостающую информацию и запрещена компилятором.</li>
+<li>Можно сделать вызывающую функцию inline с reified T либо передать описание типа явным параметром.</li>
+</ul>
+<pre><code class="language-kotlin">// Не компилируется:
+fun &lt;T : Any&gt; forward(values: Map&lt;String, Any?&gt;): T =
+    construct&lt;T&gt;(values)</code></pre>
+<div class="notes">Тема: Reified. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-63" class="step slide" data-x="61000" data-y="-1500">
+<p class="topic">Reified</p>
+<h1>Компиляция и выполнение reified-вызова</h1>
+<ul>
+<li>При компиляции прямого вызова construct&lt;Event&gt; компилятор подставляет Event в тело обёртки.</li>
+<li>Получившийся код передаёт Event::class обычной функции construct.</li>
+<li>При выполнении construct исследует конструктор и создаёт объект через callBy.</li>
+</ul>
+<pre><code class="language-plaintext">construct&lt;Event&gt;(values)
+       ↓ компиляция inline-обёртки
+construct(Event::class, values)
+       ↓ выполнение
+поиск параметров → callBy → объект</code></pre>
+<div class="notes">Тема: Reified. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-64" class="step slide section" data-x="62000" data-y="-1500">
+<p class="topic">Ограничения типов</p>
+<h1>reified и типы элементов коллекции</h1>
+<ul>
+<li>Для T = List&lt;String&gt; проверка value is T проверяет только совместимость с List.</li>
+<li>Элементы не обходятся; их соответствие String не проверяется.</li>
+<li>Поэтому список чисел может пройти проверку matches&lt;List&lt;String&gt;&gt;.</li>
+</ul>
+<pre><code class="language-kotlin">matches&lt;List&lt;String&gt;&gt;(listOf(1, 2)) // true</code></pre>
+<div class="notes">Тема: Ограничения типов. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md. Источник: <a href="https://kotlinlang.org/docs/generics.html#generics-type-checks-and-casts">документация</a>.</div>
+    </div>
+
+    <div id="slide-65" class="step slide" data-x="63000" data-y="-1500">
+<p class="topic">Ограничения типов</p>
+<h1>Почему ошибка возникает при чтении</h1>
+<ul>
+<li>Непроверяемое приведение к List&lt;String&gt; не проверяет типы элементов списка.</li>
+<li>При чтении элемента как String сгенерированный код выполняет приведение самого элемента.</li>
+<li>Если элемент оказался Integer, именно это приведение вызывает ClassCastException.</li>
+</ul>
+<pre><code class="language-kotlin">val value: Any = listOf(1, 2)
+@Suppress(&quot;UNCHECKED_CAST&quot;)
+val strings = value as List&lt;String&gt;
+strings.first().length // ClassCastException</code></pre>
+<div class="notes">Тема: Ограничения типов. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-66" class="step slide" data-x="64000" data-y="-1500">
+<p class="topic">Ограничения типов</p>
+<h1>typeOf описывает запрошенный тип</h1>
+<ul>
+<li>В Kotlin выражение typeOf&lt;T&gt;() создаёт KType: описание аргументов типа и допустимости null.</li>
+<li>Описания List&lt;String&gt; и List&lt;Int&gt; различаются.</li>
+<li>Описывается тип из места вызова, а не тип, восстановленный из произвольного объекта.</li>
+</ul>
+<pre><code class="language-kotlin">typeOf&lt;List&lt;String&gt;&gt;() != typeOf&lt;List&lt;Int&gt;&gt;() // true
+// Из этого не следует, что входной список проверен.</code></pre>
+<div class="notes">Тема: Ограничения типов. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md. Источник: <a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.reflect/type-of.html">документация</a>.</div>
+    </div>
+
+    <div id="slide-67" class="step slide" data-x="65000" data-y="-1500">
+<p class="topic">Ограничения типов</p>
+<h1>Описание типа и проверка содержимого</h1>
+<ul>
+<li>Class и KClass представляют классы; KType описывает тип с аргументами и допустимостью null.</li>
+<li>Проверка is использует доступную во время выполнения информацию. Для проверки элементов нужен обход.</li>
+<li>all проверяет текущее содержимое. Для пустого списка результат true, но исходный аргумент типа из этого не восстанавливается.</li>
+</ul>
+<pre><code class="language-kotlin">value is List&lt;*&gt; &amp;&amp; value.all { it is String }
+// Проверяет фактические элементы в момент обхода.</code></pre>
+<div class="notes">Тема: Ограничения типов. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-68" class="step slide section" data-x="66000" data-y="-1500">
+<p class="topic">Итоги</p>
+<h1>Уровни динамического поведения</h1>
+<ul>
+<li>Рефлексия предоставляет описания объявлений; MethodHandle представляет исполняемую операцию.</li>
+<li>Прокси добавляют обработчик вызовов. Генерация подкласса создаёт новый класс с переопределёнными методами.</li>
+<li>ClassLoader участвует в идентичности классов; Kotlin reflection предоставляет модель объявлений Kotlin.</li>
+</ul>
+<div class="notes">Тема: Итоги. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-69" class="step slide" data-x="67000" data-y="-1500">
+<p class="topic">Итоги</p>
+<h1>Когда выбирается решение</h1>
+<ul>
+<li>При сборке процессоры анализируют объявления и генерируют код.</li>
+<li>При компиляции прямого вызова inline и reified подставляют тело функции и доступные сведения о типе.</li>
+<li>Во время выполнения загружаются классы, исследуются объявления, вызываются MethodHandle и обработчики прокси.</li>
+</ul>
+<div class="notes">Тема: Итоги. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+
+    <div id="slide-70" class="step slide" data-x="68000" data-y="-1500">
+<p class="topic">Итоги</p>
+<h1>Основные различия</h1>
+<ul>
+<li>Свойство предоставляет доступ к значению; поле может хранить это значение.</li>
+<li>Nullable разрешает null; значение по умолчанию разрешает пропуск обычного аргумента.</li>
+<li>Идентичность класса зависит от имени и определяющего загрузчика.</li>
+<li>Inline меняет код места вызова. Reified не проверяет содержимое коллекции.</li>
+</ul>
+<div class="notes">Тема: Итоги. Теоретическая опора; задания и последовательность демонстраций находятся в kotlin-reflection-instructor/PLAN.md.</div>
+    </div>
+    <div id="overview" class="step" data-x="33500" data-y="-1500" data-scale="80"></div>
+</div>
+<nav id="topics" hidden aria-label="Темы занятия">
+<h2>Темы занятия</h2>
+<ul>
+<li><a href="#/slide-1">Основа</a></li>
+<li><a href="#/slide-5">Java reflection</a></li>
+<li><a href="#/slide-12">MethodHandles</a></li>
+<li><a href="#/slide-18">JDK Proxy</a></li>
+<li><a href="#/slide-24">CGLIB</a></li>
+<li><a href="#/slide-29">ClassLoader</a></li>
+<li><a href="#/slide-35">Kotlin reflection</a></li>
+<li><a href="#/slide-42">Конструкторы</a></li>
+<li><a href="#/slide-46">Аннотации и генерация</a></li>
+<li><a href="#/slide-51">Inline</a></li>
+<li><a href="#/slide-58">Reified</a></li>
+<li><a href="#/slide-64">Ограничения типов</a></li>
+<li><a href="#/slide-68">Итоги</a></li>
+</ul>
+<p>Esc — закрыть. <a href="kotlin-reflection-lab/README.md">Материалы практики</a></p>
+</nav>
+<div class="impress-progressbar"><div></div></div>
+<div class="impress-progress"></div>
+<a class="ov" href="#/overview">Обзор</a>
+<a class="ov topics-link" href="#topics" id="topics-toggle">Темы · T</a>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<script>
+    if (window.hljs) { hljs.highlightAll(); }
+</script>
+<script src="js/impress.js"></script>
+<script>
+    impress().init();
+    const topics = document.getElementById('topics');
+    document.getElementById('topics-toggle').addEventListener('click', function (event) {
+        event.preventDefault();
+        topics.hidden = !topics.hidden;
+    });
+    topics.addEventListener('click', function (event) {
+        if (event.target.closest('a')) { topics.hidden = true; }
+    });
+    document.addEventListener('keydown', function (event) {
+        if (event.code === 'KeyT') { topics.hidden = !topics.hidden; }
+        if (event.key === 'Escape') { topics.hidden = true; }
+    });
+</script>
+</body>
+</html>
