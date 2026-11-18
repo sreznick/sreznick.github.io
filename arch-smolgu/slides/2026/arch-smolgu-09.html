@@ -1,0 +1,1020 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=1024">
+<title>Лекция 9 — NumPy и численные библиотеки Python</title>
+<meta name="description" content="NumPy, SciPy, BLAS/LAPACK, Numba, CuPy и JAX: память, точность и производительность численных вычислений.">
+<link rel="stylesheet" href="css/impress-demo.css"><link rel="stylesheet" href="css/impress-common.css">
+<style>
+body { background: #1a1a2e; color: #eef2f7; }
+.slide { background: #161d2e; color: #eef2f7; font-size: 25px; line-height: 1.42; letter-spacing: 0; text-shadow: none; padding: 34px 46px; }
+.step { opacity: .2; } .step.active { opacity: 1; }
+.slide h1 { font-size: 34px; line-height: 1.18; text-align: left; margin: 0 0 20px; color: #fff; }
+.slide p { margin: 12px 0; } .slide ul { margin: 12px 0 16px; padding-left: 26px; } .slide li { margin: 9px 0; }
+.eyebrow { font-size: 15px; letter-spacing: 1px; color: #9fc7f5; margin-bottom: 14px; text-transform: uppercase; }
+.subtitle { font-size: 29px; color: #b5d7fc; }
+pre { white-space: pre-wrap; overflow-wrap: anywhere; margin: 14px 0; padding: 17px; background: #0b1220; color: #e3edf9; border: 1px solid #465a78; border-radius: 8px; font-size: 19px; line-height: 1.45; }
+code { font-family: ui-monospace, Menlo, Consolas, monospace; }
+.tip, .warning { margin: 15px 0; padding: 12px 16px; border-left: 5px solid #64c9a4; border-radius: 5px; background: #d9f1e6; color: #152b24; font-size: 22px; }
+.warning { background: #fff0c2; color: #352b10; border-color: #e9b747; }
+table { width: 100%; border-collapse: collapse; font-size: 22px; margin: 14px 0; } th,td { padding: 7px 12px; border: 1px solid #58708e; text-align: left; } th { background: #293d59; color: #fff; }
+.slide a { color: #a9d5ff; background: none; text-shadow: none; text-decoration: underline; padding: 0; }
+.footer { position: absolute; bottom: 18px; left: 46px; right: 46px; display: flex; justify-content: space-between; font-size: 14px; color: #a6b8cd; }
+.controls { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin: 14px 0; }
+button,select,input { font: inherit; } button,select,input[type=number] { padding: 7px 12px; border: 1px solid #7195bd; border-radius: 5px; background: #263d59; color: #fff; } button { cursor: pointer; } button:hover { background: #375779; } input[type=number] { width: 80px; } input[type=range] { width: 100%; accent-color: #80bfff; margin: 20px 0; } input[type=checkbox] { width: 22px; height: 22px; accent-color: #80bfff; }
+:focus-visible { outline: 3px solid #ffda7c; outline-offset: 3px; }
+.demo-result { background: #0b1220; border: 1px solid #58708e; border-radius: 8px; padding: 18px; font-size: 22px; white-space: pre-line; margin: 14px 0; }
+.lane-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 7px; margin: 18px 0; } .lane { text-align: center; background: #25374f; border: 1px solid #7694ba; padding: 6px; font-size: 19px; } .lane.done { background: #d9f1e6; color: #152b24; } .lane.tail { border: 3px solid #ffcf70; padding: 4px; }
+@media print { body { background: white; } #impress { position: static !important; transform: none !important; } .step.slide { position: relative !important; transform: none !important; opacity: 1; break-after: page; margin: 0 auto; } .hint,#impress-toolbar,#overview { display: none; } }
+
+.array-grid { display:grid; gap:8px; margin:12px 0; max-width:650px; } .array-grid button {min-height:42px; padding:5px; font-size:22px;} .array-grid button.selected {background:#d9f1e6; color:#152b24; border-color:#64c9a4;}
+.flow {display:flex;align-items:center;justify-content:space-between;gap:10px;margin:28px 0;} .flow span {background:#293d59;border:1px solid #7195bd;border-radius:8px;padding:12px;font-size:24px;}
+.sources {font-size:22px;}
+.experiment table { font-size:20px; } .experiment th,.experiment td { padding:5px 10px; }
+.experiment p { font-size:22px; } .experiment .tip { font-size:20px; line-height:1.3; } .experiment .sources { font-size:18px; }
+.slide .source-code { font-size:16px; line-height:1.25; margin:8px 0; }
+.slide.dense { font-size:23px; line-height:1.32; }
+.slide.dense h1 { margin-bottom:16px; }
+.slide.dense pre { font-size:18px; line-height:1.35; padding:14px; margin:12px 0; }
+.slide.dense .tip, .slide.dense .warning { font-size:20px; line-height:1.3; padding:10px 14px; margin:12px 0; }
+.homework li { font-size:22px; line-height:1.3; }
+.jit-chain li { font-size:22px; line-height:1.3; margin:6px 0; }
+</style></head><body class="impress-not-supported">
+<div class="fallback-message"><p>Браузер не поддерживает режим презентации. Слайды доступны последовательно.</p></div>
+<div id="impress" data-transition-duration="450" data-width="1024" data-height="768" data-perspective="1000">
+<!-- Слайд 1: Численные вычисления на Python -->
+<section id="slide-1" class="step slide" data-x="0" data-y="0">
+<div class="eyebrow">Введение</div><h1>Численные вычисления на Python</h1>
+<p class="subtitle">От NumPy к машинному коду и GPU</p><ul><li>NumPy: массивы, память и точность</li><li>SciPy: доступ к BLAS и LAPACK</li><li>Numba: компиляция собственных циклов</li><li>CuPy и JAX: ускорители и преобразования функций</li></ul><div class="tip">Архитектура компьютера · Лекция 9</div>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>1 / 76</span></div>
+</section>
+<!-- Слайд 2: Карта библиотек -->
+<section id="slide-2" class="step slide" data-x="1100" data-y="0">
+<div class="eyebrow">Введение</div><h1>Карта библиотек</h1>
+<table><tr><th>Инструмент</th><th>Основная роль</th></tr><tr><td>NumPy</td><td>Массивы и операции над ними</td></tr><tr><td>BLAS / LAPACK</td><td>Вычислительные ядра линейной алгебры</td></tr><tr><td>SciPy</td><td>Численные методы и доступ к BLAS/LAPACK</td></tr><tr><td>Numba</td><td>Компиляция поддерживаемого Python-кода</td></tr><tr><td>CuPy</td><td>Массивы и вычисления на GPU</td></tr><tr><td>JAX</td><td>Автодифференцирование, компиляция, batching</td></tr></table><div class="tip">Для каждого инструмента: где данные, кто вычисляет, какой dtype?</div>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>2 / 76</span></div>
+</section>
+<!-- Слайд 3: Одна задача, несколько уровней -->
+<section id="slide-3" class="step slide" data-x="2200" data-y="0">
+<div class="eyebrow">Введение</div><h1>Одна задача, несколько уровней</h1>
+<pre><code class="language-python"># Наблюдения: y ≈ k*x + b
+x = np.linspace(-2, 2, 101, dtype=np.float64)
+rng = np.random.default_rng(42)
+y = 2.0*x + 1.0 + rng.normal(0, 0.1, x.size)
+
+# Ошибка модели для параметров p = [k, b]:
+p = np.array([0., 0.])
+r = p[0]*x + p[1] - y
+sse = np.sum(r*r, dtype=np.float64)</code></pre><ul><li>Подготовить данные и понять их размещение.</li><li>Вычислить прогноз модели и оценить невязку.</li><li>Сравнить способы вычисления ошибки.</li></ul><div class="tip">SSE = Σr² — сумма квадратов невязок; MSE = SSE/n. Далее np — NumPy; x, y — эти наблюдения, p = [k, b]. Базовые примеры используют float64.</div>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>3 / 76</span></div>
+</section>
+<!-- Слайд 4: Список Python и ndarray -->
+<section id="slide-4" class="step slide" data-x="3300" data-y="0">
+<div class="eyebrow">NumPy · память</div><h1>Список Python и ndarray</h1>
+<pre><code class="language-python">import numpy as np
+
+values = [1.0, 2.0, 3.0]  # ссылки на объекты Python
+array = np.array(values, dtype=np.float64)
+# Числовые элементы одинакового типа в буфере данных.
+
+print(array.dtype, array.shape)  # float64 (3,)</code></pre><div class="tip">У ndarray есть данные и метаданные. Вид массива может обращаться к общему буферу с шагами; непрерывность не гарантирована.</div><ul><li>Избегаем dtype=object в численных ядрах.</li><li>Далее используем обычные числовые типы.</li></ul>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>4 / 76</span></div>
+</section>
+<!-- Слайд 5: Сколько памяти занимает массив? -->
+<section id="slide-5" class="step slide" data-x="4400" data-y="0">
+<div class="eyebrow">NumPy · память</div><h1>Сколько памяти занимает массив?</h1>
+<pre><code class="language-python">A = np.arange(12, dtype=np.float32).reshape(3, 4)
+print(A.shape)     # (3, 4)
+print(A.size)      # 12 элементов
+print(A.itemsize)  # 4 байта
+print(A.nbytes)    # 48 байт
+
+B = A.astype(np.float64)
+print(B.nbytes)    # 96 байт</code></pre><div class="tip">nbytes считает байты элементов. Это не полный расход памяти процесса и не размер Python-объекта.</div>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>5 / 76</span></div>
+</section>
+<!-- Слайд 6: strides: от индекса к адресу -->
+<section id="slide-6" class="step slide" data-x="5500" data-y="0">
+<div class="eyebrow">NumPy · память</div><h1>strides: от индекса к адресу</h1>
+<pre><code class="language-python">A = np.arange(12, dtype=np.float32).reshape(3, 4)
+print(A.strides)  # (16, 4), в байтах
+
+# Адрес элемента:
+# base + i*16 + j*4
+# A[1, 2]: смещение 1*16 + 2*4 = 24 байта</code></pre><div class="tip">При C-порядке соседние элементы последней оси лежат подряд.</div><p>У ndarray шаги могут быть большими, нулевыми или отрицательными — в зависимости от представления.</p>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>6 / 76</span></div>
+</section>
+<!-- Слайд 7: Срез с шагом: начало и strides -->
+<section id="slide-7" class="step slide dense" data-x="6600" data-y="0">
+<div class="eyebrow">NumPy · память</div><h1>Срез с шагом: начало и strides</h1>
+<pre><code class="language-python">a = np.arange(10, dtype=np.float64)
+v = a[1::2]  # [1., 3., 5., 7., 9.]
+print(a.strides, v.strides)  # (8,), (16,)
+print(v.shape)              # (5,)
+print(np.shares_memory(a, v))  # True
+
+# Начало данных v = начало данных a + 8 байт
+# Адрес v[i] = начало данных a + 8 + i*16
+# v[2] == a[5]: смещение 8 + 2*16 = 40 байт</code></pre>
+<div class="tip">Обычный срез меняет начало данных, форму и шаги; буфер не копируется. Новый stride = исходный stride × шаг среза.</div>
+<p>Для <code>A[1::2, ::3]</code> strides умножаются на 2 и 3; начало сдвигается к строке 1. У <code>a[::-1]</code> начало — последний элемент, stride = −8 байт.</p>
+<p class="sources source-code">NumPy 2.1.3 · <a href="https://github.com/numpy/numpy/blob/v2.1.3/numpy/_core/src/multiarray/mapping.c#L859-L876">Срез: начало, strides и форма</a></p>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>7 / 76</span></div>
+</section>
+<!-- Слайд 8: Демо: адреса и транспонирование -->
+<section id="slide-8" class="step slide" data-x="7700" data-y="0">
+<div class="eyebrow">NumPy · память</div><h1>Демо: адреса и транспонирование</h1>
+<div class="controls"><label><input id="transposeMode" type="checkbox" onchange="renderStrides()"> Показать A.T</label></div><div id="strideGrid" class="array-grid"></div><div class="demo-result" id="strideResult" aria-live="polite"></div><div class="tip">Нажмите на элемент: увидите его смещение в исходном буфере float32. Модель массива 3 × 4, созданного через arange.</div>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>8 / 76</span></div>
+</section>
+<!-- Слайд 9: Транспонирование не обязано копировать -->
+<section id="slide-9" class="step slide" data-x="8800" data-y="0">
+<div class="eyebrow">NumPy · память</div><h1>Транспонирование не обязано копировать</h1>
+<pre><code class="language-python">T = A.T
+print(T.shape)    # (4, 3)
+print(T.strides)  # (4, 16)
+print(np.shares_memory(A, T))  # True
+
+C = np.ascontiguousarray(T)
+print(C.flags.c_contiguous)   # True</code></pre><div class="tip">В этом примере T — view. Создание непрерывной копии переносит данные и требует памяти.</div><ul><li>Соседство по индексу не всегда означает соседство по адресу.</li><li>Это влияет на обход данных и использование кэша.</li></ul>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>9 / 76</span></div>
+</section>
+<!-- Слайд 10: Транспонирование: переставляем оси -->
+<section id="slide-10" class="step slide" data-x="9900" data-y="0">
+<div class="eyebrow">NumPy · память</div><h1>Транспонирование: переставляем оси</h1>
+<pre><code class="language-python">A = np.arange(12, dtype=np.float32).reshape(3, 4)
+T = A.T
+# A: shape (3, 4), strides (16, 4)
+# T: shape (4, 3), strides (4, 16)
+
+# A[i, j]: base + i*16 + j*4
+# T[j, i]: base + j*4 + i*16 — тот же адрес
+print(A[1, 2], T[2, 1])  # 6.0 6.0</code></pre>
+<div class="tip">Меняем местами размеры осей и соответствующие strides. Начало данных и буфер остаются прежними.</div>
+<p>Для нескольких осей <code>transpose</code> переставляет пары «размер, stride» в заданном порядке. У <code>.T</code> порядок осей обратный.</p>
+<p class="sources source-code">NumPy 2.1.3 · <a href="https://github.com/numpy/numpy/blob/v2.1.3/numpy/_core/src/multiarray/shape.c#L646-L708">PyArray_Transpose</a></p>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>10 / 76</span></div>
+</section>
+<!-- Слайд 11: reshape: новая форма без копии -->
+<section id="slide-11" class="step slide" data-x="11000" data-y="0">
+<div class="eyebrow">NumPy · память</div><h1>reshape: новая форма без копии</h1>
+<pre><code class="language-python">a = np.arange(12, dtype=np.float32)
+B = a.reshape(3, 4)
+print(a.strides)  # (4,)
+print(B.strides)  # (16, 4)
+print(np.shares_memory(a, B))  # True
+
+# B[i, j] соответствует a[i*4 + j]
+# base + (i*4 + j)*4 = base + i*16 + j*4</code></pre>
+<div class="tip">reshape сохраняет число элементов и их последовательность в выбранном порядке обхода. Здесь меняются только форма и strides.</div>
+<p>Непрерывность не обязательна: для <code>v = a[::2]</code> вызов <code>v.reshape(2, 3)</code> тоже даёт view, со strides <code>(24, 8)</code>.</p>
+<p class="sources source-code">NumPy 2.1.3 · <a href="https://github.com/numpy/numpy/blob/v2.1.3/numpy/_core/src/multiarray/shape.c#L348-L421">_attempt_nocopy_reshape</a></p>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>11 / 76</span></div>
+</section>
+<!-- Слайд 12: reshape после .T: когда нужна копия -->
+<section id="slide-12" class="step slide" data-x="12100" data-y="0">
+<div class="eyebrow">NumPy · память</div><h1>reshape после .T: когда нужна копия</h1>
+<pre><code class="language-python">B = np.arange(12, dtype=np.float32).reshape(3, 4)
+T = B.T  # строки: [0, 4, 8], [1, 5, 9], ...
+v = T.reshape(12)  # по умолчанию order="C"
+print(v)  # [0. 4. 8. 1. 5. 9. 2. 6. 10. 3. 7. 11.]
+print(np.shares_memory(T, v))  # False</code></pre>
+<p>В C-порядке читаем T по строкам. Смещения в исходном буфере:<br><strong>0, 16, 32, 4, 20, 36, 8, 24, 40, 12, 28, 44</strong> байт.</p>
+<div class="warning">Шаг между соседними адресами непостоянен: +16, +16, −28, … Одним stride одномерного view это не выразить — нужна копия.</div>
+<p>Число элементов совпало, но этого недостаточно для reshape без копирования.</p>
+<p class="sources source-code">NumPy 2.1.3 · <a href="https://github.com/numpy/numpy/blob/v2.1.3/numpy/_core/src/multiarray/shape.c#L249-L279">Проверка strides и переход к копии</a></p>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>12 / 76</span></div>
+</section>
+<!-- Слайд 13: Порядок обхода меняет результат reshape -->
+<section id="slide-13" class="step slide" data-x="13200" data-y="0">
+<div class="eyebrow">NumPy · память</div><h1>Порядок обхода меняет результат reshape</h1>
+<pre><code class="language-python"># T — транспонированная матрица с предыдущего слайда.
+w = T.reshape(12, order="F")
+print(w)  # [0. 1. 2. 3. 4. 5. 6. 7. 8. 9. 10. 11.]
+print(w.strides)  # (4,)
+print(np.shares_memory(T, w))  # True</code></pre>
+<p><code>order="C"</code>: быстрее меняется последний индекс.<br><code>order="F"</code>: быстрее меняется первый индекс.</p>
+<div class="tip">Здесь F-порядок идёт по исходному буферу подряд. Копия не нужна, но последовательность значений отличается от C-порядка.</div>
+<p><code>transpose</code> переставляет оси; <code>reshape</code> перегруппировывает последовательность. Разделение памяти проверяем через <code>np.shares_memory</code>.</p>
+<p class="sources source-code">NumPy 2.1.3 · <a href="https://github.com/numpy/numpy/blob/v2.1.3/numpy/_core/src/multiarray/shape.c#L389-L418">Расчёт strides для C и F</a></p>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>13 / 76</span></div>
+</section>
+<!-- Слайд 14: Strides: одинаковые значения, разный шаг -->
+<section id="slide-14" class="step slide experiment" data-x="14300" data-y="0">
+<div class="eyebrow">Практика</div><h1>Strides: одинаковые значения, разный шаг</h1>
+<pre><code class="language-python">n = 1_000_000
+backing = np.zeros(n * 16, dtype=np.float64)
+view = backing[::16]
+view[:] = np.linspace(-1, 2, n)
+contiguous = np.ascontiguousarray(view)
+assert np.array_equal(view, contiguous)
+print(view.strides, contiguous.strides)  # (128,), (8,)
+
+np.sum(view, dtype=np.float64)
+np.sum(contiguous, dtype=np.float64)</code></pre>
+<div class="tip">Значения и порядок индексов одинаковы. Большой шаг снижает использование кэш-линий. view разделяет исходный буфер; contiguous — копия.</div>
+<p>Суммирование и копирование измеряем отдельно; подготовка входов — вне замеров.</p>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>14 / 76</span></div>
+</section>
+<!-- Слайд 15: Когда окупается непрерывная копия? -->
+<section id="slide-15" class="step slide experiment" data-x="15400" data-y="0">
+<div class="eyebrow">Практика</div><h1>Когда окупается непрерывная копия?</h1>
+<p>arm64 · NumPy 2.5.5 · float64<br>Медианы 9 серий повторных вызовов, время в мс:</p>
+<table><tr><th>n</th><th>Шаг 128 Б</th><th>Шаг 8 Б</th><th>Копирование</th></tr><tr><td>100,000</td><td>0.173</td><td>0.023</td><td>0.194</td></tr><tr><td>1,000,000</td><td>3.418</td><td>0.214</td><td>3.611</td></tr></table>
+<p>Копировать выгодно, если <strong>C + K·T₈ &lt; K·T₁₂₈</strong>, то есть K &gt; C / (T₁₂₈ − T₈). Здесь оценка — от 2 проходов.</p>
+<div class="tip">Это оценка по отдельным замерам, а не измерение всей цепочки. Кэш не сбрасывался; учитываем цену выделения копии. При n = 1 млн исходный буфер занимает 128 МБ, копия — ещё 8 МБ.</div>
+<p class="sources"><a href="arch-smolgu-09-strides.py">Скрипт</a> · <a href="arch-smolgu-09-strides-results.json">Условия и все замеры</a><br><code>python arch-smolgu-09-strides.py --output strides.json</code></p>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>15 / 76</span></div>
+</section>
+<!-- Слайд 16: Срез или копия? -->
+<section id="slide-16" class="step slide" data-x="16500" data-y="0">
+<div class="eyebrow">NumPy · память</div><h1>Срез или копия?</h1>
+<pre><code class="language-python">a = np.arange(6, dtype=np.float64)
+v = a[1:4]             # view
+v[0] = 99              # меняется a[1]
+
+c = a[1:4].copy()      # независимый буфер
+c[0] = -1              # a не меняется
+
+picked = a[[1, 3, 5]]  # advanced indexing: копия</code></pre><div class="tip">reshape возвращает view, когда это возможно, иначе может создать копию. Проверяем фактическое разделение памяти.</div>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>16 / 76</span></div>
+</section>
+<!-- Слайд 17: Демо: кто разделяет память? -->
+<section id="slide-17" class="step slide" data-x="17600" data-y="0">
+<div class="eyebrow">NumPy · память</div><h1>Демо: кто разделяет память?</h1>
+<div class="controls"><label for="viewKind">v = a[1:4]</label><select id="viewKind" onchange="resetView()"><option value="view">view</option><option value="copy">copy()</option></select><button type="button" onclick="mutateView()">v[0] = 99</button><button type="button" onclick="resetView()">Сброс</button></div><div class="demo-result" id="viewResult" aria-live="polite"></div><div class="tip">Предскажите a после изменения v. Здесь показана модель владения буфером, а не запущенный интерпретатор Python.</div>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>17 / 76</span></div>
+</section>
+<!-- Слайд 18: ufunc: цикл внутри библиотеки -->
+<section id="slide-18" class="step slide" data-x="18700" data-y="0">
+<div class="eyebrow">NumPy · операции</div><h1>ufunc: цикл внутри библиотеки</h1>
+<pre><code class="language-python">a = np.arange(5, dtype=np.float64)
+b = np.ones_like(a)
+c = np.add(a, b)  # то же, что a + b
+z = np.sin(c)
+
+# Для этих типов цикл обрабатывается нативным кодом.
+# Возможный SIMD зависит от операции, сборки и CPU.</code></pre><div class="tip">Массивная запись, SIMD и многопоточность — разные понятия.</div><ul><li>np.vectorize — удобная обёртка вызовов Python.</li><li>Она не компилирует функцию в SIMD; далее разберём её вызовы.</li></ul>
+<p class="sources source-code">NumPy 2.1.3 · <a href="https://github.com/numpy/numpy/blob/v2.1.3/numpy/_core/src/umath/ufunc_object.c#L948-L976">Вызов нативного strided_loop</a></p>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>18 / 76</span></div>
+</section>
+<!-- Слайд 19: Что происходит при np.add(a, b) -->
+<section id="slide-19" class="step slide dense" data-x="19800" data-y="0">
+<div class="eyebrow">NumPy · SIMD</div><h1>Что происходит при np.add(a, b)</h1>
+<pre><code class="language-python">a = np.arange(1_000_000, dtype=np.float64)
+b = np.ones_like(a)
+c = np.add(a, b)  # c[i] = a[i] + b[i]</code></pre>
+<ol><li>NumPy согласует dtype и формы, готовит выходной массив.</li><li>Выбирает нативное ядро с учётом сборки и возможностей CPU; путь обработки зависит и от strides.</li><li>Ядро читает a и b, складывает значения и записывает c. Python не вызывается для каждой пары.</li></ol>
+<div class="tip">Здесь входы непрерывны, dtype — float64, выход отдельный. Вызов np.add запускает готовое ядро библиотеки; JIT пользовательской функции не нужен.</div>
+<p class="sources"><a href="https://numpy.org/doc/stable/reference/simd/how-it-works.html">NumPy: выбор ядра для CPU</a></p>
+<p class="sources source-code">NumPy 2.1.3 · <a href="https://github.com/numpy/numpy/blob/v2.1.3/numpy/_core/src/umath/ufunc_object.c#L846-L976">Подготовка и вызов цикла</a> · <a href="https://github.com/numpy/numpy/blob/v2.1.3/numpy/_core/src/umath/loops_arithm_fp.dispatch.c.src#L49-L54">Входы ядра: адреса, длина, шаги</a></p>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>19 / 76</span></div>
+</section>
+<!-- Слайд 20: SIMD сложение: четыре float64 за раз -->
+<section id="slide-20" class="step slide dense" data-x="20900" data-y="0">
+<div class="eyebrow">NumPy · SIMD</div><h1>SIMD сложение: четыре float64 за раз</h1>
+<p>Пример для x86 с 256-битными векторами AVX: 256 / 64 = 4 элемента.</p>
+<pre><code class="language-text">ymm0 = [a[i], a[i+1], a[i+2], a[i+3]]
+ymm1 = [b[i], b[i+1], b[i+2], b[i+3]]
+ymm2 = [a[i]+b[i], ..., a[i+3]+b[i+3]]</code></pre>
+<pre><code class="language-x86asm">; Схема в Intel-синтаксисе; rax — смещение в байтах
+vmovupd ymm0, [rdi + rax]        ; загрузить 4 числа a
+vmovupd ymm1, [rsi + rax]        ; загрузить 4 числа b
+vaddpd  ymm2, ymm0, ymm1         ; 4 попарных сложения
+vmovupd [rdx + rax], ymm2        ; записать 4 результата
+add     rax, 32                  ; следующий блок</code></pre>
+<div class="tip">Это учебная схема, не дизассемблирование NumPy. Достаточно AVX; AVX2 также поддерживает эти инструкции. У AArch64 с NEON 128-битный вектор вмещает 2 float64.</div>
+<p class="sources source-code">NumPy 2.1.3 · <a href="https://github.com/numpy/numpy/blob/v2.1.3/numpy/_core/src/common/simd/avx2/arithmetic.h#L21-L22">AVX: _mm256_add_pd</a> · <a href="https://github.com/numpy/numpy/blob/v2.1.3/numpy/_core/src/common/simd/neon/arithmetic.h#L20-L21">NEON: vaddq_f64</a></p>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>20 / 76</span></div>
+</section>
+<!-- Слайд 21: Цикл, остаток и стоимость памяти -->
+<section id="slide-21" class="step slide dense" data-x="22000" data-y="0">
+<div class="eyebrow">NumPy · SIMD</div><h1>Цикл, остаток и стоимость памяти</h1>
+<pre><code class="language-text">i = 0
+пока i + 4 &lt;= n:
+    загрузить 4 элемента a и 4 элемента b
+    сложить попарно; записать 4 элемента c
+    i += 4
+обработать оставшиеся n − i элементов без выхода за границы</code></pre>
+<p>При n = 10: два полных блока по 4 и остаток из 2 элементов. Остаток может обрабатываться скалярно или специальными загрузками и записями.</p>
+<p><strong>На элемент: 2 чтения + 1 запись = 24 байта для float64.</strong> Для 1 млн элементов — 24 МБ логического трафика.</p>
+<div class="tip">SIMD сокращает число арифметических инструкций, но все входы нужно прочитать, а выход записать. Выигрыш зависит и от кэша, памяти и накладных расходов.</div>
+<p class="sources source-code">NumPy 2.1.3 · <a href="https://github.com/numpy/numpy/blob/v2.1.3/numpy/_core/src/umath/loops_arithm_fp.dispatch.c.src#L99-L129">Векторный цикл и обработка остатка</a></p>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>21 / 76</span></div>
+</section>
+<!-- Слайд 22: uint16: складываем срезы с шагами 3 и 11 -->
+<section id="slide-22" class="step slide dense" data-x="23100" data-y="0">
+<div class="eyebrow">NumPy · strides и инструкции</div><h1>uint16: складываем срезы с шагами 3 и 11</h1>
+<pre><code class="language-python">n = 10
+A = np.arange(3*n, dtype=np.uint16)
+B = np.arange(11*n, dtype=np.uint16)
+a, b = A[::3], B[::11]  # оба shape == (10,)
+c = a + b
+print(a.strides, b.strides, c.strides)  # (6,) (22,) (2,)
+print(c)  # [0 14 28 42 56 70 84 98 112 126]</code></pre>
+<p><code>uint16</code> занимает 2 байта: шаги срезов 3 и 11 означают <strong>6 и 22 байта</strong>. Выход непрерывен.</p>
+<pre><code class="language-text">адрес a[i] = начало A + i*6
+адрес b[i] = начало B + i*22
+адрес c[i] = начало c + i*2</code></pre>
+<div class="tip">Каждое слагаемое имеет свой stride. В uint16 сохраняются младшие 16 бит суммы: 65535 + 1 → 0.</div>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>22 / 76</span></div>
+</section>
+<!-- Слайд 23: Разные strides: скалярные инструкции x86 -->
+<section id="slide-23" class="step slide dense" data-x="24200" data-y="0">
+<div class="eyebrow">NumPy · strides и инструкции</div><h1>Разные strides: скалярные инструкции x86</h1>
+<p>Фрагмент кода Clang 17 для эквивалента общего цикла.<br><code>rdi</code>, <code>rsi</code>, <code>rdx</code> — текущие адреса a, b, c;<br><code>r8 = 6</code>, <code>r9 = 22</code>, <code>rax = 2</code> — шаги в байтах.</p>
+<pre><code class="language-x86asm">LBB0_5:                        ; цикл остатка, r10 — счётчик
+    movzx ecx, word ptr [rsi]   ; прочитать uint16 b[i]
+    add   cx, word ptr [rdi]   ; сложить с a[i], 16 бит
+    mov   word ptr [rdx], cx   ; сохранить uint16 c[i]
+    add   rdi, r8              ; следующий a: +6 байт
+    add   rsi, r9              ; следующий b: +22 байта
+    add   rdx, rax             ; следующий c: +2 байта
+    dec   r10
+    jne   LBB0_5</code></pre>
+<div class="tip">Шаги приходят аргументами: умножать индекс на 3 и 11 в каждой итерации не требуется. Достаточно продвигать указатели.</div>
+<p class="sources source-code"><a href="arch-smolgu-09-strided-add.c">Исходник C и команда компиляции</a> · Это отдельный пример, не дизассемблирование NumPy.</p>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>23 / 76</span></div>
+</section>
+<!-- Слайд 24: Почему здесь не получилось SIMD -->
+<section id="slide-24" class="step slide" data-x="25300" data-y="0">
+<div class="eyebrow">NumPy · strides и инструкции</div><h1>Почему здесь не получилось SIMD</h1>
+<p>В NumPy 2.1.3 целочисленный add использует <code>BINARY_LOOP_FAST</code>. Для strides <code>(6, 22, 2)</code> выбирается общий цикл с тремя независимыми шагами.</p>
+<p>У эквивалента, собранного Apple Clang 17 с <code>-O3 -mavx2</code>, основной цикл развёрнут по 4 элемента, но сложения остались <strong>скалярными</strong>. Развёртка цикла сама по себе не означает SIMD.</p>
+<p>Чтобы сложить несколько пар векторно, нужно сначала собрать нужные uint16 в дорожки. Обычная загрузка подряд захватит и пропущенные элементы.</p>
+<div class="tip">Неединичный stride не запрещает SIMD вообще. Но нужны подходящие загрузки и перестановки; выгода зависит от шагов, размера и реализации.</div>
+<p class="sources source-code">NumPy 2.1.3 · <a href="https://github.com/numpy/numpy/blob/v2.1.3/numpy/_core/src/umath/loops_autovec.dispatch.c.src#L64-L78">Целочисленный add</a> · <a href="https://github.com/numpy/numpy/blob/v2.1.3/numpy/_core/src/umath/fast_loop_macros.h#L230-L267">Выбор общего цикла</a> · <a href="https://github.com/numpy/numpy/blob/v2.1.3/numpy/_core/src/umath/fast_loop_macros.h#L79-L91">Продвижение указателей</a></p>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>24 / 76</span></div>
+</section>
+<!-- Слайд 25: np.vectorize: массивы на входе, Python внутри -->
+<section id="slide-25" class="step slide dense" data-x="26400" data-y="0">
+<div class="eyebrow">NumPy · vectorize</div><h1>np.vectorize: массивы на входе, Python внутри</h1>
+<pre><code class="language-python">calls = []
+def scalar_add(a, b):
+    calls.append((a, b))
+    return a + b
+vadd = np.vectorize(scalar_add, otypes=[np.float64])
+X = np.arange(3.).reshape(3, 1)
+Y = np.array([[10., 20.]])
+R = vadd(X, Y)  # [[10., 20.], [11., 21.], [12., 22.]]
+print(R.shape, len(calls))  # (3, 2) 6</code></pre>
+<p>Broadcasting задаёт 6 пар аргументов. Для каждой пары вызывается <code>scalar_add</code> на Python.</p>
+<div class="tip">Здесь «векторизация» означает интерфейс для массивов. Компиляции функции, объединения вычислений в SIMD и автоматического распараллеливания нет.</div>
+<p class="sources source-code">NumPy 2.1.3 · <a href="https://github.com/numpy/numpy/blob/v2.1.3/numpy/lib/_function_base_impl.py#L2541-L2559">Вызов без signature</a></p>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>25 / 76</span></div>
+</section>
+<!-- Слайд 26: Как vectorize исполняет скалярную функцию -->
+<section id="slide-26" class="step slide dense" data-x="27500" data-y="0">
+<div class="eyebrow">NumPy · vectorize</div><h1>Как vectorize исполняет скалярную функцию</h1>
+<pre><code class="language-text">входные числовые массивы
+    ↓ преобразование в object-массивы
+frompyfunc → ufunc с вызовами Python-функции
+    ↓ object-массив результатов
+приведение к dtype, заданному otypes или первому результату</code></pre>
+<pre><code class="language-python">uf = np.frompyfunc(lambda a, b: a + b, 2, 1)
+objects = uf(np.arange(3.), 10.)
+print(objects.dtype)  # object
+numbers = objects.astype(np.float64)</code></pre>
+<div class="tip">Это путь без signature в NumPy 2.1.3. Числовой dtype готового результата не означает, что функция исполнялась нативным числовым циклом.</div>
+<p>ufunc — интерфейс вызова; у frompyfunc тело операции по-прежнему вызывает Python.</p>
+<p class="sources source-code">NumPy 2.1.3 · <a href="https://github.com/numpy/numpy/blob/v2.1.3/numpy/lib/_function_base_impl.py#L2472-L2559">frompyfunc, object-входы и приведение выхода</a></p>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>26 / 76</span></div>
+</section>
+<!-- Слайд 27: otypes: тип выхода, а не компиляция -->
+<section id="slide-27" class="step slide dense" data-x="28600" data-y="0">
+<div class="eyebrow">NumPy · vectorize</div><h1>otypes: тип выхода, а не компиляция</h1>
+<pre><code class="language-python">def choose(t):
+    return 1 if t > 0 else 0.5
+inferred = np.vectorize(choose)
+explicit = np.vectorize(choose, otypes=[np.float64])
+print(inferred([1., -1.]))  # [1 0]: тип по первому ответу
+print(explicit([1., -1.]))  # [1.  0.5]
+print(explicit(np.array([])).shape)  # (0,)</code></pre>
+<p>Без otypes первый вызов определяет число и типы выходов. Здесь первый ответ — целое число, поэтому последующие 0.5 приводятся к целому типу.</p>
+<div class="tip">otypes задаёт dtype результата. Он не задаёт типы промежуточной арифметики Python-функции и не включает SIMD.</div>
+<p>Для пустого входа без signature нужно задать otypes: первого элемента для определения типа нет.</p>
+<p class="sources source-code">NumPy 2.1.3 · <a href="https://github.com/numpy/numpy/blob/v2.1.3/numpy/lib/_function_base_impl.py#L2496-L2539">Определение выходов по первому вызову</a></p>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>27 / 76</span></div>
+</section>
+<!-- Слайд 28: cache=True: что именно кэшируется -->
+<section id="slide-28" class="step slide dense" data-x="29700" data-y="0">
+<div class="eyebrow">NumPy · vectorize</div><h1>cache=True: что именно кэшируется</h1>
+<pre><code class="language-python">for options in ({}, {"cache": True}, {"otypes": [float]}):
+    calls = []
+    def f(t):
+        calls.append(float(t))
+        return t + 1
+    vf = np.vectorize(f, **options)
+    vf([1., 1., 2.])
+    print(len(calls))  # 4, затем 3, затем 3</code></pre>
+<p>По умолчанию: один пробный вызов для типа + три вызова по элементам. cache=True переиспользует ответ пробного вызова; otypes устраняет саму пробу.</p>
+<div class="tip">Повторяющиеся единицы всё равно обрабатываются отдельно. Это не кэш ответов по значениям и не кэш JIT-компиляции.</div>
+<p>Результат показан для вызова без signature. Дополнительная обёртка cache может добавить накладные расходы.</p>
+<p class="sources source-code">NumPy 2.1.3 · <a href="https://github.com/numpy/numpy/blob/v2.1.3/numpy/lib/_function_base_impl.py#L2496-L2539">Кэш единственного пробного результата</a></p>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>28 / 76</span></div>
+</section>
+<!-- Слайд 29: signature: Python вызывается для подмассивов -->
+<section id="slide-29" class="step slide dense" data-x="30800" data-y="0">
+<div class="eyebrow">NumPy · vectorize</div><h1>signature: Python вызывается для подмассивов</h1>
+<pre><code class="language-python">calls = []
+def energy(row):
+    calls.append(row.shape)
+    return np.dot(row, row)
+row_energy = np.vectorize(energy, otypes=[float],
+                          signature="(n)->()")
+X = np.arange(12., dtype=np.float64).reshape(3, 4)
+E = row_energy(X)
+print(E)      # [14. 126. 366.]
+print(calls)  # [(4,), (4,), (4,)]</code></pre>
+<p>Ось длины n — аргумент одного вызова; внешние оси задают пакет. Здесь три Python-вызова, каждый получает строку из четырёх чисел.</p>
+<div class="tip">Внешний цикл остаётся Python. Внутренний np.dot может использовать нативное ядро и SIMD — это свойство dot, не компиляция energy.</div>
+<p class="sources source-code">NumPy 2.1.3 · <a href="https://github.com/numpy/numpy/blob/v2.1.3/numpy/lib/_function_base_impl.py#L2562-L2615">signature: цикл по внешним индексам</a></p>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>29 / 76</span></div>
+</section>
+<!-- Слайд 30: Где появляется нативная обработка массива -->
+<section id="slide-30" class="step slide dense" data-x="31900" data-y="0">
+<div class="eyebrow">NumPy · vectorize</div><h1>Где появляется нативная обработка массива</h1>
+<pre><code class="language-python">xv = np.linspace(-2, 2, 1000)
+def scalar_formula(t):
+    return t*t + 1
+via_python = np.vectorize(scalar_formula, otypes=[float])(xv)
+via_numpy = xv*xv + 1
+assert np.allclose(via_python, via_numpy)
+
+slow_sine = np.vectorize(np.sin, otypes=[float])(xv)
+native_sine = np.sin(xv)
+assert np.allclose(slow_sine, native_sine)</code></pre>
+<p><code>xv*xv + 1</code> запускает два нативных прохода. <code>np.sin(xv)</code> передаёт весь массив одному вызову ufunc.</p>
+<div class="tip">Обернуть np.sin в vectorize — значит вызывать его отдельно для скаляров. Для компиляции собственного числового цикла далее рассмотрим Numba.</div>
+<p class="sources source-code">NumPy 2.1.3 · <a href="https://github.com/numpy/numpy/blob/v2.1.3/numpy/lib/_function_base_impl.py#L2541-L2559">vectorize сохраняет вызовы функции по элементам</a></p>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>30 / 76</span></div>
+</section>
+<!-- Слайд 31: Когда vectorize полезен -->
+<section id="slide-31" class="step slide dense experiment" data-x="33000" data-y="0">
+<div class="eyebrow">NumPy · vectorize</div><h1>Когда vectorize полезен</h1>
+<table><tr><th>Ситуация</th><th>Что получаем</th></tr><tr><td>Готовая скалярная Python-функция</td><td>Применение к массивам с broadcasting</td></tr><tr><td>Функция обрабатывает подмассив</td><td>signature задаёт размеры одного вызова</td></tr><tr><td>Общий параметр для всех вызовов</td><td>excluded передаёт аргумент без перебора</td></tr><tr><td>Нужна высокая скорость числового цикла</td><td>Сам vectorize не устраняет Python-вызовы</td></tr></table>
+<p>Если внутри signature-вызова есть большая нативная операция, её работа может преобладать над внешними накладными расходами.</p>
+<div class="tip">Различаем три вещи: удобный интерфейс массивов, нативный цикл над числами и SIMD-инструкции. np.vectorize обеспечивает первое; второе и третье зависят от вызванной функции.</div>
+<p class="sources source-code">NumPy 2.1.3 · <a href="https://github.com/numpy/numpy/blob/v2.1.3/numpy/lib/_function_base_impl.py#L2425-L2458">excluded: передача аргументов без перебора</a></p>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>31 / 76</span></div>
+</section>
+<!-- Слайд 32: Broadcasting: сравниваем справа -->
+<section id="slide-32" class="step slide" data-x="34100" data-y="0">
+<div class="eyebrow">NumPy · операции</div><h1>Broadcasting: сравниваем справа</h1>
+<pre><code class="language-text">(3, 4) +    (4,)  → (3, 4)
+(3, 1) +  (1, 4)  → (3, 4)
+(3, 4) +    (3,)  → ошибка
+
+Размерности совместимы, если равны
+или одна из них равна 1.
+Отсутствующие слева оси считаем единичными.</code></pre><div class="tip">Вход не требуется физически размножать. Но результат операции может занимать большой объём памяти.</div>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>32 / 76</span></div>
+</section>
+<!-- Слайд 33: Демо: совместимость форм -->
+<section id="slide-33" class="step slide" data-x="35200" data-y="0">
+<div class="eyebrow">NumPy · операции</div><h1>Демо: совместимость форм</h1>
+<div class="controls"><label for="shapeCase">Пример:</label><select id="shapeCase" onchange="renderBroadcast()"><option value="0">(3, 4) + (4,)</option><option value="1">(3, 1) + (1, 4)</option><option value="2">(3, 4) + (3,)</option><option value="3">(2, 3, 4) + (3, 1)</option></select></div><div class="demo-result" id="broadcastResult" aria-live="polite"></div><div class="tip">Вопрос: куда добавить единичную ось, чтобы вектор длины 3 применился к строкам матрицы 3 × 4?</div><p>Ответ: <code>v[:, None]</code> имеет форму <code>(3, 1)</code>.</p>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>33 / 76</span></div>
+</section>
+<!-- Слайд 34: Редукции: axis и keepdims -->
+<section id="slide-34" class="step slide" data-x="36300" data-y="0">
+<div class="eyebrow">NumPy · операции</div><h1>Редукции: axis и keepdims</h1>
+<pre><code class="language-python">A = np.arange(12).reshape(3, 4)
+A.sum(axis=0)  # [12, 15, 18, 21], форма (4,)
+A.sum(axis=1)  # [6, 22, 38], форма (3,)
+
+A.mean(axis=0, keepdims=True).shape  # (1, 4)
+A.mean(axis=1, keepdims=True).shape  # (3, 1)</code></pre><div class="tip">axis — ось, по которой сворачиваем. keepdims оставляет на её месте размер 1 для последующего broadcasting.</div>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>34 / 76</span></div>
+</section>
+<!-- Слайд 35: Нормализуем столбцы -->
+<section id="slide-35" class="step slide" data-x="37400" data-y="0">
+<div class="eyebrow">NumPy · операции</div><h1>Нормализуем столбцы</h1>
+<pre><code class="language-python"># X: непустая вещественная матрица наблюдений.
+X = np.array([[1., 5.], [2., 5.], [3., 5.]])
+mean = X.mean(axis=0, keepdims=True)
+std = X.std(axis=0, keepdims=True)
+Y = np.zeros_like(X)
+np.divide(X - mean, std, out=Y, where=(std != 0))
+# Постоянный второй столбец превращается в нули.</code></pre><div class="tip">Явно задаём политику для std = 0. Малый ненулевой std — отдельный вопрос устойчивости.</div>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>35 / 76</span></div>
+</section>
+<!-- Слайд 36: Поэлементное и матричное умножение -->
+<section id="slide-36" class="step slide" data-x="38500" data-y="0">
+<div class="eyebrow">NumPy · операции</div><h1>Поэлементное и матричное умножение</h1>
+<pre><code class="language-python">A = np.array([[1., 2.], [3., 4.]])
+B = np.array([[10., 20.], [30., 40.]])
+A * B   # [[10, 40], [90, 160]]
+A @ B   # [[70, 100], [150, 220]]
+
+# Для двумерных матриц:
+# (m, k) @ (k, n) → (m, n)</code></pre><div class="tip">Оператор выбирает математическую задачу. Совпадение форм не делает * и @ взаимозаменяемыми.</div>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>36 / 76</span></div>
+</section>
+<!-- Слайд 37: Цена промежуточных массивов -->
+<section id="slide-37" class="step slide" data-x="39600" data-y="0">
+<div class="eyebrow">NumPy · операции</div><h1>Цена промежуточных массивов</h1>
+<pre><code class="language-python"># x, y, p — данные и параметры со слайда 3, float64.
+sse = np.sum((p[0]*x + p[1] - y)**2, dtype=np.float64)
+
+work = np.empty_like(x)
+np.multiply(p[0], x, out=work)
+np.add(work, p[1], out=work)
+np.subtract(work, y, out=work)
+np.square(work, out=work)
+sse = np.sum(work, dtype=np.float64)</code></pre><div class="tip">out переиспользует один буфер, но остаются пять проходов: умножение, сложение, вычитание, квадрат и сумма. Обычная запись выражения также выполняет эти операции отдельно.</div>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>37 / 76</span></div>
+</section>
+<!-- Слайд 38: dtype: диапазон и переполнение -->
+<section id="slide-38" class="step slide" data-x="40700" data-y="0">
+<div class="eyebrow">NumPy · точность</div><h1>dtype: диапазон и переполнение</h1>
+<pre><code class="language-python">u = np.array([255], dtype=np.uint8)
+u + np.array([1], dtype=np.uint8)  # [0]
+u.astype(np.uint16) + 1          # [256]
+
+f = np.array([2**24], dtype=np.float32)
+f + np.float32(1)                # 16777216
+f.astype(np.float64) + 1         # 16777217</code></pre><div class="warning">Расширение типа после потери информации не восстанавливает потерянные биты.</div>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>38 / 76</span></div>
+</section>
+<!-- Слайд 39: Суммирование и тип аккумулятора -->
+<section id="slide-39" class="step slide" data-x="41800" data-y="0">
+<div class="eyebrow">NumPy · точность</div><h1>Суммирование и тип аккумулятора</h1>
+<pre><code class="language-python">a = np.full(100_000, 0.1, dtype=np.float32)
+s32 = np.sum(a, dtype=np.float32)
+s64 = np.sum(a, dtype=np.float64)
+
+# s64 складывает значения, уже округлённые в float32.
+# Он не превращает их обратно в точные десятые.</code></pre><ul><li>Тип входа и тип аккумулятора — разные решения.</li><li>Порядок суммирования также влияет на ответ.</li><li>Не рассчитываем на совпадение с простым левым Python-циклом.</li></ul>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>39 / 76</span></div>
+</section>
+<!-- Слайд 40: Исследуем соседей float32 -->
+<section id="slide-40" class="step slide" data-x="42900" data-y="0">
+<div class="eyebrow">NumPy · точность</div><h1>Исследуем соседей float32</h1>
+<pre><code class="language-python">f = np.finfo(np.float32)
+print(f.eps)   # 2^-23: шаг выше единицы
+print(f.tiny)  # 2^-126: минимум нормальных
+
+one = np.float32(1)
+np.nextafter(one, np.float32(np.inf)) - one
+# 2^-23
+np.nextafter(np.float32(0), np.float32(1))
+# 2^-149: минимальное положительное субнормальное</code></pre><div class="tip">tiny — не самое маленькое положительное представимое число.</div>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>40 / 76</span></div>
+</section>
+<!-- Слайд 41: Демо: шаг между числами float32 -->
+<section id="slide-41" class="step slide" data-x="44000" data-y="0">
+<div class="eyebrow">NumPy · точность</div><h1>Демо: шаг между числами float32</h1>
+<div class="controls"><label for="spacingCase">Точка:</label><select id="spacingCase" onchange="renderSpacing()"><option value="0">0</option><option value="1" selected>1</option><option value="2">2²⁴</option><option value="3">2⁻¹²⁶</option></select></div><div class="demo-result" id="spacingResult" aria-live="polite"></div><div class="tip">Для выбранных неотрицательных конечных чисел следующий битовый код даёт следующего соседа. Это модель binary32 на JavaScript.</div>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>41 / 76</span></div>
+</section>
+<!-- Слайд 42: Особые значения и сравнения -->
+<section id="slide-42" class="step slide" data-x="45100" data-y="0">
+<div class="eyebrow">NumPy · точность</div><h1>Особые значения и сравнения</h1>
+<pre><code class="language-python">a = np.array([0., -0., np.inf, np.nan])
+np.isnan(a)   # [False, False, False, True]
+np.isinf(a)   # [False, False, True, False]
+np.signbit(a[:2])  # [False, True]
+
+np.allclose(actual, expected, rtol=1e-6, atol=1e-9)
+# Для конечных: |a-b| &lt;= atol + rtol*|b|</code></pre><div class="tip">Допуски задаёт задача. allclose не различает знаки нуля; NaN требуют явно выбранной политики.</div>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>42 / 76</span></div>
+</section>
+<!-- Слайд 43: Кто исполняет A @ B? -->
+<section id="slide-43" class="step slide" data-x="46200" data-y="0">
+<div class="eyebrow">BLAS и LAPACK</div><h1>Кто исполняет A @ B?</h1>
+<div class="flow"><span>Python</span><b>→</b><span>NumPy</span><b>→</b><span>BLAS</span><b>→</b><span>CPU</span></div><ul><li>BLAS — интерфейсы базовой линейной алгебры.</li><li>LAPACK — решения систем и матричные разложения.</li><li>OpenBLAS и Intel oneMKL — примеры реализаций.</li><li>Нативные ядра могут использовать блоки, SIMD и потоки.</li></ul><div class="tip">Маршрут зависит от операции, dtype и сборки. Не всякая операция NumPy вызывает BLAS.</div>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>43 / 76</span></div>
+</section>
+<!-- Слайд 44: Узнаём установленную реализацию -->
+<section id="slide-44" class="step slide" data-x="47300" data-y="0">
+<div class="eyebrow">BLAS и LAPACK</div><h1>Узнаём установленную реализацию</h1>
+<pre><code class="language-python">import numpy as np
+
+import scipy
+print(np.__version__, scipy.__version__)
+scipy.show_config()  # SciPy может использовать другой BLAS
+np.show_config()   # сведения о сборке и библиотеках
+np.show_runtime()  # сведения об окружении исполнения</code></pre><ul><li>Фиксируем CPU, версии и backend в отчёте.</li><li>Контролируем число потоков используемой реализации.</li><li>Несколько процессов с многопоточным BLAS могут конкурировать за одни ядра.</li></ul>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>44 / 76</span></div>
+</section>
+<!-- Слайд 45: Ограничиваем потоки BLAS -->
+<section id="slide-45" class="step slide experiment" data-x="48400" data-y="0">
+<div class="eyebrow">Практика</div><h1>Ограничиваем потоки BLAS</h1>
+<pre><code class="language-python">from threadpoolctl import threadpool_info, threadpool_limits
+
+M = np.ones((256, 256), dtype=np.float64)
+print(threadpool_info())  # загруженные поддерживаемые библиотеки
+with threadpool_limits(limits=1, user_api="blas"):
+    print(threadpool_info())  # проверяем num_threads
+    product = M @ M
+# При выходе прежние настройки восстанавливаются.</code></pre>
+<p>Лимит действует на поддерживаемые BLAS-библиотеки процесса. Не ограничивает prange Numba или GPU. Сначала импортируем используемые библиотеки.</p>
+<div class="tip">Нужен threadpoolctl. Пустой список не доказывает отсутствие BLAS: местный Apple Accelerate не обнаружен, лимит не подтверждён. Проверяем backend и num_threads.</div>
+<p class="sources"><a href="https://github.com/joblib/threadpoolctl">Документация threadpoolctl</a></p>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>45 / 76</span></div>
+</section>
+<!-- Слайд 46: Матричное умножение: блоки и SIMD -->
+<section id="slide-46" class="step slide dense" data-x="49500" data-y="0">
+<div class="eyebrow">BLAS и LAPACK</div><h1>Матричное умножение: блоки и SIMD</h1>
+<p>Ядро накапливает небольшой блок C в регистрах и многократно использует загруженные фрагменты A и B.</p>
+<pre><code class="language-text">для блока C:
+    загрузить / обнулить векторные аккумуляторы
+    для k внутри блока:
+        загрузить вектор из A
+        размножить нужное значение B по дорожкам
+        C_vector = A_vector * B_scalar + C_vector
+    сохранить блок C</code></pre>
+<p>Возможная инструкция на x86 с AVX/FMA — <code>vfmadd231pd</code>: умножение и сложение по дорожкам с одним округлением.</p>
+<div class="tip">Упаковка панелей делает доступ удобным для микроядра. Размеры блоков зависят от регистров, кэша и CPU; упаковка тоже стоит времени.</div>
+<p class="sources source-code"><a href="https://github.com/OpenMathLib/OpenBLAS/blob/v0.3.28/kernel/x86_64/dgemm_kernel_4x8_haswell.S#L175-L215">OpenBLAS 0.3.28: пример микроядра Haswell с FMA</a></p>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>46 / 76</span></div>
+</section>
+<!-- Слайд 47: SciPy: доступ к BLAS и LAPACK -->
+<section id="slide-47" class="step slide" data-x="50600" data-y="0">
+<div class="eyebrow">SciPy · BLAS</div><h1>SciPy: доступ к BLAS и LAPACK</h1>
+<div class="flow"><span>SciPy</span><b>→</b><span>Обёртка</span><b>→</b><span>BLAS / LAPACK</span><b>→</b><span>CPU</span></div>
+<table><tr><th>Уровень BLAS</th><th>Пример</th><th>Работа для размера n</th></tr><tr><td>1 · векторы</td><td>dot: xᵀy</td><td>≈ 2n FLOP</td></tr><tr><td>2 · матрица и вектор</td><td>gemv: Ax</td><td>≈ 2n² FLOP</td></tr><tr><td>3 · матрицы</td><td>gemm: AB</td><td>≈ 2n³ FLOP</td></tr></table>
+<p>Для квадратных матриц float64 идеальная интенсивность: dot ≈ 1/8, gemv ≈ 1/4, gemm ≈ n/12 FLOP/байт.</p>
+<div class="tip">Оценка при однократном чтении входов, записи выхода и β = 0, без упаковки. GEMM даёт больше возможностей переиспользовать данные.</div>
+<p class="sources source-code"><a href="https://docs.scipy.org/doc/scipy/reference/linalg.blas.html">SciPy: низкоуровневые BLAS, уровни 1–3</a></p>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>47 / 76</span></div>
+</section>
+<!-- Слайд 48: GEMM: что передаём нативному ядру -->
+<section id="slide-48" class="step slide dense" data-x="51700" data-y="0">
+<div class="eyebrow">SciPy · BLAS</div><h1>GEMM: что передаём нативному ядру</h1>
+<p><strong>C ← α·op(A)·op(B) + β·C</strong><br>A: (m, k), B: (k, n), C: (m, n), если без транспонирования.</p>
+<pre><code class="language-python">from scipy.linalg.blas import get_blas_funcs
+A = np.array([[1., 2.], [3., 4.]], order="F")
+B = np.array([[5., 6.], [7., 8.]], order="F")
+gemm = get_blas_funcs("gemm", (A, B))
+C = gemm(1.0, A, B)  # alpha=1, beta=0
+assert np.allclose(C, A @ B)
+print(gemm.typecode, gemm.module_name)  # d; модуль обёртки</code></pre>
+<p>Нативный GEMM получает адреса, размеры, ведущие размеры и флаги транспонирования. Обёртка SciPy подготавливает эти аргументы.</p>
+<div class="tip">Префиксы: s — float32, d — float64, c/z — complex64/128. get_blas_funcs подбирает тип; module_name не определяет поставщика BLAS.</div>
+<p class="sources source-code"><a href="https://github.com/scipy/scipy/blob/v1.14.1/scipy/linalg/fblas_l3.pyf.src#L16-L49">SciPy 1.14.1: обёртка GEMM и скрытые аргументы</a></p>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>48 / 76</span></div>
+</section>
+<!-- Слайд 49: Strides и leading dimension -->
+<section id="slide-49" class="step slide dense" data-x="52800" data-y="0">
+<div class="eyebrow">SciPy · размещение</div><h1>Strides и leading dimension</h1>
+<p>В классическом Fortran BLAS матрица хранится по столбцам.<br>Для float64: <strong>адрес A[i, j] = base + 8·(i + j·lda)</strong>.</p>
+<pre><code class="language-python">AF = np.arange(12, dtype=np.float64).reshape(3, 4, order="F")
+print(AF.strides)       # (8, 24): lda = 3 элемента
+print(AF.T.strides)     # (24, 8)
+print(AF[::2].strides)  # (16, 24)</code></pre>
+<p><code>lda</code> — расстояние между началами столбцов в элементах; может учитывать промежутки между ними. Это не произвольная пара strides.</p>
+<div class="tip">Флаги trans описывают математическое транспонирование. Срез с шагом по строкам, как AF[::2], нельзя напрямую передать в обычный column-major GEMM с шагом 1 внутри столбца.</div>
+<p>Обёртка может подготовить совместимый буфер. Для SciPy fblas удобно заранее иметь нужный dtype и F-порядок.</p>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>49 / 76</span></div>
+</section>
+<!-- Слайд 50: Скрытая копия на границе SciPy и BLAS -->
+<section id="slide-50" class="step slide dense" data-x="53900" data-y="0">
+<div class="eyebrow">SciPy · память</div><h1>Скрытая копия на границе SciPy и BLAS</h1>
+<pre><code class="language-python"># A, B и gemm — со слайда 48.
+for order in ("C", "F"):
+    C0 = np.ones((2, 2), dtype=np.float64, order=order)
+    R = gemm(1.0, A, B, beta=1.0, c=C0, overwrite_c=1)
+    assert np.allclose(R, A @ B + 1)
+    print(order, np.shares_memory(C0, R))
+# Проверено с SciPy 1.14.1 / fblas: C False; F True.</code></pre>
+<p><code>overwrite_c=1</code> разрешает перезапись. Если тип или порядок не подходит обёртке, перезаписан может быть промежуточный буфер.</p>
+<div class="tip">Всегда используем возвращённый R. Преобразование входа обёрткой и внутренняя упаковка панелей в BLAS — два разных источника затрат.</div>
+<p>В замере приложения учитываем нужные преобразования. В замере ядра подготавливаем данные заранее и явно указываем это.</p>
+<p class="sources source-code"><a href="https://docs.scipy.org/doc/scipy/reference/linalg.blas.html">SciPy BLAS: условия overwrite и копирования</a></p>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>50 / 76</span></div>
+</section>
+<!-- Слайд 51: LAPACK: факторизация и хранение LU -->
+<section id="slide-51" class="step slide dense" data-x="55000" data-y="0">
+<div class="eyebrow">SciPy · LAPACK</div><h1>LAPACK: факторизация и хранение LU</h1>
+<pre><code class="language-python">from scipy.linalg.lapack import get_lapack_funcs
+M = np.array([[3., 1.], [1., 2.]], order="F")
+getrf, getrs = get_lapack_funcs(("getrf", "getrs"), (M,))
+lu, piv, info = getrf(M.copy(order="F"), overwrite_a=1)
+assert info == 0
+print(lu)  # [[3., 1.], [1/3, 5/3]] с округлением
+print(piv) # перестановки строк, индексы SciPy с нуля</code></pre>
+<p>В одном массиве: U — на диагонали и выше, множители L — ниже диагонали. Единичная диагональ L подразумевается.</p>
+<div class="tip">getrf: info &lt; 0 — неверный аргумент; info &gt; 0 — нулевой диагональный элемент U. info = 0 не оценивает обусловленность задачи.</div>
+<p>Входная копия сохраняет исходную M для проверки ответа. Перезапись позволяет использовать память матрицы под факторы.</p>
+<p class="sources source-code"><a href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.linalg.lapack.dgetrf.html">SciPy: dgetrf</a> · <a href="https://github.com/Reference-LAPACK/lapack/blob/v3.12.0/SRC/dgetrf.f#L51-L93">LAPACK 3.12.0: хранение LU и info</a></p>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>51 / 76</span></div>
+</section>
+<!-- Слайд 52: Как LAPACK использует BLAS уровня 3 -->
+<section id="slide-52" class="step slide dense" data-x="56100" data-y="0">
+<div class="eyebrow">SciPy · LAPACK</div><h1>Как LAPACK использует BLAS уровня 3</h1>
+<p>В блочном LU-разложении после обработки панели обновляется оставшаяся подматрица:</p>
+<pre><code class="language-text">[ A11  A12 ]   →   факторизовать панель и переставить строки
+[ A21  A22 ]       вычислить блок U12 через TRSM
+                  A22 ← A22 − L21 · U12 через GEMM</code></pre>
+<p>Панель содержит зависимости и выбор ведущего элемента. Обновление A22 — крупное матричное произведение с возможностями для кэша, SIMD и потоков.</p>
+<div class="tip">LAPACK организует алгоритм, BLAS выполняет крупные операции. Время факторизации зависит и от панели, и от BLAS-ядер, и от размера блоков.</div>
+<p>В эталонном DGETRF размер блока выбирает ILAENV; для подходящих размеров блочная ветвь вызывает DTRSM и DGEMM.</p>
+<p class="sources source-code"><a href="https://github.com/Reference-LAPACK/lapack/blob/v3.12.0/SRC/dgetrf.f#L164-L213">LAPACK 3.12.0: панель, DTRSM и обновление через DGEMM</a></p>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>52 / 76</span></div>
+</section>
+<!-- Слайд 53: Переиспользуем факторизацию для разных RHS -->
+<section id="slide-53" class="step slide dense" data-x="57200" data-y="0">
+<div class="eyebrow">SciPy · LAPACK</div><h1>Переиспользуем факторизацию для разных RHS</h1>
+<pre><code class="language-python"># getrs, lu, piv и исходная M — со слайда 51.
+rhs = np.array([[9., 1.], [8., 0.]], order="F")
+solutions, info = getrs(lu, piv, rhs)
+assert info == 0
+assert np.allclose(M @ solutions, rhs)
+print(solutions[:, 0])  # [2., 3.]</code></pre>
+<p>Столбцы rhs — разные правые части для одной M. getrs применяет перестановки и решает две треугольные системы по готовым факторам.</p>
+<p>Плотная LU-факторизация: примерно <strong>2/3·n³ FLOP</strong>.<br>Решение по факторам: примерно <strong>2n²·nrhs FLOP</strong>.</p>
+<div class="tip">Сохраняем LU, если меняется только правая часть. Несколько RHS можно обрабатывать вместе; выигрыш зависит от их числа и реализации.</div>
+<p class="sources source-code"><a href="https://github.com/Reference-LAPACK/lapack/blob/v3.12.0/SRC/dgetrs.f#L180-L198">LAPACK 3.12.0: перестановки и два DTRSM</a></p>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>53 / 76</span></div>
+</section>
+<!-- Слайд 54: Сквозная SSE через GEMV и DOT -->
+<section id="slide-54" class="step slide dense" data-x="58300" data-y="0">
+<div class="eyebrow">SciPy · BLAS</div><h1>Сквозная SSE через GEMV и DOT</h1>
+<pre><code class="language-python"># Наблюдения со слайда 3, снова задаём после примеров матриц.
+x = np.linspace(-2, 2, 101, dtype=np.float64)
+rng = np.random.default_rng(42)
+y = 2*x + 1 + rng.normal(0, 0.1, x.size)
+p = np.array([0., 0.])
+D = np.asfortranarray(np.column_stack((x, np.ones_like(x))))
+gemv = get_blas_funcs("gemv", (D, p))
+dot = get_blas_funcs("dot", (x,))
+r = gemv(1.0, D, p) - y
+sse_blas = dot(r, r)
+assert np.isclose(sse_blas, np.sum(r*r), rtol=1e-12)</code></pre>
+<div class="tip">BLAS ускоряет отдельные операции, но здесь остаются матрица D, вектор невязок и несколько этапов. Создание D тоже имеет цену.</div>
+<p>Далее сравним с собственным циклом, который читает только x и y и накапливает SSE без рабочего массива.</p>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>54 / 76</span></div>
+</section>
+<!-- Слайд 55: Numba: компилируем собственный цикл -->
+<section id="slide-55" class="step slide" data-x="59400" data-y="0">
+<div class="eyebrow">Numba</div><h1>Numba: компилируем собственный цикл</h1>
+<pre><code class="language-python">from numba import njit
+
+@njit
+def squared_error(p, x, y):
+    total = np.float64(0)
+    for i in range(x.size):
+        r = p[0]*x[i] + p[1] - y[i]
+        total += r*r
+    return total</code></pre><div class="tip">Контракт: p имеет форму (2,), x и y — (n,); все три массива одного вещественного dtype. Невязка и квадрат — в этом dtype, аккумулятор — float64. Без fastmath; базовый пример — float64.</div>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>55 / 76</span></div>
+</section>
+<!-- Слайд 56: Первый вызов и последующие -->
+<section id="slide-56" class="step slide" data-x="60500" data-y="0">
+<div class="eyebrow">Numba</div><h1>Первый вызов и последующие</h1>
+<pre><code class="language-python"># Те же x, y со слайда 54; фиксируем параметры модели.
+p = np.array([0., 0.], dtype=np.float64)
+first = squared_error(p, x, y)  # включает компиляцию
+again = squared_error(p, x, y)  # готовая специализация
+
+r = p[0]*x + p[1] - y
+reference = np.sum(r*r, dtype=np.float64)
+assert np.isclose(again, reference, rtol=1e-10, atol=1e-12)</code></pre><div class="tip">Смена dtype может потребовать новую специализацию. Для float32 приводим p, x, y к float32; в NumPy оставляем sum(..., dtype=np.float64). Порядок сложения может различаться. Компиляцию и вычисление измеряем отдельно.</div>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>56 / 76</span></div>
+</section>
+<!-- Слайд 57: Один цикл вместо временных массивов -->
+<section id="slide-57" class="step slide experiment" data-x="61600" data-y="0">
+<div class="eyebrow">Numba</div><h1>Один цикл вместо временных массивов</h1>
+<p>SSE прямой со слайда 37: n элементов float64. Модель обращений к массивам:</p>
+<table><tr><th>Отдельный проход</th><th>Чтения</th><th>Записи</th></tr>
+<tr><td>k*x; прибавить b (два прохода)</td><td>2n</td><td>2n</td></tr>
+<tr><td>Вычесть y</td><td>2n</td><td>n</td></tr>
+<tr><td>Возвести в квадрат</td><td>n</td><td>n</td></tr>
+<tr><td>Суммировать</td><td>n</td><td>0</td></tr></table>
+<p><strong>NumPy: 6n чтений + 4n записей = 80n байт.</strong><br>Один цикл: чтение x[i] и y[i] = <strong>16n байт</strong>, если промежуточные значения и сумма остаются в регистрах.</p>
+<div class="tip">Не считаем k, b и скалярный результат. Это логический трафик: обмен с RAM зависит от кэша и политики записи. out сохраняет проходы; 80/16 = 5 не обещает ускорения ×5.</div>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>57 / 76</span></div>
+</section>
+<!-- Слайд 58: Эксперимент: время вычисления SSE -->
+<section id="slide-58" class="step slide experiment" data-x="62700" data-y="0">
+<div class="eyebrow">Измерения · CPU</div><h1>Эксперимент: время вычисления SSE</h1>
+<p>Apple M1 Pro · arm64 · Python 3.15.0<br>NumPy 2.5.5 · Numba 0.68.1 · аккумулятор float64</p>
+<table><tr><th>Входы</th><th>n</th><th>NumPy, мс</th><th>out, мс</th><th>Numba, мс</th></tr>
+<tr><td>float32</td><td>1 000</td><td>0.0041</td><td>0.0037</td><td>0.0013</td></tr><tr><td>float32</td><td>100 000</td><td>0.0746</td><td>0.0708</td><td>0.1008</td></tr><tr><td>float32</td><td>5 000 000</td><td>4.4213</td><td>4.4646</td><td>5.4152</td></tr><tr><td>float64</td><td>1 000</td><td>0.0036</td><td>0.0031</td><td>0.0013</td></tr><tr><td>float64</td><td>100 000</td><td>0.0981</td><td>0.0937</td><td>0.0975</td></tr><tr><td>float64</td><td>5 000 000</td><td>7.3511</td><td>6.6470</td><td>5.2966</td></tr></table>
+<div class="tip">Медиана 7 серий, время одного вызова. JIT прогрет; Numba без parallel и fastmath. Подготовка входов и буфера out вне замера; временные массивы NumPy — внутри. Порядок методов перемешивается.</div>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>58 / 76</span></div>
+</section>
+<!-- Слайд 59: Эксперимент: память и проверка результата -->
+<section id="slide-59" class="step slide experiment" data-x="63800" data-y="0">
+<div class="eyebrow">Измерения · интерпретация</div><h1>Память и проверка результата</h1>
+<table><tr><th>Метод</th><th>Рабочие буферы*</th><th>Макс. отн. ошибка**</th></tr>
+<tr><td>NumPy</td><td>2n·itemsize</td><td>1.6e-16</td></tr>
+<tr><td>out</td><td>n·itemsize</td><td>1.6e-16</td></tr>
+<tr><td>Numba</td><td>0</td><td>4.6e-15</td></tr>
+</table>
+<p>* Явные буферы без входов и JIT, не RSS. При n = 5 млн, float64: 80 / 40 / 0 МБ.</p>
+<p>** Максимум по размерам и dtype. Эталон: math.fsum квадратов невязок в dtype входа. Измеряем ошибку суммирования, без потерь приведения к float32.</p>
+<div class="tip">На больших float32 быстрее NumPy, на float64 — Numba. Меньше трафика ≠ гарантированное ускорение. Результаты ARM нельзя переносить на Intel.</div>
+<p class="sources"><a href="arch-smolgu-09-benchmark.py">Скрипт</a> · <a href="arch-smolgu-09-benchmark-results.json">Условия и все замеры</a><br><code>python arch-smolgu-09-benchmark.py --output results.json</code><br>Зависимости: numpy, numba. Первый вызов JIT записан отдельно.</p>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>59 / 76</span></div>
+</section>
+<!-- Слайд 60: Параллелизм и fastmath -->
+<section id="slide-60" class="step slide" data-x="64900" data-y="0">
+<div class="eyebrow">Numba</div><h1>Параллелизм и fastmath</h1>
+<pre><code class="language-python">from numba import njit, prange
+
+@njit(parallel=True)
+def squared_error_parallel(p, x, y):
+    total = np.float64(0)
+    for i in prange(x.size):
+        r = p[0]*x[i] + p[1] - y[i]
+        total += r*r
+    return total</code></pre><div class="warning">Параллельная редукция меняет порядок сложения. fastmath — отдельное разрешение на дополнительные преобразования, а не обязательный переключатель скорости.</div>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>60 / 76</span></div>
+</section>
+<!-- Слайд 61: CuPy: знакомые массивы на GPU -->
+<section id="slide-61" class="step slide" data-x="66000" data-y="0">
+<div class="eyebrow">CuPy</div><h1>CuPy: знакомые массивы на GPU</h1>
+<pre><code class="language-python">import cupy as cp
+
+# Те же p, x, y, без повторной генерации наблюдений.
+pd, xd, yd = (cp.asarray(a) for a in (p, x, y))
+
+def sse_cupy(p, x, y):
+    r = p[0]*x + p[1] - y
+    return cp.sum(r*r, dtype=cp.float64)
+
+result = sse_cupy(pd, xd, yd)  # вычисление на GPU
+back = cp.asnumpy(result)     # GPU → CPU</code></pre><div class="tip">Нужны совместимые GPU, драйвер и установка CuPy. Замена np на cp не устраняет стоимость передачи данных.</div>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>61 / 76</span></div>
+</section>
+<!-- Слайд 62: Что включать в GPU-замер? -->
+<section id="slide-62" class="step slide" data-x="67100" data-y="0">
+<div class="eyebrow">CuPy</div><h1>Что включать в GPU-замер?</h1>
+<div class="flow"><span>CPU</span><b>→</b><span>Передача</span><b>→</b><span>GPU</span><b>→</b><span>Возврат</span></div><ul><li>Сценарий 1: данные пришли с CPU, результат нужен на CPU.</li><li>Сценарий 2: данные и следующие операции уже на GPU.</li><li>Для маленькой задачи запуск и передача могут доминировать.</li><li>Сравниваем оба сценария, не прячем передачу из отчёта.</li></ul>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>62 / 76</span></div>
+</section>
+<!-- Слайд 63: GPU работает асинхронно -->
+<section id="slide-63" class="step slide" data-x="68200" data-y="0">
+<div class="eyebrow">CuPy</div><h1>GPU работает асинхронно</h1>
+<pre><code class="language-python">from cupyx.profiler import benchmark
+
+# Массивы и функция созданы на слайде 61.
+print(benchmark(sse_cupy, (pd, xd, yd), n_repeat=20))</code></pre><div class="tip">Данные уже на GPU: передачи исключены. benchmark прогревает вызовы и синхронизирует GPU-события. Поле CPU — время вызова на хосте, GPU — интервал на устройстве; это не полное время CPU → GPU → CPU.</div>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>63 / 76</span></div>
+</section>
+<!-- Слайд 64: CuPy: замер с передачами -->
+<section id="slide-64" class="step slide experiment" data-x="69300" data-y="0">
+<div class="eyebrow">Практика</div><h1>CuPy: замер с передачами</h1>
+<pre><code class="language-python">from timeit import repeat
+
+def sse_roundtrip():
+    pd, xd, yd = (cp.asarray(a) for a in (p, x, y))
+    return cp.asnumpy(sse_cupy(pd, xd, yd))
+
+answer = sse_roundtrip()  # прогрев контекста и ядер
+r = p[0]*x + p[1] - y
+assert np.isclose(answer, np.sum(r*r, dtype=np.float64),
+                  rtol=1e-10, atol=1e-12)
+cp.cuda.get_current_stream().synchronize()
+times = repeat(sse_roundtrip, number=1, repeat=7)
+print("Медиана CPU → GPU → CPU, с:", np.median(times))</code></pre>
+<div class="tip">cp.asnumpy по умолчанию ждёт копирования результата на CPU. Таймер включает передачу входов, SSE и возврат скаляра. Измеряем прогретый сценарий с обычным пулом памяти CuPy; первый запуск показываем отдельно.</div>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>64 / 76</span></div>
+</section>
+<!-- Слайд 65: JAX: преобразуем функции -->
+<section id="slide-65" class="step slide" data-x="70400" data-y="0">
+<div class="eyebrow">JAX</div><h1>JAX: преобразуем функции</h1>
+<table><tr><th>Преобразование</th><th>Назначение</th></tr><tr><td>grad</td><td>Производная скалярного результата</td></tr><tr><td>vmap</td><td>Применение функции к пакету входов</td></tr><tr><td>jit</td><td>Компиляция вычисления</td></tr></table><ul><li>Используем операции jax.numpy.</li><li>Пишем функции с явными входами и выходами.</li><li>Не полагаемся на изменение глобального состояния внутри преобразуемой функции.</li></ul>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>65 / 76</span></div>
+</section>
+<!-- Слайд 66: Градиент ошибки без конечных разностей -->
+<section id="slide-66" class="step slide" data-x="71500" data-y="0">
+<div class="eyebrow">JAX</div><h1>Градиент ошибки без конечных разностей</h1>
+<pre><code class="language-python">import jax
+jax.config.update(&quot;jax_enable_x64&quot;, True)
+import jax.numpy as jnp
+
+def sse_jax(p, x, y):
+    r = p[0]*x + p[1] - y
+    return jnp.sum(r*r, dtype=jnp.float64)
+
+pj, xj, yj = (jnp.asarray(a) for a in (p, x, y))
+g = jax.grad(sse_jax)(pj, xj, yj)</code></pre><div class="tip">Автодифференцирование применяет правила производных к вычислению. Это не подбор малого шага h и не символьное упрощение формулы.</div>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>66 / 76</span></div>
+</section>
+<!-- Слайд 67: Проверяем градиент SSE -->
+<section id="slide-67" class="step slide experiment" data-x="72600" data-y="0">
+<div class="eyebrow">Практика</div><h1>Проверяем градиент SSE</h1>
+<p>Для rᵢ = kxᵢ + b − yᵢ:<br><strong>∂SSE/∂k = 2Σrᵢxᵢ; ∂SSE/∂b = 2Σrᵢ.</strong></p>
+<pre><code class="language-python"># Базовый пример: p, x, y — float64.
+r = p[0]*x + p[1] - y
+analytic = 2*np.array([np.sum(r*x, dtype=np.float64),
+                       np.sum(r, dtype=np.float64)])
+assert np.allclose(np.asarray(g), analytic,
+                   rtol=1e-10, atol=1e-12)
+print("JAX:", np.asarray(g), "Формула:", analytic)</code></pre>
+<div class="tip">Проверяем обе компоненты, в том числе при ненулевой невязке. Для MSE градиент делится на n, для SSE/2 — на 2. Результат автодифференцирования проверяется так же, как любой численный результат.</div>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>67 / 76</span></div>
+</section>
+<!-- Слайд 68: vmap и jit решают разные задачи -->
+<section id="slide-68" class="step slide" data-x="73700" data-y="0">
+<div class="eyebrow">JAX</div><h1>vmap и jit решают разные задачи</h1>
+<pre><code class="language-python">params = jnp.array([[0., 0.], [2., 1.], [3., 1.]])
+errors = jax.vmap(sse_jax, in_axes=(0, None, None))
+compiled = jax.jit(errors)
+
+values = compiled(params, xj, yj)
+values.block_until_ready()  # дождаться результата</code></pre><div class="tip">vmap задаёт пакетное применение; jit компилирует. Первое исполнение и повторные вызовы измеряем отдельно.</div>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>68 / 76</span></div>
+</section>
+<!-- Слайд 69: JIT: компилируем всю цепочку -->
+<section id="slide-69" class="step slide experiment jit-chain" data-x="74800" data-y="0">
+<div class="eyebrow">Практика</div><h1>JIT: компилируем всю цепочку</h1>
+<p><code>jit(sse_jax)</code> передаёт компилятору цепочку:<br><strong>k*x → +b → −y → квадрат → сумма</strong>.</p>
+<ul><li>Возможны fusion, устранение промежуточных массивов и сокращение запусков ядер.</li><li>Оптимизируется вся цепочка; out задаёт буферы отдельных операций.</li><li>Выигрыш зависит от backend, размера задачи, компиляции и передач.</li></ul>
+<pre><code class="language-python">from timeit import repeat
+compiled_sse = jax.jit(sse_jax)
+compiled_sse(pj, xj, yj).block_until_ready()  # прогрев
+# Для замера ждём результат каждого вызова:
+run = lambda: compiled_sse(pj, xj, yj).block_until_ready()
+print(np.median(repeat(run, number=1, repeat=7)))</code></pre>
+<div class="tip">JAX работает и на CPU. Входы подготовлены до замера; первый вызов учитываем отдельно.</div>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>69 / 76</span></div>
+</section>
+<!-- Слайд 70: Точность и ограничения JAX -->
+<section id="slide-70" class="step slide" data-x="75900" data-y="0">
+<div class="eyebrow">JAX</div><h1>Точность и ограничения JAX</h1>
+<ul><li>По умолчанию JAX ориентирован на 32-битные типы.</li><li>В примере явно включён режим x64 до создания массивов.</li><li>При jit формы и типы влияют на компиляцию.</li><li>Обычное Python-ветвление по вычисляемому значению может не подходить трассировке.</li><li>Для сравнения с NumPy фиксируем dtype и допуски.</li></ul>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>70 / 76</span></div>
+</section>
+<!-- Слайд 71: Как выбрать инструмент -->
+<section id="slide-71" class="step slide" data-x="77000" data-y="0">
+<div class="eyebrow">Практика</div><h1>Как выбрать инструмент</h1>
+<table><tr><th>Потребность</th><th>Начальная точка</th></tr><tr><td>Массивы, формы, поэлементные операции</td><td>NumPy</td></tr><tr><td>BLAS/LAPACK и численные алгоритмы</td><td>SciPy</td></tr><tr><td>Свой цикл над числовыми массивами</td><td>Numba</td></tr><tr><td>Вычисления над массивами на GPU</td><td>CuPy</td></tr><tr><td>Градиенты и преобразования функций</td><td>JAX</td></tr></table><div class="tip">Библиотеки можно сочетать. Учитываем границы памяти, преобразование типов и стоимость передачи.</div>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>71 / 76</span></div>
+</section>
+<!-- Слайд 72: Сравнение без самообмана -->
+<section id="slide-72" class="step slide" data-x="78100" data-y="0">
+<div class="eyebrow">Практика</div><h1>Сравнение без самообмана</h1>
+<ul><li>Одинаковые данные и SSE; фиксируем dtype входов, промежуточных операций и аккумулятора.</li><li>Разделяем компиляцию, передачу и само вычисление.</li><li>Повторяем замеры; фиксируем размер данных и число потоков.</li><li>Для GPU дожидаемся окончания работы.</li><li>Отдельно показываем память и погрешность.</li></ul><div class="tip">Ускорение без указания условий нельзя переносить на другую задачу.</div>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>72 / 76</span></div>
+</section>
+<!-- Слайд 73: Вопросы для самопроверки -->
+<section id="slide-73" class="step slide experiment" data-x="79200" data-y="0">
+<div class="eyebrow">Итоги</div><h1>Вопросы для самопроверки</h1>
+<ul><li>Как strides влияют на доступ к памяти и окупаемость копии?</li><li>Почему (3, 4) + (3,) не работает?</li><li>Почему out уменьшает буферы, но сохраняет проходы?</li><li>Что дают vectorize, otypes и signature; где остаются Python-вызовы?</li><li>Почему GEMM лучше переиспользует данные, чем GEMV?</li><li>Когда overwrite_c не избавляет от копии?</li><li>Как LAPACK использует GEMM и зачем сохранять LU?</li><li>Почему одинаковый dtype входа не задаёт тип аккумулятора?</li><li>Чем различаются grad, vmap и jit? Как проверить градиент?</li><li>Что включают два GPU-сценария и зачем прогрев и синхронизация?</li></ul>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>73 / 76</span></div>
+</section>
+<!-- Слайд 74: Домашнее задание -->
+<section id="slide-74" class="step slide experiment homework" data-x="80300" data-y="0">
+<div class="eyebrow">Итоги</div><h1>Домашнее задание</h1>
+<ul><li>Нормализовать столбцы матрицы, явно обработать постоянные.</li><li>Сравнить GEMM для C/F-порядка и срезов; проверить результат, выделения и переиспользование выхода. Зафиксировать BLAS и потоки.</li><li>Сравнить SSE в NumPy, NumPy с out и Numba при одинаковых p, x, y; несколько размеров, прогрев и повторные замеры.</li><li>Два режима входов и промежуточных операций: float32 / float64; аккумулятор float64. Указать время, рабочие буферы и отклонение от float64.</li><li>Дополнительно на выбор: CuPy — оба сценария; JAX — проверить градиент формулой и прогретую SSE через jit; strides — оценить окупаемость копии.</li></ul><div class="tip">Одни исходные наблюдения; float32 получить приведением копий. Приложить код, окружение, допуски и объяснение результатов. Память буферов отделить от RSS. Базовая часть и JAX доступны на CPU.</div>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>74 / 76</span></div>
+</section>
+<!-- Слайд 75: Что остаётся под любой библиотекой -->
+<section id="slide-75" class="step slide" data-x="81400" data-y="0">
+<div class="eyebrow">Итоги</div><h1>Что остаётся под любой библиотекой</h1>
+<ul><li>Данные имеют тип, форму и размещение в памяти.</li><li>Каждый проход и каждая копия имеют стоимость.</li><li>Алгоритм определяет устойчивость и доступный параллелизм.</li><li>CPU/GPU исполняют конкретные машинные операции.</li><li>Измерения имеют смысл вместе с проверкой результата.</li></ul><p class="subtitle">Высокоуровневый код сохраняет связь с архитектурой.</p>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>75 / 76</span></div>
+</section>
+<!-- Слайд 76: Документация и продолжение -->
+<section id="slide-76" class="step slide" data-x="82500" data-y="0">
+<div class="eyebrow">Материалы</div><h1>Документация и продолжение</h1>
+<ul class="sources"><li><a href="https://numpy.org/doc/stable/user/basics.html">NumPy: формы, типы, broadcasting, views</a> · <a href="https://numpy.org/doc/stable/reference/generated/numpy.vectorize.html">vectorize</a></li><li><a href="https://docs.scipy.org/doc/scipy/reference/linalg.blas.html">SciPy: BLAS, типы, размещение и overwrite</a></li><li><a href="https://docs.scipy.org/doc/scipy/reference/linalg.lapack.html">SciPy: низкоуровневый LAPACK</a></li><li><a href="https://numba.readthedocs.io/en/stable/user/performance-tips.html">Numba: производительность</a></li><li><a href="https://docs.cupy.dev/en/stable/user_guide/performance.html">CuPy: корректное измерение времени</a></li><li><a href="https://docs.jax.dev/en/latest/101/transformations.html">JAX: grad и vmap</a></li><li><a href="https://docs.jax.dev/en/latest/jit-compilation.html">JAX: компиляция</a></li></ul><p><a href="arch-smolgu-08.html">Предыдущая лекция: SIMD и векторизация</a></p>
+<div class="footer"><span>Архитектура компьютера · Лекция 9</span><span>76 / 76</span></div>
+</section>
+<div id="overview" class="step" data-x="41250" data-y="0" data-scale="83.6"></div></div>
+<div id="impress-toolbar"></div><div class="hint"><p>Пробел и стрелки — переключение слайдов. P — консоль лектора.</p></div>
+<script src="js/impress.js"></script><script>
+let selectedOffset = 0;
+function strideModel(transposed) {
+ return transposed ? {shape:[4,3],strides:[4,16]} : {shape:[3,4],strides:[16,4]};
+}
+function renderStrides() {
+ const t=document.getElementById('transposeMode').checked;
+ const {shape,strides}=strideModel(t);
+ const grid=document.getElementById('strideGrid');grid.replaceChildren();grid.style.gridTemplateColumns=`repeat(${shape[1]}, 1fr)`;
+ let selected=[0,0];
+ for(let i=0;i<shape[0];i++)for(let j=0;j<shape[1];j++){
+  const offset=i*strides[0]+j*strides[1];const b=document.createElement('button');b.type='button';
+  b.textContent=offset/4;b.className=offset===selectedOffset?'selected':'';
+  b.setAttribute('aria-label',`Элемент [${i}, ${j}], значение ${offset/4}`);
+  b.onclick=event=>{event.stopPropagation();selectedOffset=offset;renderStrides();};
+  b.addEventListener('keydown',e=>e.stopPropagation());b.addEventListener('keyup',e=>e.stopPropagation());
+  grid.append(b);if(offset===selectedOffset)selected=[i,j];
+ }
+ document.getElementById('strideResult').textContent=`shape = (${shape.join(', ')}), strides = (${strides.join(', ')}) байт\nЭлемент [${selected.join(', ')}]: ${selected[0]}×${strides[0]} + ${selected[1]}×${strides[1]} = ${selectedOffset} байт\nЗначение: ${selectedOffset/4}. Буфер данных не изменился.`;
+}
+let viewSource=[],viewCopy=[];
+function resetView(){viewSource=[0,1,2,3,4,5];viewCopy=viewSource.slice(1,4);renderView();}
+function renderView(){const copy=document.getElementById('viewKind').value==='copy';document.getElementById('viewResult').textContent=`a = [${viewSource.join(', ')}]\nv = [${(copy?viewCopy:viewSource.slice(1,4)).join(', ')}]\nОбщая память: ${copy?'нет':'да'}`;}
+function mutateView(){if(document.getElementById('viewKind').value==='copy')viewCopy[0]=99;else viewSource[1]=99;renderView();}
+function broadcastShape(a,b){
+ const result=[];
+ for(let k=1;k<=Math.max(a.length,b.length);k++){
+  const x=a.at(-k)??1,y=b.at(-k)??1;
+  if(x!==y&&x!==1&&y!==1)return null;
+  result.unshift(x===1?y:x);
+ }
+ return result;
+}
+const shapeCases=[[[3,4],[4]],[[3,1],[1,4]],[[3,4],[3]],[[2,3,4],[3,1]]];
+function renderBroadcast(){const [a,b]=shapeCases[Number(document.getElementById('shapeCase').value)];const r=broadcastShape(a,b);document.getElementById('broadcastResult').textContent=`Левый вход: (${a.join(', ')})\nПравый вход: (${b.join(', ')})\n${r?'Результат: ('+r.join(', ')+')':'Ошибка: справа встретились несовместимые размеры 4 и 3.'}`;}
+function floatFromBits(bits){const v=new DataView(new ArrayBuffer(4));v.setUint32(0,bits);return v.getFloat32(0);}
+function spacingModel(index){const bits=[0,0x3f800000,0x4b800000,0x00800000][index];const value=floatFromBits(bits),next=floatFromBits(bits+1);return {value,next,gap:next-value,bits};}
+function renderSpacing(){const {value,next,gap,bits}=spacingModel(Number(document.getElementById('spacingCase').value));document.getElementById('spacingResult').textContent=`Число: ${value}\nСледующее: ${next}\nРазность: ${gap}\nБиты: 0x${bits.toString(16).padStart(8,'0')} → 0x${(bits+1).toString(16).padStart(8,'0')}`;}
+renderStrides();resetView();renderBroadcast();renderSpacing();
+for(const control of document.querySelectorAll('input,select,button'))for(const type of ['keydown','keyup'])control.addEventListener(type,e=>e.stopPropagation());
+if(typeof impress==='function')impress().init();
+</script></body></html>
