@@ -1,0 +1,968 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1024" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <title>Inline, reified и первые корутины</title>
+
+    <link href="//fonts.googleapis.com/css?family=Open+Sans:regular,semibold,italic,italicsemibold|PT+Sans:400,700,400italic,700italic|PT+Serif:400,700,400italic,700italic" rel="stylesheet" />
+
+    <link href="css/impress-demo.css" rel="stylesheet" />
+    <link href="css/impress-common.css" rel="stylesheet" />
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/default.min.css">
+
+    <style>
+        .slide {
+            font-size: 27px;
+            line-height: 1.3;
+            letter-spacing: -.5px;
+        }
+
+        .slide h1 {
+            font-size: 40px;
+            line-height: 1.15;
+            margin: 0 0 .5em;
+            text-align: left;
+        }
+
+        .slide ul,
+        .slide ol {
+            margin: 0;
+            padding-left: 1.1em;
+        }
+
+        .slide li {
+            margin: .25em 0;
+        }
+
+        .slide p {
+            margin: .6em 0 0;
+        }
+
+        .slide pre {
+            margin: 0 0 12px;
+            letter-spacing: 0;
+            text-shadow: none;
+        }
+
+        .slide pre code.hljs {
+            padding: 12px 16px;
+            font-size: 17px;
+            line-height: 1.35;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .slide pre.small code.hljs {
+            font-size: 15.5px;
+        }
+
+        .slide code:not(.hljs) {
+            background: #e2e8f0;
+            color: #1e293b;
+            padding: 0 .3em;
+            border-radius: 4px;
+            font-size: .85em;
+            letter-spacing: 0;
+        }
+
+        .slide.section code:not(.hljs),
+        .slide.title code:not(.hljs) {
+            background: rgba(255,255,255,.28);
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .slide table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 22px;
+            line-height: 1.25;
+        }
+
+        .slide th,
+        .slide td {
+            border-bottom: 1px solid #ccc;
+            padding: 6px 10px;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .slide th {
+            background: #e2e8f0;
+            color: #1e293b;
+        }
+
+        .slide .hl {
+            color: #b91c1c;
+        }
+
+        .slide.section {
+            background: linear-gradient(135deg,#7c3aed,#db2777);
+            color: #fff;
+            text-shadow: none;
+        }
+
+        .slide.section h1 {
+            color: #fff;
+            font-size: 50px;
+        }
+
+        .slide.section .num {
+            position: absolute;
+            right: 40px;
+            top: 0;
+            font-size: 200px;
+            font-weight: 700;
+            opacity: .18;
+            line-height: 1;
+        }
+
+        .slide.title .hint {
+            font-size: 20px;
+            color: #999;
+            margin-top: 40px;
+        }
+
+        .notes {
+            display: none;
+        }
+
+        .ov {
+            pointer-events: auto;
+            position: fixed;
+            left: 14px;
+            bottom: 12px;
+            color: #93c5fd;
+            font-size: 14px;
+            text-decoration: none;
+            z-index: 10;
+        }
+
+        #overview {
+            background: none!important;
+            border: 0!important;
+            box-shadow: none!important;
+            pointer-events: none;
+        }
+    </style>
+
+    <style>
+        .slide .topic {
+            margin: 0 0 12px;
+            font-size: 15px;
+            line-height: 1.2;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            opacity: .75;
+        }
+        .slide.section h1 { font-size: 40px; }
+        .slide pre { margin-top: 18px; }
+        .slide pre code,
+        .slide pre code:not(.hljs) {
+            display: block;
+            padding: 12px 16px;
+            font: 17px/1.35 monospace;
+            white-space: pre;
+            border-radius: 8px;
+            background: #f3f3f3;
+            color: #252525;
+            letter-spacing: 0;
+        }
+        #topics {
+            pointer-events: auto;
+            position: fixed;
+            inset: 8vh 10vw;
+            z-index: 20;
+            overflow: auto;
+            padding: 28px;
+            background: #fff;
+            color: #1e293b;
+            border: 1px solid #94a3b8;
+            border-radius: 10px;
+            box-shadow: 0 0 0 20vw rgba(0,0,0,.6);
+            font: 20px/1.5 Arial, sans-serif;
+        }
+        #topics[hidden] { display: none; }
+        #topics ul { columns: 2; }
+        #topics a { color: #5b21b6; }
+        #topics h2 { font-size: 26px; }
+        .topics-link { left: auto; right: 14px; }
+        @media print {
+            #topics, .ov { display: none!important; }
+        }
+    </style>
+    <style>
+        .slide.chapter {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            background: linear-gradient(135deg, #082f49, #0369a1 60%, #0891b2);
+            border-top: 12px solid #67e8f9;
+            color: #fff;
+            text-shadow: none;
+        }
+        .slide.chapter .topic {
+            color: #a5f3fc;
+            opacity: 1;
+            font-size: 22px;
+            letter-spacing: 3px;
+            margin-bottom: 30px;
+        }
+        .slide.chapter h1 {
+            font-size: 96px;
+            line-height: 1.05;
+            font-weight: 700;
+            margin: 0 0 35px;
+        }
+        .slide.chapter .chapter-description {
+            font-size: 32px;
+            line-height: 1.45;
+            color: #cffafe;
+        }
+    </style>
+</head>
+
+<body class="impress-not-supported">
+<div class="fallback-message">
+    <p>Ваш браузер <b>не поддерживает возможности, необходимые для impress.js</b>, поэтому показана упрощённая версия презентации.</p>
+    <p>Лучше всего использовать свежие <b>Chrome</b>, <b>Safari</b> или <b>Firefox</b>.</p>
+</div>
+<div id="impress" data-transition-duration="1000" data-width="1024" data-height="768"
+     data-max-scale="3" data-min-scale="0" data-perspective="1000">
+<div id="slide-1" class="step slide section" data-x="-1000" data-y="-1500">
+<p class="topic">Занятие 10</p>
+<h1>Inline, reified и первые корутины</h1>
+<ul>
+<li>Inline-функции и возвраты из лямбд.</li>
+<li>Reified и границы проверки типов.</li>
+<li>Корутины: конкурентное выполнение и время жизни задач.</li>
+</ul>
+<div class="notes">Две пары по 90 минут. Перерыв отдельно. Примеры и задания чередуются; слайды служат опорой для объяснения.</div>
+</div>
+<div id="slide-2" class="step slide" data-x="0" data-y="-1500">
+<p class="topic">Inline</p>
+<h1>Функция принимает лямбду</h1>
+<ul>
+<li>При обычной передаче лямбды в байткоде остаётся вызов функции. Способ представления лямбды зависит от компилятора.</li>
+</ul>
+<pre><code class="language-kotlin">fun regular(x: Int, block: (Int) -&gt; Int): Int = block(x)
+inline fun inlined(x: Int, block: (Int) -&gt; Int): Int = block(x)
+
+fun useRegular() = regular(4) { it + 1 }
+fun useInline() = inlined(4) { it + 1 }</code></pre>
+<div class="notes">0–7 минут. Сначала предсказать значения, затем показать байткод обеих вызывающих функций. Не обещать отдельный класс для каждой лямбды.</div>
+</div>
+<div id="slide-3" class="step slide" data-x="1000" data-y="-1500">
+<p class="topic">Inline</p>
+<h1>Что подставляется в место вызова</h1>
+<ul>
+<li>При прямом вызове inline-функции компилятор встраивает её тело и тело переданной лямбды.</li>
+<li>В useInline арифметические операции выполняются прямо в вызывающем методе.</li>
+</ul>
+<pre><code class="language-kotlin">// Исходный вызов
+val result = inlined(4) { it + 1 }
+
+// Смысл преобразования; не буквальный байткод
+val x = 4
+val result = x + 1</code></pre>
+<div class="notes">Теоретическая опора к практическому блоку «Inline».</div>
+</div>
+<div id="slide-4" class="step slide" data-x="2000" data-y="-1500">
+<p class="topic">Inline</p>
+<h1>Что искать в байткоде</h1>
+<ul>
+<li>В useRegular остаётся вызов regular, а внутри regular вызывается переданная функция.</li>
+<li>В useInline вычисление встроено в тело метода: вызова inlined нет.</li>
+<li>Служебные переменные и инструкции могут различаться между версиями компилятора.</li>
+</ul>
+<div class="notes">7–17 минут: задание 1. Изменить арифметику и тело функции, найти изменения. Работать с javap -c -p или Show Kotlin Bytecode; сравнивать смысл инструкций.</div>
+</div>
+<div id="slide-5" class="step slide" data-x="3000" data-y="-1500">
+<p class="topic">Inline</p>
+<h1>Inline и JIT работают на разных этапах</h1>
+<ul>
+<li>Kotlin-компилятор встраивает код при сборке; результат виден в class-файле.</li>
+<li>JIT может оптимизировать обычные вызовы уже во время работы JVM.</li>
+<li>Сокращение числа вызовов в байткоде само по себе не доказывает ускорения.</li>
+</ul>
+<div class="notes">Теоретическая опора к практическому блоку «Inline».</div>
+</div>
+<div id="slide-6" class="step slide" data-x="4000" data-y="-1500">
+<p class="topic">Inline</p>
+<h1>Когда встраивание имеет смысл</h1>
+<ul>
+<li>Встраивание небольших функций высшего порядка может сократить расходы на создание и вызов лямбд.</li>
+<li>Встраивание увеличивает объём кода в местах вызова.</li>
+<li>Inline позволяет использовать reified и возвращаться из внешней функции внутри лямбды.</li>
+</ul>
+<div class="notes">Теоретическая опора к практическому блоку «Inline».</div>
+</div>
+<div id="slide-7" class="step slide" data-x="5000" data-y="-1500">
+<p class="topic">Возвраты</p>
+<h1>Возврат из внешней функции</h1>
+<ul>
+<li>Лямбда, переданная inline-параметру без noinline и crossinline, может завершить внешнюю именованную функцию.</li>
+<li>В примере return true завершает hasError.</li>
+</ul>
+<pre><code class="language-kotlin">fun hasError(lines: List&lt;String&gt;): Boolean {
+    lines.forEach { line -&gt;
+        if (line.startsWith(&quot;ERROR&quot;)) return true
+    }
+    return false
+}</code></pre>
+<div class="notes">17–24 минуты. Проследить управление на входе без ошибки и с ошибкой в середине.</div>
+</div>
+<div id="slide-8" class="step slide" data-x="6000" data-y="-1500">
+<p class="topic">Возвраты</p>
+<h1>Метка задаёт локальный выход</h1>
+<ul>
+<li>return@forEach завершает текущий вызов лямбды.</li>
+<li>Перебор продолжится со следующим элементом; внешняя функция продолжит работу.</li>
+</ul>
+<pre><code class="language-kotlin">fun printNonEmpty(lines: List&lt;String&gt;) {
+    lines.forEach { line -&gt;
+        if (line.isEmpty()) return@forEach
+        println(line)
+    }
+    println(&quot;Обработка завершена&quot;)
+}</code></pre>
+<div class="notes">Теоретическая опора к практическому блоку «Возвраты».</div>
+</div>
+<div id="slide-9" class="step slide" data-x="7000" data-y="-1500">
+<p class="topic">Возвраты</p>
+<h1>Анонимная функция имеет свой return</h1>
+<ul>
+<li>return без метки внутри fun(...) завершает саму анонимную функцию.</li>
+</ul>
+<pre><code class="language-kotlin">fun printNonEmpty(lines: List&lt;String&gt;) {
+    lines.forEach(fun(line: String) {
+        if (line.isEmpty()) return
+        println(line)
+    })
+    println(&quot;Обработка завершена&quot;)
+}</code></pre>
+<div class="notes">24–35 минут: задание 2. Дать варианты с лямбдой, меткой и анонимной функцией; предсказать компиляцию и выход. Затем написать поиск с ранним выходом.</div>
+</div>
+<div id="slide-10" class="step slide" data-x="8000" data-y="-1500">
+<p class="topic">Параметры inline</p>
+<h1>Почему обычный inline-параметр нельзя сохранить</h1>
+<ul>
+<li>Лямбда обычного inline-параметра может содержать выход из внешней функции.</li>
+<li>Сохранённую функцию можно вызвать позже, когда внешняя функция уже завершилась. Для хранения нужен модификатор noinline.</li>
+</ul>
+<pre><code class="language-kotlin">val callbacks = mutableListOf&lt;() -&gt; Unit&gt;()
+
+// Не компилируется: недопустимое использование block
+inline fun remember(block: () -&gt; Unit) {
+    callbacks.add(block)
+}</code></pre>
+<div class="notes">35–44 минуты. Этот фрагмент намеренно не компилируется.</div>
+</div>
+<div id="slide-11" class="step slide" data-x="9000" data-y="-1500">
+<p class="topic">Параметры inline</p>
+<h1>noinline оставляет функцию значением</h1>
+<ul>
+<li>Параметр можно сохранить, вернуть и передать обычной функции.</li>
+<li>Нелокальный return из такой лямбды запрещён.</li>
+</ul>
+<pre><code class="language-kotlin">inline fun register(
+    name: String,
+    noinline callback: () -&gt; Unit,
+    log: (String) -&gt; Unit
+) {
+    log(&quot;register: $name&quot;)
+    callbacks.add(callback)
+}</code></pre>
+<div class="notes">Теоретическая опора к практическому блоку «Параметры inline».</div>
+</div>
+<div id="slide-12" class="step slide" data-x="10000" data-y="-1500">
+<p class="topic">Параметры inline</p>
+<h1>crossinline: вызов через обёртку</h1>
+<ul>
+<li>Переданная лямбда вызывается из метода другого объекта.</li>
+<li>crossinline запрещает нелокальный возврат; локальный return с меткой разрешён.</li>
+</ul>
+<pre><code class="language-kotlin">inline fun task(crossinline block: () -&gt; Unit): Runnable =
+    Runnable { block() }
+
+fun demo() {
+    val work = task { println(&quot;Работа&quot;) }
+    work.run()
+}</code></pre>
+<div class="notes">Теоретическая опора к практическому блоку «Параметры inline».</div>
+</div>
+<div id="slide-13" class="step slide" data-x="11000" data-y="-1500">
+<p class="topic">Параметры inline</p>
+<h1>Как выбрать модификатор параметра</h1>
+<ul>
+<li>Обычный inline-параметр: вызываем лямбду напрямую или передаём другому inline-параметру с совместимыми ограничениями.</li>
+<li>noinline: сохраняем или возвращаем саму функцию как значение.</li>
+<li>crossinline: вызываем лямбду через обёртку и запрещаем выход из внешней функции.</li>
+</ul>
+<div class="notes">44–55 минут: задание 3. Дополнить регистрацию callback и фабрику Runnable. Объяснить выбор; затем попробовать непомеченный return в вызывающей функции.</div>
+</div>
+<div id="slide-14" class="step slide section" data-x="12000" data-y="-1500">
+<p class="topic">Reified</p>
+<h1>Какой тип доступен во время выполнения</h1>
+<ul>
+<li>Компилятор проверяет использование T, но после компиляции конкретный аргумент типа обычно недоступен в теле generic-функции.</li>
+<li>Поэтому T::class и value is T недоступны для обычного параметра типа.</li>
+</ul>
+<pre><code class="language-kotlin">// Оба объявления намеренно не компилируются
+fun &lt;T : Any&gt; klass() = T::class
+fun &lt;T&gt; matches(value: Any?): Boolean = value is T</code></pre>
+<div class="notes">Теоретическая опора к практическому блоку «Reified».</div>
+</div>
+<div id="slide-15" class="step slide" data-x="13000" data-y="-1500">
+<p class="topic">Reified</p>
+<h1>Класс можно передать параметром</h1>
+<ul>
+<li>KClass представляет класс и может быть обычным параметром функции.</li>
+</ul>
+<pre><code class="language-kotlin">import kotlin.reflect.KClass
+import kotlin.reflect.full.primaryConstructor
+
+fun &lt;T : Any&gt; construct(type: KClass&lt;T&gt;): T =
+    requireNotNull(type.primaryConstructor).callBy(emptyMap())
+
+data class Event(val service: String = &quot;unknown&quot;)
+val event = construct(Event::class)</code></pre>
+<div class="notes">55–64 минуты. Для этого примера нужен kotlin-reflect. Условие: primary constructor существует, все его параметры optional. Это небольшой пример над уже изученным API, а не универсальная фабрика.</div>
+</div>
+<div id="slide-16" class="step slide" data-x="14000" data-y="-1500">
+<p class="topic">Reified</p>
+<h1>Обёртка с reified</h1>
+<ul>
+<li>В прямом inline-вызове компилятор знает конкретный аргумент типа.</li>
+<li>Обёртка передаёт KClass обычной функции; рефлексия внутри неё остаётся.</li>
+</ul>
+<pre><code class="language-kotlin">inline fun &lt;reified T : Any&gt; construct(): T =
+    construct(T::class)
+
+val event = construct&lt;Event&gt;()
+// После встраивания по смыслу:
+// construct(Event::class)</code></pre>
+<div class="notes">Теоретическая опора к практическому блоку «Reified».</div>
+</div>
+<div id="slide-17" class="step slide" data-x="15000" data-y="-1500">
+<p class="topic">Reified</p>
+<h1>Как вызвать обёртку из generic-функции</h1>
+<ul>
+<li>Обычный параметр T вызывающей функции нельзя передать как reified-аргумент.</li>
+<li>Можно передать KClass явно или объявить вызывающую функцию inline с reified-параметром.</li>
+</ul>
+<pre><code class="language-kotlin">// Не компилируется
+fun &lt;T : Any&gt; make(): T = construct&lt;T&gt;()
+
+// Работает с явным описанием
+fun &lt;T : Any&gt; make(type: KClass&lt;T&gt;): T = construct(type)
+
+inline fun &lt;reified T : Any&gt; make(): T = construct&lt;T&gt;()</code></pre>
+<div class="notes">64–76 минут: задание 4. Написать обёртку, затем вызвать из обычной generic-функции и исправить двумя способами.</div>
+</div>
+<div id="slide-18" class="step slide" data-x="16000" data-y="-1500">
+<p class="topic">Reified</p>
+<h1>Проверка внешнего типа</h1>
+<ul>
+<li>При T = List&lt;String&gt; выражение value is T проверяет, что value — список.</li>
+<li>Типы элементов при этом не проверяются: reified не восстанавливает аргумент типа из объекта списка.</li>
+</ul>
+<pre><code class="language-kotlin">inline fun &lt;reified T&gt; matches(value: Any?): Boolean =
+    value is T
+
+matches&lt;String&gt;(42)                  // false
+matches&lt;List&lt;String&gt;&gt;(listOf(1, 2))   // true</code></pre>
+<div class="notes">76–85 минут. До запуска попросить предсказать оба результата.</div>
+</div>
+<div id="slide-19" class="step slide" data-x="17000" data-y="-1500">
+<p class="topic">Reified</p>
+<h1>Когда возникнет ошибка приведения</h1>
+<ul>
+<li>Приведение списка к List&lt;String&gt; не проверяет его элементы.</li>
+<li>При чтении элемента как String JVM выполняет приведение самого элемента.</li>
+</ul>
+<pre><code class="language-kotlin">val value: Any = listOf(1, 2)
+@Suppress(&quot;UNCHECKED_CAST&quot;)
+val strings = value as List&lt;String&gt;
+println(strings.first().length) // ClassCastException</code></pre>
+<div class="notes">Теоретическая опора к практическому блоку «Reified».</div>
+</div>
+<div id="slide-20" class="step slide" data-x="18000" data-y="-1500">
+<p class="topic">Reified</p>
+<h1>Описание типа и проверка данных</h1>
+<ul>
+<li>typeOf описывает указанный тип вместе с его аргументами. Содержимое value при этом не проверяется.</li>
+<li>Для проверки элементов нужен обход. Для пустого списка all возвращает true, но это ничего не говорит об исходном аргументе типа.</li>
+</ul>
+<pre><code class="language-kotlin">import kotlin.reflect.typeOf
+
+typeOf&lt;List&lt;String&gt;&gt;() != typeOf&lt;List&lt;Int&gt;&gt;() // true
+
+fun containsOnlyStrings(value: Any?): Boolean =
+    value is List&lt;*&gt; &amp;&amp; value.all { it is String }</code></pre>
+<div class="notes">Теоретическая опора к практическому блоку «Reified».</div>
+</div>
+<div id="slide-21" class="step slide" data-x="19000" data-y="-1500">
+<p class="topic">Inline и reified</p>
+<h1>Inline и reified: основные правила</h1>
+<ul>
+<li>Как inline меняет код прямого вызова и чем отличается от JIT.</li>
+<li>Какую функцию завершает return и как это меняет метка.</li>
+<li>Как выбрать модификатор для хранения функции или вызова через обёртку.</li>
+<li>Откуда reified получает тип и почему is T не проверяет элементы списка.</li>
+</ul>
+<div class="notes">85–90 минут. Четыре короткие ситуации на выбор механизма. После этого перерыв; следующий блок начинается с самостоятельной постановки задачи.</div>
+</div>
+<div id="coroutines-divider" class="step slide chapter" data-x="20000" data-y="-1500">
+<p class="topic">suspend · launch · async</p>
+<h1>Корутины</h1>
+<p class="chapter-description">Конкурентное выполнение<br>Время жизни задач</p>
+<div class="notes">Визуальная граница между inline/reified и корутинами.</div>
+</div>
+<div id="jvm-intro-1" class="step slide" data-x="21000" data-y="-1500">
+<p class="topic">Параллелизм и ожидание</p>
+<h1>Что ограничивает скорость программы</h1>
+<ul>
+<li>Вычисления ограничены доступными ядрами: увеличение числа задач не добавляет вычислительных ресурсов.</li>
+<li>При вводе-выводе задача может большую часть времени ждать сеть или диск.</li>
+<li>Для вычислений важна загрузка ядер; для множества ожидающих операций — стоимость ожидания.</li>
+</ul>
+<div class="notes">Различить CPU-bound и I/O-bound на примере обработки и загрузки логов. Параллельное чтение может сократить общее время независимых запросов, но не ускоряет арифметику каждого запроса.</div>
+</div>
+<div id="jvm-intro-2" class="step slide" data-x="22000" data-y="-1500">
+<p class="topic">Потоки JVM</p>
+<h1>Платформенный поток</h1>
+<ul>
+<li>Платформенный java.lang.Thread связан с потоком операционной системы.</li>
+<li>Каждый такой поток требует стека и ресурсов ОС. Создавать по потоку на каждый из тысяч запросов затратно.</li>
+<li>Блокирующее ожидание занимает поток, даже если он в этот момент не выполняет вычислений.</li>
+</ul>
+<pre><code class="language-plaintext">Платформенные потоки JVM → потоки ОС → ядра процессора</code></pre>
+<div class="notes">Контекст: https://docs.oracle.com/en/java/javase/21/core/virtual-threads.html . Уточнение про блокировку здесь относится к платформенным потокам; виртуальные потоки разберём отдельно.</div>
+</div>
+<div id="jvm-intro-3" class="step slide" data-x="23000" data-y="-1500">
+<p class="topic">Пулы и задачи</p>
+<h1>ExecutorService: задача отдельно от потока</h1>
+<ul>
+<li>Приложение передаёт задачи пулу, а пул распределяет их по рабочим потокам.</li>
+<li>Future представляет будущий результат; get блокирует вызывающий поток, пока результат не готов.</li>
+<li>Если все рабочие потоки заняты блокирующими операциями, новые задачи ждут в очереди.</li>
+</ul>
+<pre><code class="language-kotlin">val pool = Executors.newFixedThreadPool(2)
+try {
+    val a = pool.submit(Callable { readBlocking(&quot;A&quot;) })
+    val b = pool.submit(Callable { readBlocking(&quot;B&quot;) })
+    println(a.get() + b.get())
+} finally {
+    pool.shutdown()
+}</code></pre>
+<div class="notes">Импорты java.util.concurrent.Callable и Executors. readBlocking — условное блокирующее чтение, возвращающее String. Запускаем оба submit до первого get. Источник: https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/ExecutorService.html .</div>
+</div>
+<div id="jvm-intro-4" class="step slide" data-x="24000" data-y="-1500">
+<p class="topic">Композиция задач</p>
+<h1>CompletableFuture: продолжение по готовности</h1>
+<ul>
+<li>Продолжения задают, что сделать с результатом: thenApply, thenCompose, thenCombine.</li>
+<li>Сборку следующего этапа можно описать без get между этапами.</li>
+<li>Потоки и блокирующие вызовы остаются: supplyAsync переносит операцию в executor, а не меняет её реализацию.</li>
+</ul>
+<pre><code class="language-kotlin">val a = CompletableFuture.supplyAsync({ readBlocking(&quot;A&quot;) }, pool)
+val b = CompletableFuture.supplyAsync({ readBlocking(&quot;B&quot;) }, pool)
+val combined = a.thenCombine(b) { x, y -&gt; x + y }
+combined.thenAccept { println(it) }</code></pre>
+<div class="notes">Фрагмент использует открытый executor pool из предыдущего примера. Не назначать thenCombine отдельный поток: без Async продолжение может исполняться потоком, завершившим этап. Источник: https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/CompletableFuture.html .</div>
+</div>
+<div id="jvm-intro-5" class="step slide" data-x="25000" data-y="-1500">
+<p class="topic">Асинхронный ввод-вывод</p>
+<h1>Ожидать данные без выделенного потока на запрос</h1>
+<ul>
+<li>Неблокирующие сетевые API позволяют обслуживать много ожидающих операций небольшим числом потоков.</li>
+<li>Готовность данных запускает продолжение: через обработчик, future или возобновление корутины.</li>
+<li>Сложность переносится в композицию операций: зависимости результатов, обработку ошибок и отмену.</li>
+</ul>
+<pre><code class="language-plaintext">запрос → регистрация ожидания → поток свободен
+готовность данных → продолжение обработки</code></pre>
+<div class="notes">Речь о неблокирующей реализации ввода-вывода. Callback или Future сами по себе не гарантируют, что внутри нет блокирующего вызова.</div>
+</div>
+<div id="jvm-intro-6" class="step slide" data-x="26000" data-y="-1500">
+<p class="topic">Виртуальные потоки</p>
+<h1>Java 21: виртуальный поток на задачу</h1>
+<ul>
+<li>Виртуальные потоки — экземпляры Thread, которые JVM планирует на платформенных потоках.</li>
+<li>При поддерживаемом блокирующем ожидании JVM может освободить несущий поток для других задач.</li>
+<li>Они удобны для большого числа ожидающих операций с обычным блокирующим кодом. Вычислительный параллелизм по-прежнему ограничен ядрами.</li>
+</ul>
+<pre><code class="language-kotlin">Executors.newVirtualThreadPerTaskExecutor().use { executor -&gt;
+    val a = executor.submit(Callable { readBlocking(&quot;A&quot;) })
+    val b = executor.submit(Callable { readBlocking(&quot;B&quot;) })
+    println(a.get() + b.get())
+}</code></pre>
+<div class="notes">Java 21. Не утверждать, что любой блокирующий вызов освобождает несущий поток: есть ограничения, зависящие от операции и версии JDK. Виртуальные потоки не являются пулом корутин. Источник: https://docs.oracle.com/en/java/javase/21/core/virtual-threads.html .</div>
+</div>
+<div id="jvm-intro-7" class="step slide" data-x="27000" data-y="-1500">
+<p class="topic">Корутины на JVM</p>
+<h1>Корутина — приостанавливаемая задача</h1>
+<ul>
+<li>Корутины исполняются на JVM-потоках; диспетчер определяет, на каких именно.</li>
+<li>При приостановке ожидание хранится как продолжение, а поток может выполнять другую работу.</li>
+<li>В Kotlin последовательный suspend-код сочетается с деревом задач: родитель ждёт дочерние задачи и участвует в их отмене.</li>
+</ul>
+<pre><code class="language-plaintext">Корутины → диспетчер → потоки JVM → ядра процессора</code></pre>
+<div class="notes">Это библиотечная модель задач и приостановок, а не виртуальные потоки Java. suspend сам не делает блокирующий API неблокирующим. Источник: https://kotlinlang.org/docs/coroutines-basics.html .</div>
+</div>
+<div id="jvm-intro-8" class="step slide" data-x="28000" data-y="-1500">
+<p class="topic">Место корутин</p>
+<h1>Разные средства решают разные задачи</h1>
+<ul>
+<li>Executor и диспетчер управляют исполнением; Future и Deferred представляют будущий результат.</li>
+<li>Виртуальные потоки снижают стоимость ожидания в блокирующем коде; корутины дают явные точки приостановки и структуру дочерних задач.</li>
+<li>Выбор зависит от используемых API, характера нагрузки и требований к времени жизни задач.</li>
+</ul>
+<table><tr><th>Задача</th><th>Средства</th></tr>
+<tr><td>Распределить работу по потокам</td><td>Executor, диспетчер</td></tr>
+<tr><td>Собрать зависимые результаты</td><td>CompletableFuture, async/await</td></tr>
+<tr><td>Связать время жизни задач</td><td>coroutineScope, Job</td></tr></table>
+<div class="notes">Не представлять эти средства как линейную смену поколений. На JVM они сосуществуют; корутины также могут адаптировать блокирующие операции через IO. Далее перейти к двум источникам и практикуму.</div>
+</div>
+<div id="slide-22" class="step slide section" data-x="29000" data-y="-1500">
+<p class="topic">Корутины</p>
+<h1>Несколько независимых источников</h1>
+<ul>
+<li>Пока источник A ждёт ответа, источник B может продолжать работу.</li>
+<li>Нужно дождаться результатов и понимать, кому принадлежат запущенные задачи.</li>
+<li>Вызов delay имитирует ожидание данных от источника.</li>
+</ul>
+<div class="notes">Теоретическая опора к практическому блоку «Корутины».</div>
+</div>
+<div id="slide-23" class="step slide" data-x="30000" data-y="-1500">
+<p class="topic">Модель выполнения</p>
+<h1>Конкурентность и параллелизм</h1>
+<ul>
+<li>При конкурентном выполнении несколько задач начаты и ещё не завершены. Они могут работать по очереди.</li>
+<li>При параллельном выполнении несколько участков кода исполняются одновременно, например на разных ядрах процессора.</li>
+<li>На одном потоке корутины могут чередоваться при приостановках.</li>
+</ul>
+<div class="notes">Теоретическая опора к практическому блоку «Модель выполнения».</div>
+</div>
+<div id="slide-24" class="step slide" data-x="31000" data-y="-1500">
+<p class="topic">Модель выполнения</p>
+<h1>Блокировка и приостановка</h1>
+<ul>
+<li>Thread.sleep удерживает текущий поток в ожидании.</li>
+<li>delay приостанавливает корутину, освобождая поток для другой работы.</li>
+<li>Пока корутина выполняет вычисления, она занимает поток. Другая корутина сможет использовать его после приостановки или завершения текущей.</li>
+</ul>
+<div class="notes">Теоретическая опора к практическому блоку «Модель выполнения».</div>
+</div>
+<div id="slide-25" class="step slide" data-x="32000" data-y="-1500">
+<p class="topic">Suspend</p>
+<h1>Что означает suspend</h1>
+<ul>
+<li>Функция может вызывать приостанавливающие функции.</li>
+<li>Вызов сам по себе не создаёт корутину и не выбирает другой поток.</li>
+<li>Функция может завершиться без фактической приостановки.</li>
+</ul>
+<pre><code class="language-kotlin">suspend fun readSource(name: String): String {
+    println(&quot;start $name&quot;)
+    delay(300)
+    println(&quot;end $name&quot;)
+    return &quot;data:$name&quot;
+}</code></pre>
+<div class="notes">Теоретическая опора к практическому блоку «Suspend».</div>
+</div>
+<div id="slide-26" class="step slide" data-x="33000" data-y="-1500">
+<p class="topic">Запуск примеров</p>
+<h1>Граница обычного и suspend-кода</h1>
+<ul>
+<li>Библиотека kotlinx.coroutines предоставляет основные средства работы с корутинами и подключается отдельно.</li>
+<li>runBlocking блокирует вызывающий поток до завершения своего блока и дочерних задач.</li>
+<li>Встроенный цикл обработки событий позволяет выполнять корутины на этом же потоке.</li>
+</ul>
+<pre><code class="language-kotlin">import kotlinx.coroutines.*
+
+fun main() = runBlocking {
+    val a = readSource(&quot;A&quot;)
+    val b = readSource(&quot;B&quot;)
+    println(&quot;$a; $b&quot;)
+}</code></pre>
+<div class="notes">0–8 минут второй пары. Импорты kotlinx.coroutines.* подразумеваются в последующих фрагментах. Версия библиотеки задаётся проектом практикума. runBlocking здесь только вход в консольный пример, не обёртка каждого suspend-вызова.</div>
+</div>
+<div id="slide-27" class="step slide" data-x="34000" data-y="-1500">
+<p class="topic">Suspend</p>
+<h1>Последовательность сохраняется</h1>
+<ul>
+<li>Второй вызов начинается после возврата первого.</li>
+<li>Во время delay текущая корутина приостановлена; её следующий оператор ещё не выполняется.</li>
+</ul>
+<pre><code class="language-plaintext">start A
+end A
+start B
+end B
+data:A; data:B</code></pre>
+<div class="notes">8–19 минут: задание 5. Предсказать журнал нескольких последовательных suspend-вызовов. Попросить объяснить, где именно могла выполняться другая задача.</div>
+</div>
+<div id="slide-28" class="step slide" data-x="35000" data-y="-1500">
+<p class="topic">Launch</p>
+<h1>Запуск дочерней задачи</h1>
+<ul>
+<li>launch — расширение CoroutineScope; запускает корутину и возвращает Job.</li>
+<li>Job описывает время жизни задачи, но не её возвращаемое значение.</li>
+<li>Если диспетчер не указан явно, новая задача наследует его от своего scope.</li>
+</ul>
+<pre><code class="language-kotlin">fun main() = runBlocking {
+    val a: Job = launch { readSource(&quot;A&quot;) }
+    val b: Job = launch { readSource(&quot;B&quot;) }
+    a.join()
+    b.join()
+    println(&quot;Все завершены&quot;)
+}</code></pre>
+<div class="notes">19–28 минут. Обратить внимание: readSource возвращает String, но launch не предоставляет его как результат.</div>
+</div>
+<div id="slide-29" class="step slide" data-x="36000" data-y="-1500">
+<p class="topic">Launch</p>
+<h1>Что гарантирует join</h1>
+<ul>
+<li>join приостанавливает ожидающую корутину до завершения Job.</li>
+<li>После двух join обе задачи завершены. Пока мы ждём первую, вторая может продолжать работу.</li>
+<li>join не возвращает результат задачи. Для получения результата или ошибки через await используем Deferred.</li>
+</ul>
+<div class="notes">Теоретическая опора к практическому блоку «Launch».</div>
+</div>
+<div id="slide-30" class="step slide" data-x="37000" data-y="-1500">
+<p class="topic">Порядок событий</p>
+<h1>Какие события должны идти по порядку</h1>
+<ul>
+<li>Для каждого источника start предшествует end.</li>
+<li>«Все завершены» должно идти после завершения обеих задач.</li>
+<li>Порядок событий разных источников может меняться. Проверяем только необходимые зависимости.</li>
+</ul>
+<pre><code class="language-plaintext">start A ─────→ end A ──┐
+                      ├──→ Все завершены
+start B ─────→ end B ──┘</code></pre>
+<div class="notes">28–40 минут: задание 6. Три операции и завершающее событие; проверить необходимые отношения порядка, а не единственную строку журнала.</div>
+</div>
+<div id="slide-31" class="step slide" data-x="38000" data-y="-1500">
+<p class="topic">Async</p>
+<h1>Задача с возвращаемым значением</h1>
+<ul>
+<li>async запускает дочернюю корутину и возвращает Deferred&lt;T&gt;.</li>
+<li>await дожидается завершения задачи и возвращает значение типа T. Если задача завершилась с ошибкой, await бросает исключение.</li>
+</ul>
+<pre><code class="language-kotlin">fun main() = runBlocking {
+    val a: Deferred&lt;String&gt; = async { readSource(&quot;A&quot;) }
+    val b: Deferred&lt;String&gt; = async { readSource(&quot;B&quot;) }
+    println(&quot;${a.await()}; ${b.await()}&quot;)
+}</code></pre>
+<div class="notes">40–49 минут. Оба async вызваны до первого await.</div>
+</div>
+<div id="slide-32" class="step slide" data-x="39000" data-y="-1500">
+<p class="topic">Async</p>
+<h1>Сначала запускаем задачи, затем ждём результаты</h1>
+<ul>
+<li>В первом варианте B ещё не запущен, пока ожидается A.</li>
+<li>Во втором обе задачи запущены до ожидания результатов.</li>
+</ul>
+<pre><code class="language-kotlin">val a = async { readSource(&quot;A&quot;) }.await()
+val b = async { readSource(&quot;B&quot;) }.await()
+
+// Конкурентный вариант
+val pendingA = async { readSource(&quot;A&quot;) }
+val pendingB = async { readSource(&quot;B&quot;) }
+val combined = pendingA.await() to pendingB.await()</code></pre>
+<div class="notes">Теоретическая опора к практическому блоку «Async».</div>
+</div>
+<div id="slide-33" class="step slide" data-x="40000" data-y="-1500">
+<p class="topic">Scope</p>
+<h1>Suspend-функции нужен scope для дочерних задач</h1>
+<ul>
+<li>У suspend-функции нет неявного получателя CoroutineScope, необходимого для вызова launch и async.</li>
+<li>coroutineScope предоставляет scope и ожидает своих дочерних задач.</li>
+<li>Функция возвращает результат после завершения своего блока и всех дочерних задач.</li>
+</ul>
+<pre><code class="language-kotlin">data class Summary(val a: String, val b: String)
+
+suspend fun loadSummary(): Summary = coroutineScope {
+    val a = async { readSource(&quot;A&quot;) }
+    val b = async { readSource(&quot;B&quot;) }
+    Summary(a.await(), b.await())
+}</code></pre>
+<div class="notes">49–61 минута: задание 7. Реализовать loadSummary из заготовки. Не создавать новый самостоятельный CoroutineScope и не использовать GlobalScope.</div>
+</div>
+<div id="slide-34" class="step slide" data-x="41000" data-y="-1500">
+<p class="topic">Scope</p>
+<h1>Дерево задач задаёт время жизни</h1>
+<ul>
+<li>runBlocking ждёт loadSummary.</li>
+<li>coroutineScope внутри loadSummary ждёт обе дочерние задачи.</li>
+<li>Тело родительской задачи может закончиться раньше дочерних задач. Сама родительская задача завершится после них.</li>
+</ul>
+<pre><code class="language-plaintext">runBlocking
+└── loadSummary / coroutineScope
+    ├── async: источник A
+    └── async: источник B</code></pre>
+<div class="notes">Теоретическая опора к практическому блоку «Scope».</div>
+</div>
+<div id="slide-35" class="step slide" data-x="42000" data-y="-1500">
+<p class="topic">Scope</p>
+<h1>Функция ждёт свои дочерние задачи</h1>
+<ul>
+<li>После возврата из loadSummary оба чтения завершены и результат готов.</li>
+<li>Если дочерняя задача в coroutineScope завершается с ошибкой, остальные дочерние задачи отменяются, а ошибка передаётся вызывающему.</li>
+<li>Перед выходом coroutineScope ждёт завершения всех дочерних задач, в том числе отменённых.</li>
+</ul>
+<div class="notes">Теоретическая опора к практическому блоку «Scope».</div>
+</div>
+<div id="slide-36" class="step slide section" data-x="43000" data-y="-1500">
+<p class="topic">Диспетчеры</p>
+<h1>Время жизни задач и место выполнения</h1>
+<ul>
+<li>Scope задаёт контекст запуска и связь со временем жизни родителя.</li>
+<li>Диспетчер определяет, на каких потоках выполняется корутина.</li>
+<li>Смена диспетчера сохраняет связь задачи с родителем.</li>
+</ul>
+<div class="notes">Теоретическая опора к практическому блоку «Диспетчеры».</div>
+</div>
+<div id="slide-37" class="step slide" data-x="44000" data-y="-1500">
+<p class="topic">Диспетчеры</p>
+<h1>Где выполняется код</h1>
+<ul>
+<li>Dispatchers.Default предназначен для вычислительной работы.</li>
+<li>Dispatchers.IO предназначен для блокирующих операций ввода-вывода на JVM.</li>
+<li>Если не передать диспетчер в launch или async, он наследуется от scope. Это не обязательно Dispatchers.Default.</li>
+</ul>
+<div class="notes">Теоретическая опора к практическому блоку «Диспетчеры».</div>
+</div>
+<div id="slide-38" class="step slide" data-x="45000" data-y="-1500">
+<p class="topic">Блокирующий код</p>
+<h1>suspend не изменяет Thread.sleep</h1>
+<ul>
+<li>Этот вызов всё ещё блокирует поток, на котором выполняется slowRead.</li>
+<li>Во время sleep другие корутины на этом потоке не смогут продолжить работу.</li>
+</ul>
+<pre><code class="language-kotlin">suspend fun slowRead(): String {
+    Thread.sleep(600)
+    return &quot;data&quot;
+}</code></pre>
+<div class="notes">61–70 минут. Сопоставить с readSource, использующим delay.</div>
+</div>
+<div id="slide-39" class="step slide" data-x="46000" data-y="-1500">
+<p class="topic">Блокирующий код</p>
+<h1>Наблюдение на одном потоке</h1>
+<ul>
+<li>Дочерняя корутина ticker и тело runBlocking используют один поток.</li>
+<li>yield позволяет задаче ticker начать работу до вызова Thread.sleep.</li>
+<li>Заменим Thread.sleep на delay и сравним, когда появляются сообщения tick.</li>
+</ul>
+<pre><code class="language-kotlin">fun main() = runBlocking {
+    val ticker = launch {
+        repeat(5) {
+            println(&quot;tick $it&quot;)
+            delay(100)
+        }
+    }
+    yield()
+    Thread.sleep(600) // затем заменить на delay(600)
+    ticker.join()
+}</code></pre>
+<div class="notes">Теоретическая опора к практическому блоку «Блокирующий код».</div>
+</div>
+<div id="slide-40" class="step slide" data-x="47000" data-y="-1500">
+<p class="topic">WithContext</p>
+<h1>Перенос блокирующего участка</h1>
+<ul>
+<li>withContext выполняет блок в заданном контексте и возвращает его результат.</li>
+<li>Пока поток диспетчера IO занят блокирующим вызовом, вызывающая корутина ждёт, не занимая свой поток.</li>
+<li>IO не превращает блокирующее чтение в неблокирующее.</li>
+</ul>
+<pre><code class="language-kotlin">suspend fun slowRead(): String =
+    withContext(Dispatchers.IO) {
+        Thread.sleep(600)
+        &quot;data&quot;
+    }</code></pre>
+<div class="notes">70–81 минута: задание 8. Перенести готовое блокирующее чтение, сохранив suspend-интерфейс; запустить рядом ticker. Обсудить границы участка, который действительно нужно переносить.</div>
+</div>
+<div id="slide-41" class="step slide" data-x="48000" data-y="-1500">
+<p class="topic">WithContext</p>
+<h1>Что перенос на IO не гарантирует</h1>
+<ul>
+<li>Потоки диспетчера IO не бесконечны: число одновременных блокирующих операций нужно контролировать.</li>
+<li>Если suspend-функция уже использует неблокирующий ввод-вывод, переносить её на IO обычно не требуется.</li>
+<li>Отмена корутины сама по себе не гарантирует прерывания произвольного блокирующего API.</li>
+</ul>
+<div class="notes">Теоретическая опора к практическому блоку «WithContext».</div>
+</div>
+<div id="slide-42" class="step slide" data-x="49000" data-y="-1500">
+<p class="topic">Время жизни</p>
+<h1>Завершение блока и завершение scope</h1>
+<ul>
+<li>Последняя строка тела runBlocking может выполниться раньше дочерней задачи.</li>
+<li>Но сам runBlocking вернётся только после её завершения.</li>
+</ul>
+<pre><code class="language-kotlin">fun main() {
+    runBlocking {
+        launch { delay(100); println(&quot;child done&quot;) }
+        println(&quot;body done&quot;)
+    }
+    println(&quot;scope done&quot;)
+}
+// body done → child done → scope done</code></pre>
+<div class="notes">81–87 минут. Сопоставить с деревом loadSummary; спросить, где нужен join для порядка внутри тела, хотя родитель и так дождётся детей.</div>
+</div>
+<div id="slide-43" class="step slide" data-x="50000" data-y="-1500">
+<p class="topic">Итоги</p>
+<h1>Пять вопросов о любой корутинной функции</h1>
+<ul>
+<li>Кто запускает задачу и кому она принадлежит?</li>
+<li>Какие операции выполняются последовательно, какие конкурентно?</li>
+<li>Где код блокирует поток, а где может приостановиться?</li>
+<li>Как получаем результат и чего ждём перед возвратом?</li>
+<li>Какой диспетчер выполняет блокирующую или вычислительную часть?</li>
+</ul>
+<div class="notes">87–90 минут. Быстрый разбор loadSummary и slowRead по этим вопросам.</div>
+</div>
+<div id="slide-44" class="step slide" data-x="51000" data-y="-1500">
+<p class="topic">Справка</p>
+<h1>Материалы для повторения</h1>
+<ul>
+<li>Inline functions — встраивание, возвраты, noinline и crossinline.</li>
+<li>Generics — стирание и границы проверок типов.</li>
+<li>Coroutines basics — запуск корутин и время жизни дочерних задач.</li>
+<li>Coroutine context and dispatchers — контекст и выбор потока.</li>
+<li><a href="https://docs.oracle.com/en/java/javase/21/core/virtual-threads.html">Java 21: Virtual Threads</a> · <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/ExecutorService.html">ExecutorService</a> · <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/CompletableFuture.html">CompletableFuture</a></li>
+</ul>
+<p style="font-size:19px"><a href="https://kotlinlang.org/docs/inline-functions.html">Inline</a> · <a href="https://kotlinlang.org/docs/generics.html">Generics</a> · <a href="https://kotlinlang.org/docs/coroutines-basics.html">Coroutines</a> · <a href="https://kotlinlang.org/docs/coroutine-context-and-dispatchers.html">Dispatchers</a></p>
+<div class="notes">Официальные источники приведены ссылками ниже.</div>
+</div>
+<div id="overview" class="step" data-x="25000" data-y="-1500" data-scale="65"></div>
+</div>
+<nav id="topics" hidden aria-label="Темы занятия"><h2>Темы занятия</h2><ul><li><a href="#/slide-1">Занятие 10</a></li><li><a href="#/slide-2">Inline</a></li><li><a href="#/slide-7">Возвраты</a></li><li><a href="#/slide-10">Параметры inline</a></li><li><a href="#/slide-14">Reified</a></li><li><a href="#/slide-21">Inline и reified: итоги</a></li><li><a href="#/coroutines-divider">Корутины</a></li><li><a href="#/jvm-intro-1">Параллелизм на JVM</a></li><li><a href="#/jvm-intro-6">Виртуальные потоки</a></li><li><a href="#/jvm-intro-7">Место корутин</a></li><li><a href="#/slide-23">Модель выполнения</a></li><li><a href="#/slide-25">Suspend</a></li><li><a href="#/slide-26">Запуск примеров</a></li><li><a href="#/slide-27">Suspend</a></li><li><a href="#/slide-28">Launch</a></li><li><a href="#/slide-30">Порядок событий</a></li><li><a href="#/slide-31">Async</a></li><li><a href="#/slide-33">Scope</a></li><li><a href="#/slide-36">Диспетчеры</a></li><li><a href="#/slide-38">Блокирующий код</a></li><li><a href="#/slide-40">WithContext</a></li><li><a href="#/slide-42">Время жизни</a></li><li><a href="#/slide-43">Итоги</a></li><li><a href="#/slide-44">Справка</a></li></ul><p>Esc — закрыть.</p><p><a href="kotlin-inline-coroutines-lab/README.md">Практикум и задания</a> · <a href="kotlin-inline-coroutines-instructor/PLAN.md">Сценарий преподавателя</a></p></nav>
+<div class="impress-progressbar"><div></div></div>
+<div class="impress-progress"></div>
+<a class="ov" href="#/overview">Обзор</a>
+<a class="ov topics-link" href="#topics" id="topics-toggle">Темы · T</a>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<script>
+    if (window.hljs) { hljs.highlightAll(); }
+</script>
+<script src="js/impress.js"></script>
+<script>
+    impress().init();
+    const topics = document.getElementById('topics');
+    document.getElementById('topics-toggle').addEventListener('click', function (event) {
+        event.preventDefault();
+        topics.hidden = !topics.hidden;
+    });
+    topics.addEventListener('click', function (event) {
+        if (event.target.closest('a')) { topics.hidden = true; }
+    });
+    document.addEventListener('keydown', function (event) {
+        if (event.code === 'KeyT') { topics.hidden = !topics.hidden; }
+        if (event.key === 'Escape') { topics.hidden = true; }
+    });
+</script>
+</body>
+</html>
