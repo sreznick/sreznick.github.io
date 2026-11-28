@@ -1,0 +1,1408 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=1024">
+  <title>Большие данные · 10. ClickHouse: партиции, версии и витрины</title>
+  <link href="css/impress-demo.css" rel="stylesheet">
+  <link href="css/impress-common.css" rel="stylesheet">
+  <style>
+    body { font-family:Arial,sans-serif; background:#101725; }
+    .slide { background:#0f172a; color:#e2e8f0; font:26px/1.35 Arial,sans-serif; letter-spacing:-.3px; text-shadow:none; padding:40px 52px; }
+    .slide h1 { font-size:38px; line-height:1.16; margin:0 0 24px; color:#f8fafc; }
+    .slide h2 { font-size:30px; line-height:1.3; margin:24px 0; }
+    .slide p { margin:18px 0; }
+    .slide ul { list-style:disc; margin:16px 0; padding-left:26px; }
+    .slide li { margin:13px 0; }
+    .slide strong { color:#fde047; }
+    .slide a, .ov { color:#93c5fd; background:none; text-shadow:none; }
+    .slide code { font: .86em/1.3 monospace; color:#bae6fd; letter-spacing:0; }
+    .slide pre { background:#17243a; color:#e0f2fe; border-radius:9px; padding:18px; margin:18px 0; font:20px/1.42 monospace; white-space:pre-wrap; overflow-wrap:anywhere; letter-spacing:0; }
+    .slide pre.result { border-left:4px solid #4ade80; color:#bbf7d0; }
+    .slide table { width:100%; border-collapse:collapse; font-size:23px; line-height:1.3; letter-spacing:0; margin:18px 0; }
+    .slide td, .slide th { padding:11px 9px; border-bottom:1px solid #334155; text-align:left; vertical-align:top; }
+    .slide th { background:#1e293b; color:#fde047; }
+    .slide .small { font-size:21px; }
+    .slide .callout { background:#1e293b; border-left:4px solid #facc15; padding:13px 17px; margin:22px 0; }
+    .slide.section { background:linear-gradient(135deg,#164e63,#1e3a8a); display:flex; flex-direction:column; justify-content:center; }
+    .slide.section h1 { font-size:49px; }
+    .eyebrow { color:#fde047; font-size:20px; letter-spacing:2px; text-transform:uppercase; }
+    .flow { display:flex; align-items:center; gap:12px; margin:30px 0; }
+    .node { flex:1; background:#1e293b; border:1px solid #475569; border-radius:10px; text-align:center; padding:22px 10px; font-size:23px; }
+    .arrow { color:#facc15; font-size:30px; }
+    .two { display:grid; grid-template-columns:1fr 1fr; gap:22px; }
+    .two pre { font-size:19px; }
+    .granules { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin:26px 0; }
+    .granule { border:2px solid #475569; border-radius:10px; padding:18px 8px; text-align:center; background:#1e293b; font-size:22px; }
+    .granule.selected { border-color:#facc15; background:#3a331a; }
+    .granule.skipped { color:#94a3b8; }
+    .footer { position:absolute; left:52px; right:52px; bottom:18px; display:flex; justify-content:space-between; gap:15px; font:13px/1.3 Arial,sans-serif; color:#94a3b8; letter-spacing:0; }
+    .footer a { color:#94a3b8; }
+    .counter { white-space:nowrap; margin-left:auto; }
+    .notes { display:none; }
+    .ov { position:fixed; left:16px; bottom:12px; font:15px Arial,sans-serif; z-index:10; pointer-events:auto; }
+    .impress-progress { display:none; }
+    #overview { background:none!important; border:0!important; box-shadow:none!important; pointer-events:none; }
+    @media print {
+      html,body { height:auto!important; overflow:visible!important; background:white!important; }
+      #impress, #impress > div { position:static!important; transform:none!important; }
+      .step.slide { opacity:1!important; margin:0 auto!important; break-after:page; print-color-adjust:exact; -webkit-print-color-adjust:exact; }
+      #overview,.ov,.impress-progressbar,.impress-progress,#impress-toolbar,#impress-help { display:none!important; }
+    }
+
+    .slide { font-size:25px; line-height:1.32; }
+    .slide h1 { font-size:35px; margin-bottom:18px; }
+    .slide p { margin:15px 0; }
+    .slide pre { font-size:18px; line-height:1.32; padding:14px 16px; margin:14px 0; }
+    .slide pre.result { font-size:18px; }
+    .slide pre.diagram { font-size:24px; line-height:1.5; }
+    .slide table { font-size:22px; }
+    .slide td,.slide th { padding:10px 8px; }
+    .slide .source { font:13px/1.3 Arial,sans-serif; }
+    .slide.long pre { font-size:16px; line-height:1.23; }
+    .slide.long h1 { font-size:31px; }
+    .slide .result-label { font-size:15px; color:#86efac; margin:7px 0; }
+    .slide .compact { font-size:19px; }
+    .slide .sql-link { font-size:15px; }
+  </style>
+</head>
+<body class="impress-not-supported">
+<div class="fallback-message"><p>Для показа используйте современный браузер с JavaScript. Стрелки — переход между слайдами, пробел — следующий слайд, P — заметки докладчика.</p></div>
+<div id="impress" data-transition-duration="500" data-width="1024" data-height="768">
+
+<div class="step slide section" id="s01">
+<h1>ClickHouse: партиции, версии и агрегатные витрины</h1>
+<p>Выбираем ключи таблицы, храним версии платежей и рассчитываем почасовые отчёты.</p><div class="flow"><div class="node">Строки</div><span class="arrow">→</span><div class="node">Состояния</div><span class="arrow">→</span><div class="node">Отчёты</div></div>
+<aside class="notes"><p>На прошлой лекции мы разобрали парты, гранулы и первичный индекс. Теперь выберем границы хранения, способ представления изменений и момент вычисления отчёта.</p><p>Сначала сравним варианты организации таблицы и их ограничения. Затем проверим выбранные варианты запросами: где исключаются парты, как выбирается состояние и когда накопленный отчёт перестаёт соответствовать источнику.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Введение · Тема</span></div>
+</div>
+<div class="step slide " id="s02">
+<h1>От хранения строк к поддержанию отчёта</h1>
+<table><tr><th>Блок</th><th>Решение</th></tr><tr><td>Партиции и ключи</td><td>Какие данные держать и обрабатывать вместе</td></tr><tr><td>Версии, изменения и удаление</td><td>Как представить новое состояние и его историю</td></tr><tr><td>Агрегация и витрины</td><td>Когда вычислять показатель и что сохранять</td></tr></table>
+<aside class="notes"><p>Первая лекция объясняла чтение уже записанной истории. Во второй выбираем способ её организации и обновления. Третья будет посвящена соединению данных, словарям и нескольким узлам.</p><p>В сегодняшних примерах один узел. Поэтому отдельно различаем партиционирование и распределение по серверам: ключ партиции сам по себе не выбирает узел.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Введение · Маршрут</span></div>
+</div>
+<div class="step slide " id="s03">
+<h1>Блок, парт и движок MergeTree</h1>
+<table class="compact"><tr><th>Понятие</th><th>Определение</th></tr><tr><td>Блок</td><td>Порция столбцов с одинаковым числом строк, обрабатываемая в памяти</td></tr><tr><td>Парт</td><td>Набор файлов с отсортированными строками одной партиции, индексом и отметками чтения</td></tr><tr><td>Слияние</td><td>Создание нового парта из нескольких партов одной партиции</td></tr><tr><td>Движок (ENGINE)</td><td>Правила хранения, чтения и обработки данных таблицы</td></tr></table><p>Обычный MergeTree при слиянии сохраняет строки, включая повторы.</p><p>Один INSERT может обрабатываться несколькими блоками и создавать несколько партов.</p>
+<aside class="notes"><p>Блок — порция данных в памяти: именованные столбцы с типами и одинаковым числом строк. Одна команда INSERT может разбиваться на несколько блоков. Блоки также передаются между операторами при чтении. Поэтому блок не является синонимом команды INSERT или файла на диске.</p><p>Парт, или data part, — набор файлов, хранящий порцию строк одной партиции. В рассматриваемых MergeTree-таблицах строки внутри парта упорядочены по ORDER BY; вместе с данными хранятся индекс и отметки чтения. Активный парт участвует в чтении. После замены слиянием или мутацией прежний парт становится неактивным и может оставаться на диске до очистки.</p><p>Слияние создаёт новый парт из нескольких партов одной партиции и заменяет ими исходные активные парты. Движок таблицы задаётся ENGINE и определяет поддерживаемые операции и правила обработки данных. Семейство MergeTree использует общий механизм партов, но разные правила обработки совпадающих ключей.</p><p>Обычный MergeTree при обычном слиянии сохраняет все строки, в том числе полностью одинаковые. Это правило не запрещает отдельно заданные UPDATE, DELETE или TTL. Партиция ограничивает набор сливаемых партов; конкретный движок определяет, что происходит со строками внутри этого набора. Блок, парт и партиция — три разные единицы, и соответствия один к одному между ними нет.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Введение · Повторение</span></div>
+</div>
+<div class="step slide " id="s04">
+<h1>Как повторять примеры</h1>
+<p>SQL выполняется сверху вниз в одной сессии.</p><p><a href="lecture-10-code/demo.sql">demo.sql</a> · <a href="lecture-10-code/README.txt">Docker и команды запуска</a> · <a href="lecture-10-code/verification/report.md">Отчёт проверок</a></p><p>Денежные значения — Decimal(18, 2), рубли. Время — UTC. База примеров — lecture10.</p>
+<pre><code>CREATE DATABASE IF NOT EXISTS lecture10;
+USE lecture10;
+SELECT version();</code></pre>
+<p class="result-label">Проверенный результат · ClickHouse 24.12.3.47</p><pre class="result">24.12.3.47</pre>
+<aside class="notes"><p>Фрагменты demo.sql выполняются по порядку в базе lecture10. Денежные значения выражены в рублях и хранятся в Decimal(18,2): две десятичные позиции после запятой. Суммы в приёмниках имеют Decimal(38,2), соответствующий результату sum. Время — UTC, проверяемая версия — 24.12.3.47.</p><p>Для clickhouse local достаточно одного запуска сценария. На сервере нужна пустая учебная база; команды её пересоздания приведены в README. Скрипт автоматически базу не удаляет.</p><p>Для Docker запускаем bash lecture-10-code/docker.sh up, затем bash lecture-10-code/docker.sh check. Проверка создаёт отдельную базу со случайным суффиксом и сохраняет её для ручных запросов. В verification/report.md каждому утверждению сопоставлены запросы, ожидаемые и фактические результаты, а также границы проверки.</p><p>Decimal(P,S) — десятичный тип фиксированной точности: P задаёт общее число десятичных цифр, S — число цифр после запятой. Decimal(18,2) задаёт до 16 цифр целой части и две дробной. Тип суммы расширяется отдельно; у готового avg тип результата в этой версии Float64.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Введение · Окружение</span></div>
+</div>
+<div class="step slide section" id="s05">
+<h1>Партиция: строки с одним значением ключа</h1>
+<p>Пусть <code>p(r)</code> — значение выражения <code>PARTITION BY</code> для строки <code>r</code>.</p><p class="callout">Строки r₁ и r₂ принадлежат одной партиции ⇔ p(r₁) = p(r₂).</p><p>Каждый парт содержит строки только одной партиции. В одной партиции может быть несколько партов.</p><p>Без PARTITION BY все строки относятся к общей партиции.</p>
+<aside class="notes"><p>Ключ партиционирования — выражение p(r), вычисляемое для каждой вставляемой строки. Партиция с ключом k объединяет строки, для которых p(r)=k, и все парты, содержащие эти строки. Равенство результата выражения, включая все компоненты кортежа, определяет принадлежность одной партиции.</p><p>Например, при PARTITION BY toYYYYMM(paid_at) все строки ноября 2026 года имеют ключ 202611. Они могут находиться в разных партах. Один парт не содержит одновременно октябрьскую и ноябрьскую партиции. Без PARTITION BY существует одна общая партиция, но число её партов зависит от вставок и слияний.</p><p>Партиция является границей слияний и операций над группой данных. Она не задаёт порядок строк внутри парта и не выбирает сервер: здесь рассматриваем один узел.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Партиции и ключи · Понятие</span></div>
+</div>
+<div class="step slide " id="s06">
+<h1>Зачем выделять группу партов</h1>
+<p>Храним историю событий. Запросы читают магазин за час, а политика хранения удаляет целый старый месяц.</p><p>Для чтения нужны соседние строки магазина. Для удаления — целая группа данных месяца. Эти задачи требуют разных ключей.</p>
+<aside class="notes"><p>Условия чтения и операции над историей не обязательно выделяют одни и те же данные. Для магазина за час выгодна сортировка по магазину и времени. Для удаления октября нужно собрать октябрьские данные независимо от магазина.</p><p>Партиционирование вводит вторую границу, внутри которой находятся парты. Поэтому не заменяем ключ сортировки ключом месяца: каждый обслуживает свою задачу.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Партиции и ключи · Мотивация</span></div>
+</div>
+<div class="step slide " id="s07">
+<h1>Партиция задаёт группу, ORDER BY — порядок внутри партов</h1>
+<table class="compact"><tr><th>Выражение</th><th>Определение</th></tr><tr><td>PARTITION BY p(r)</td><td>Одинаковое значение p(r) относит строки к одной партиции</td></tr><tr><td>ORDER BY (k₁,…,kₙ)</td><td>Ключ лексикографической сортировки строк внутри каждого парта</td></tr><tr><td>PRIMARY KEY</td><td>Выражения ключа разреженного индекса; префикс ORDER BY</td></tr></table><p>Без отдельного PRIMARY KEY используется ORDER BY.</p><p>Равные ключи допускаются. ORDER BY таблицы не задаёт порядок результата SELECT.</p>
+<aside class="notes"><p>Ключ сортировки ORDER BY — упорядоченный набор выражений K(r). Строки внутри каждого парта размещаются лексикографически по K: сначала сравнивается первая компонента, при равенстве — вторая и так далее. Например, ORDER BY (shop_id, paid_at, event_id) располагает рядом строки магазина, затем упорядочивает их по времени и идентификатору события.</p><p>Первичный ключ PRIMARY KEY задаёт значения для разреженного индекса. Он должен быть префиксом ключа сортировки; без отдельного объявления совпадает с ORDER BY. Индекс хранит значения ключа у границ гранул, а не отдельную запись для каждой строки. Он помогает исключать диапазоны чтения и не обеспечивает уникальность.</p><p>Ключ партиции p(r) определяет группу партов, а не позицию строки внутри парта. У разных партов одной партиции независимая сортировка и индексы. Поэтому даже совпадение ORDER BY таблицы с нужным порядком не является обещанием порядка результата SELECT: для такого контракта задают ORDER BY в самом запросе.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Партиции и ключи · Понятие</span></div>
+</div>
+<div class="step slide " id="s08">
+<h1>Хеш и соль: сначала определим выражения</h1>
+<p><strong>Хеш-функция</strong> детерминированно отображает аргументы в число фиксированного размера. <code>sipHash64</code> возвращает UInt64.</p><pre class="diagram">bucket(r) = sipHash64(id) % N
+0 ≤ bucket(r) &lt; N, N &gt; 0</pre><p><strong>Соль</strong> — дополнительный признак s(r), разделяющий строки одного ключа на подгруппы: <code>(company_id, s(r))</code>.</p><p>Одинаковые аргументы тех же типов дают одинаковый хеш. Разные аргументы могут дать одну корзину.</p>
+<aside class="notes"><p>Хеш-функция детерминированно отображает набор аргументов в значение фиксированного размера. sipHash64 возвращает UInt64, то есть беззнаковое 64-битное число. Для одинаковых значений одинаковых типов результат одинаков; приведение типов констант в сравнении с хешем столбцов является частью корректного выражения.</p><p>Хеш-корзина задаётся bucket(r)=sipHash64(id)%N при N&gt;0. Возможных номеров не больше N: от 0 до N−1. Разные идентификаторы могут попадать в одну корзину. Само ограничение числа корзин не гарантирует равного числа строк или байтов.</p><p>Солью в этой лекции называем дополнительный признак s(r), разделяющий строки одного исходного ключа. Например, s(r)=sipHash64(event_id)%4, а полный ключ партиции — (company_id,s(r)). Хеш компании не является солью, делящей эту компанию: все её строки имеют один и тот же аргумент company_id.</p><p>Для независимых событий признак можно вычислить по event_id. Для версий одной сущности он должен сохраняться между версиями; иначе они разойдутся по партициям. Хеш пары (company_id,event_id) задаёт общее пространство корзин, а кортеж (company_id,hash(event_id)%4) оставляет компанию отдельной компонентой ключа.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Партиции и ключи · Понятие</span></div>
+</div>
+<div class="step slide " id="s09">
+<h1>Какими могут быть границы партиции</h1>
+<table><tr><th>Вариант</th><th>Выражение</th><th>Что объединяется</th></tr><tr><td>Без разбиения</td><td>PARTITION BY не задан</td><td>Все строки</td></tr><tr><td>Время</td><td>toDate(ts), toYYYYMM(ts)</td><td>Сутки или месяц</td></tr><tr><td>Хеш</td><td>sipHash64(id) % N</td><td>Одна из N групп</td></tr><tr><td>Составной ключ</td><td>(company_id, hash(event_id) % N)</td><td>Компания и её подгруппа</td></tr></table>
+<aside class="notes"><p>Выражение PARTITION BY не обязано быть датой. Оно может вычислять хеш или кортеж значений. Отсутствие выражения означает общую партицию, но не один парт: вставки всё равно создают отдельные порции данных.</p><p>Выбор границы определяет, что можно удалить целиком и какие парты смогут сливаться. Число возможных значений ключа — отдельное ограничение: каждый новый результат выражения создаёт самостоятельную группу.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Партиции и ключи · Варианты</span></div>
+</div>
+<div class="step slide " id="s10">
+<h1>Слияние не пересекает партиции</h1>
+<pre class="diagram">Октябрь:  [парт A] + [парт B] → [парт AB]
+Ноябрь:   [парт C] + [парт D] → [парт CD]
+
+Октябрь + ноябрь → общего парта не будет</pre><p>Граница партиции ограничивает фоновые слияния всех рассмотренных MergeTree-движков.</p>
+<aside class="notes"><p>ClickHouse сливает парты только с одинаковым значением ключа партиции. При слиянии создаётся новый отсортированный парт этой же группы. Объединение разных групп изменило бы заданное размещение строк.</p><p>Это даёт независимые операции над группами, но ограничивает укрупнение мелких партов. Если вставка затрагивает много партиций, в каждой могут появляться небольшие парты, которые нельзя собрать одним общим слиянием.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Партиции и ключи · Реализация</span></div>
+</div>
+<div class="step slide " id="s11">
+<h1>Что делает ключ партиции и чего он не делает</h1>
+<table><tr><th>В ClickHouse 24.12</th><th>Граница возможности</th></tr><tr><td>Выражение определяет размещение строки</td><td>Не заменяется произвольно через ALTER; для нового ключа переносят данные в новую таблицу</td></tr><tr><td>WHERE может исключать неподходящие группы</td><td>Не заменяет индекс внутри оставшихся партов</td></tr><tr><td>Фиксированная формула хеша ограничивает число групп</td><td>Не выравнивает группы по фактическим байтам</td></tr><tr><td>Парты группы можно обслуживать отдельно</td><td>Автоматического деления выросшей партиции по размеру нет</td></tr></table>
+<aside class="notes"><p>PARTITION BY — фиксированное выражение схемы. В ClickHouse 24.12 произвольная замена этого выражения через ALTER не поддерживается: для другого ключа создают новую таблицу и заново распределяют строки при переносе.</p><p>ClickHouse не делит выросшую партицию автоматически на новые хеш-группы. Это потребовало бы другого правила размещения. Отсечение партиций и поиск строк внутри них также независимы: даже без разбиения первичный индекс может сократить чтение.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Партиции и ключи · Реализация</span></div>
+</div>
+<div class="step slide " id="s12">
+<h1>Гранула, индекс и отсечение чтения</h1>
+<p><strong>Гранула</strong> — последовательный диапазон строк парта, к границам которого привязаны отметки чтения. Размер может быть адаптивным.</p><p><strong>Разреженный индекс</strong> хранит значения PRIMARY KEY у границ гранул. Он отбирает диапазоны; оставшиеся строки проверяет WHERE.</p><table class="compact"><tr><th>Этап EXPLAIN</th><th>Что проверяет</th></tr><tr><td>MinMax</td><td>Минимумы и максимумы полей партиционирования в парте</td></tr><tr><td>Partition</td><td>Значение выражения ключа партиции</td></tr><tr><td>PrimaryKey</td><td>Диапазоны гранул по первичному ключу</td></tr></table>
+<aside class="notes"><p>Гранула — последовательный диапазон строк внутри парта. Отметка чтения — метаданные позиции в потоках столбцов, позволяющие перейти к началу чтения соответствующей гранулы. Такие отметки привязаны к границам гранул. Гранула не равна блоку исполнения или партиции. Число строк может зависеть от настроек адаптивной гранулярности; в опыте с логами задаём index_granularity=1024 и index_granularity_bytes=0.</p><p>Разреженный первичный индекс содержит значения PRIMARY KEY у границ гранул. По условию запроса он определяет диапазоны, которые могут содержать подходящие строки. Отсечение означает исключение диапазона, заведомо не содержащего нужных строк. В оставшихся диапазонах условие WHERE всё ещё проверяется; индекс не возвращает точный список идентификаторов подходящих строк.</p><p>На этапе MinMax проверяются минимумы и максимумы полей, участвующих в выражении партиционирования, сохранённые для каждого парта. Это автоматические метаданные партиционирования в нашем примере, а не объявленный отдельно пропускающий индекс INDEX TYPE minmax. Этап Partition проверяет выражение ключа партиции. Затем PrimaryKey отбирает гранулы в оставшихся партах.</p><p>Parts: a/b и Granules: c/d показывают число оставленных и рассмотренных партов или гранул на данном этапе. Это счётчики плана, а не число строк результата и не время выполнения. Названия этапов и конкретные счётчики проверяем в EXPLAIN indexes=1.</p><p>План запроса — описание операторов, выбранных для его выполнения, и связей между ними. EXPLAIN indexes=1 дополняет его условиями и счётчиками отбора по индексам. Pipeline уточняет физическое исполнение: экземпляры операторов и потоки блоков между ними; его рассмотрим в разделе агрегации.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Партиции и ключи · Реализация</span></div>
+</div>
+<div class="step slide " id="s13">
+<h1>Месяц или день при загрузке истории</h1>
+<p>Загружаем ноябрьскую историю небольшими блоками. В каждом блоке есть строки за все 30 дней.</p><table><tr><th>PARTITION BY</th><th>Результат одного блока</th></tr><tr><td>toYYYYMM(paid_at)</td><td>Строки попадают в одну партицию</td></tr><tr><td>toDate(paid_at)</td><td>Строки разделяются между 30 партициями</td></tr></table><p>Дневное разбиение создаёт больше мелких партов при такой загрузке. Зато позволяет удалять отдельные дни через DROP PARTITION.</p>
+<aside class="notes"><p>Сравним два варианта для одной истории: партиции по месяцу и по дню. Предположим, что загружаем ноябрь небольшими блоками и в каждом блоке перемешаны строки за все 30 дней.</p><p>При месячном разбиении строки блока относятся к одной партиции. При дневном блок разделяется между 30 партициями, создавая мелкие парты в каждой. Повторение таких вставок увеличивает число партов; слияния могут укрупнять их только внутри каждого дня.</p><p>Дневные партиции оправданы, если нужно удалять отдельные дни целиком. Если данные удаляются месяцами, при такой загрузке месячная партиция даёт больше возможностей укрупнять парты. Для потока только за текущий день разницы в числе затронутых партиций одной вставки не будет: в обоих вариантах она одна.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Партиции и ключи · Выбор</span></div>
+</div>
+<div class="step slide " id="s14">
+<h1>Что даёт каждый ключ и за что платим</h1>
+<table class="compact"><tr><th>Ключ партиции</th><th>Число групп</th><th>Только компания</th></tr><tr><td>Не задан</td><td>1</td><td>Отбор гранул первичным индексом</td></tr><tr><td>hash(company) % 16</td><td>До 16</td><td>Одна группа; тяжёлая компания не делится</td></tr><tr><td>(company, hash(event) % 4)</td><td>До 4C</td><td>Четыре группы; мелкие компании тоже дробятся</td></tr><tr><td>hash(company, event) % 16</td><td>До 16</td><td>Все группы; индекс внутри партов работает</td></tr></table><p>C — число компаний. Кардинальность ключа — число его различных значений; перекос — неравномерность размеров групп.</p>
+<aside class="notes"><p>Если компания сама входит в составной ключ, условие по компании позволяет исключить чужие группы. Хеш компании даёт одну общую с другими компаниями корзину, но не разделяет тяжёлую компанию.</p><p>Соль по событию делит компанию, одновременно дробя и мелкие компании. Хеш пары ограничивает общее число групп, но без события компания не определяет корзину. Это разные компромиссы, а не последовательные улучшения одного решения.</p><p>Кардинальность ключа — число различных результатов его выражения на рассматриваемом наборе строк. В таблице C означает число компаний. Перекос размеров — неравномерность числа строк или байтов между группами; высокая кардинальность и перекос являются разными свойствами. В нашем сравнении считаем строки, а не байты.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Партиции и ключи · Варианты</span></div>
+</div>
+<div class="step slide " id="s15">
+<h1>Соль только для крупных компаний</h1>
+<p>Крупные компании можно разделять на подгруппы, мелким оставлять по одной. Для этого нужен заранее определённый список крупных компаний.</p><p>В ClickHouse 24.12 выражение PARTITION BY существующей таблицы так не меняется. Новое правило потребует новой таблицы и переноса данных.</p>
+<aside class="notes"><p>Условие if(company_id IN (...),hash(event_id)%4,0) делит выбранные компании на четыре подгруппы, а остальные оставляет в подгруппе 0. Список крупных компаний нужно определить по данным и зафиксировать в схеме.</p><p>В ClickHouse 24.12 нет команды ALTER, которая произвольно заменяет PARTITION BY существующей MergeTree. Для нового выражения создают таблицу с другим ключом и переносят строки через INSERT SELECT, согласуя переключение загрузки.</p><p>Если же salt приходит отдельным полем от приложения, смена этого значения затронет новые вставки, а прежние строки останутся в старых группах. Для версий такое расхождение может нарушить фоновое замещение. Поэтому это не автоматическая адаптация к росту компании.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Партиции и ключи · Реализация</span></div>
+</div>
+<div class="step slide " id="s16">
+<h1>Как выбрать ключ до измерения запросов</h1>
+<ol><li>Определить, какие данные удаляются целиком и какие должны оставаться вместе.</li><li>Оценить число групп, размеры и распределение вставок между ними.</li><li>Проверить, какие условия WHERE определяют группу.</li><li>Сравнить парты и гранулы с вариантом без разбиения.</li></ol>
+<aside class="notes"><p>Если основная операция — удаление старых периодов, начинаем с временной границы. Для нетемпоральной таблицы отсутствие PARTITION BY является допустимым исходным вариантом.</p><p>Хеш и соль выбираем по измеренному распределению данных и запросов. Проверяем число групп и цену вставки, а не только размер крупнейшей партиции. Сортировку и первичный ключ задаём по запросам внутри выбранных групп.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Партиции и ключи · Выбор</span></div>
+</div>
+<div class="step slide " id="s17">
+<h1>Пример: месячные партиции событий</h1>
+<p>Одна вставка содержит октябрь и ноябрь. Месяц задаёт партицию, магазин и время — порядок внутри партов.</p>
+<pre><code>CREATE TABLE events
+( event_id UInt64, shop_id UInt32,
+  paid_at DateTime(&#x27;UTC&#x27;), amount Decimal(18, 2) )
+ENGINE = MergeTree
+PARTITION BY toYYYYMM(paid_at)
+ORDER BY (shop_id, paid_at, event_id);
+INSERT INTO events VALUES
+(1,7,&#x27;2026-10-31 23:59:00&#x27;,100),
+(2,7,&#x27;2026-11-01 00:01:00&#x27;,200),
+(3,9,&#x27;2026-11-01 00:02:00&#x27;,300);</code></pre>
+<aside class="notes"><p>Создаём events с месячной партицией и сортировкой по магазину, времени и событию. Вставляем одну октябрьскую и две ноябрьские строки одним INSERT.</p><p>Выражение toYYYYMM(paid_at) даёт два результата, поэтому строки разделяются на разные группы партов. Этот пример проверяет независимость партиционирования от порядка полей ORDER BY.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Партиции и ключи · Пример</span></div>
+</div>
+<div class="step slide  long" id="s18">
+<h1>Две вставки в месячные партиции</h1>
+<p>Сначала смотрим парты, затем добавляем ноябрьское событие и проверяем суммы.</p>
+<pre><code>SELECT partition, sum(rows) AS rows,
+       count() AS active_parts
+FROM system.parts
+WHERE database = &#x27;lecture10&#x27;
+  AND table = &#x27;events&#x27; AND active
+GROUP BY partition ORDER BY partition;
+INSERT INTO events VALUES
+(4,7,&#x27;2026-11-02 12:00:00&#x27;,400);
+SELECT toYYYYMM(paid_at) AS month,
+       count(), sum(amount)
+FROM events GROUP BY month ORDER BY month;</code></pre>
+<p class="result-label">Проверенный результат · ClickHouse 24.12.3.47</p><pre class="result">202610    1    1
+202611    2    1
+202610    1    100
+202611    3    900</pre>
+<aside class="notes"><p>Первый SELECT к system.parts показывает одну строку октября и две ноября. active исключает заменённые старые парты. Число активных партов может уменьшиться при слиянии.</p><p>Следующая вставка добавляет ноябрьские 400. В ноябре теперь три события на 900, в октябре одно на 100. Суммы относятся к данным, а число партов — к состоянию хранения.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Партиции и ключи · Пример</span></div>
+</div>
+<div class="step slide " id="s19">
+<h1>Проверяем отсечение месяца</h1>
+<p><code>MinMax</code> проверяет сохранённые минимум и максимум paid_at в каждом парте. Октябрьский диапазон не пересекается с ноябрём — парт исключается без чтения строк.</p><p>Эти границы созданы автоматически для партиционирования по toYYYYMM(paid_at). Отдельный INDEX не нужен.</p>
+<pre><code>EXPLAIN indexes = 1
+SELECT sum(amount) FROM events
+WHERE paid_at &gt;= &#x27;2026-11-01 00:00:00&#x27;
+  AND paid_at &lt;  &#x27;2026-12-01 00:00:00&#x27;
+  AND shop_id = 7;</code></pre>
+<aside class="notes"><p>Для ключа партиционирования toYYYYMM(paid_at) ClickHouse автоматически хранит в каждом парте минимальное и максимальное значения paid_at. В EXPLAIN проверка этих границ называется MinMax.</p><p>Запросу нужен ноябрь. Если весь диапазон paid_at парта лежит в октябре, этот парт можно исключить, не читая его строки. MinMax здесь относится к метаданным парта для партиционирования; отдельный INDEX мы не создавали.</p><p>В нашем плане MinMax исключает октябрьский парт. Далее видны Partition — проверка ключа партиции — и PrimaryKey, отбирающий гранулы внутри оставшихся партов. На маленьком наборе каждый парт содержит одну гранулу; совместный отбор партиций и гранул посмотрим на логах из 262144 строк.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Партиции и ключи · Разбор</span></div>
+</div>
+<div class="step slide " id="s20">
+<h1>DROP PARTITION удаляет весь октябрь</h1>
+<p><code>DROP PARTITION k</code> исключает из таблицы все активные парты с ключом партиции k.</p><p>После удаления остаются три ноябрьские строки на 900 рублей.</p>
+<pre><code>ALTER TABLE events DROP PARTITION 202610;
+SELECT count(), sum(amount) FROM events;</code></pre>
+<p class="result-label">Проверенный результат · ClickHouse 24.12.3.47</p><pre class="result">3    900</pre>
+<aside class="notes"><p>DROP PARTITION k удаляет целую партицию по значению ключа PARTITION BY. Все её активные парты исключаются из текущих данных таблицы; очистка старых файлов является отдельным этапом. Это не WHERE по части строк.</p><p>DROP PARTITION 202610 удаляет октябрь целиком. После команды остаются три ноябрьские строки на 900 рублей.</p><p>Месячное разбиение подходит для удаления месяцами. Удалить один день ноября этой командой, сохранив остальные дни, нельзя: они принадлежат той же партиции.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Партиции и ключи · Пример</span></div>
+</div>
+<div class="step slide " id="s21">
+<h1>Логи: сутки хранения, сервис и время для чтения</h1>
+<p>Нужны удаление отдельных суток и запросы сервиса за интервал. request_id сохраняем в сортировке, но не включаем в первичный индекс.</p>
+<pre><code>CREATE TABLE access_log
+( request_id UInt64, service_id UInt32,
+  ts DateTime(&#x27;UTC&#x27;), duration_ms UInt32 )
+ENGINE=MergeTree
+PARTITION BY toDate(ts)
+PRIMARY KEY (service_id, ts)
+ORDER BY (service_id, ts, request_id)
+SETTINGS index_granularity=1024,
+         index_granularity_bytes=0;</code></pre>
+<aside class="notes"><p>Для логов требуется удалять отдельные сутки. Поэтому PARTITION BY использует дату события. Запрос сервиса за интервал обслуживает ORDER BY (service_id,ts,request_id).</p><p>PRIMARY KEY оставляет только service_id и ts: идентификатор запроса не нужен для этого фильтра. Фиксируем гранулярность опыта, чтобы увидеть совместный отбор дневных партов и гранул.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Партиции и ключи · Пример</span></div>
+</div>
+<div class="step slide  long" id="s22">
+<h1>Одна загрузка логов затрагивает несколько суток</h1>
+<p>262144 запроса, 64 сервиса, по одной строке в секунду. Проверяем распределение строк по партициям.</p>
+<pre><code>INSERT INTO access_log
+SELECT number, toUInt32(number % 64),
+ toDateTime(&#x27;2026-11-01 00:00:00&#x27;,&#x27;UTC&#x27;)
+   + toIntervalSecond(number),
+ toUInt32(10 + number % 100)
+FROM numbers(262144);
+SELECT partition, sum(rows) AS rows
+FROM system.parts
+WHERE database=&#x27;lecture10&#x27;
+ AND table=&#x27;access_log&#x27; AND active
+GROUP BY partition ORDER BY partition;</code></pre>
+<p class="result-label">Проверенный результат · ClickHouse 24.12.3.47</p><pre class="result">2026-11-01    86400
+2026-11-02    86400
+2026-11-03    86400
+2026-11-04    2944</pre>
+<aside class="notes"><p>Генератор создаёт чуть больше трёх суток логов. PARTITION BY разделит вставляемые строки по датам; system.parts покажет количество строк в каждой дневной партиции.</p><p>Для удаления первых суток подойдёт DROP PARTITION с их датой. Сейчас данные сохраняем: этот же набор позже используем для сравнения числа групп и выполнения агрегации.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Партиции и ключи · Пример</span></div>
+</div>
+<div class="step slide " id="s23">
+<h1>Запрос логов использует партицию и первичный индекс</h1>
+<p>Ноябрьские сутки отбираются по ts. В выбранных партах первичный индекс сокращает диапазоны по service_id и ts.</p>
+<pre><code>EXPLAIN indexes=1
+SELECT avg(duration_ms) FROM access_log
+WHERE service_id=7
+ AND ts &gt;= &#x27;2026-11-02 12:00:00&#x27;
+ AND ts &lt;  &#x27;2026-11-02 13:00:00&#x27;;</code></pre>
+<aside class="notes"><p>Запрашиваем один час сервиса 7. Условие по ts сначала позволяет исключить парты других суток. В оставшихся партах индекс по service_id и ts отбирает гранулы для нужного сервиса и часа.</p><p>В EXPLAIN различаем эти уровни отбора: MinMax и Partition относятся к отбору партов, PrimaryKey — к диапазонам гранул. Идентификатор запроса не участвует в условиях, поэтому в первичный ключ его не включали.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Партиции и ключи · Разбор</span></div>
+</div>
+<div class="step slide " id="s24">
+<h1>Перекос: одна компания создаёт почти все события</h1>
+<p>60000 событий компании 1 и 5536 событий остальных 63 компаний. Во всех схемах одинаковые строки и ORDER BY (company_id, event_id).</p>
+<pre><code>CREATE TABLE event_base
+(company_id UInt64, event_id UInt64)
+ENGINE=MergeTree ORDER BY (company_id,event_id);
+INSERT INTO event_base
+SELECT if(number&lt;60000,toUInt64(1),
+          toUInt64(2+number%63)), number
+FROM numbers(65536);</code></pre>
+<aside class="notes"><p>company_id здесь обозначает компанию. Создаём 65536 событий: 60000 принадлежат компании 1, остальные — 63 небольшим компаниям. event_id различается у событий одной компании.</p><p>Сравним четыре схемы на одном наборе и с одинаковой сортировкой. Условия запросов тоже одинаковы: сначала только company_id=1, затем дополнительно event_id=42. Изменяем только партиционирование.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Партиции и ключи · Пример</span></div>
+</div>
+<div class="step slide  long" id="s25">
+<h1>Без PARTITION BY: нет отсечения партиций, есть индекс</h1>
+<p>Общая партиция сохраняет возможности ORDER BY. Отсутствие партиционирования не означает полный просмотр всех строк.</p>
+<pre><code>SELECT &#x27;company_only&#x27;;
+EXPLAIN indexes=1 SELECT event_id FROM event_base
+WHERE company_id=1;
+SELECT &#x27;company_and_event&#x27;;
+EXPLAIN indexes=1 SELECT event_id FROM event_base
+WHERE company_id=1 AND event_id=42;
+SELECT &#x27;small_company&#x27;;
+EXPLAIN indexes=1 SELECT event_id FROM event_base
+WHERE company_id=2;</code></pre>
+<p class="result-label">Проверенный результат · ClickHouse 24.12.3.47</p><pre class="result">company_only
+  PrimaryKey: Parts: 1/1; Granules: 8/8
+company_and_event
+  PrimaryKey: Parts: 1/1; Granules: 1/8
+small_company
+  PrimaryKey: Parts: 1/1; Granules: 1/8</pre>
+<aside class="notes"><p>В исходной event_base общая партиция. Условие компании не исключает её, но первичный индекс по (company_id,event_id) может отобрать гранулы. Дополнительный event_id сужает этот отбор.</p><p>Это исходный вариант, с которым сравниваем цену партиционирования. Для небольших таблиц или без потребности разделять наборы партов он может оказаться достаточным.</p><p>Третий план выбирает небольшую компанию 2. Партиция остаётся общей, но первичный индекс сокращает диапазон до её гранул. Для тяжёлой компании 1 диапазон шире, потому что она занимает большую часть набора.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Партиции и ключи · Пример</span></div>
+</div>
+<div class="step slide  long" id="s26">
+<h1>Пример: хеш компании</h1>
+<p>Тяжёлая компания целиком остаётся в одной группе. Проверим отбор партов и гранул.</p>
+<pre><code>CREATE TABLE company_events AS event_base
+ENGINE=MergeTree
+PARTITION BY sipHash64(company_id)%16
+ORDER BY (company_id,event_id);
+INSERT INTO company_events SELECT * FROM event_base;
+SELECT &#x27;company_only&#x27;;
+EXPLAIN indexes=1 SELECT event_id FROM company_events
+WHERE company_id=1;
+SELECT &#x27;company_and_event&#x27;;
+EXPLAIN indexes=1 SELECT event_id FROM company_events
+WHERE company_id=1 AND event_id=42;</code></pre>
+<p class="result-label">Проверенный результат · ClickHouse 24.12.3.47</p><pre class="result">company_only
+  MinMax: Parts: 1/16; Granules: 7/22
+  Partition: Parts: 1/1; Granules: 7/7
+  PrimaryKey: Parts: 1/1; Granules: 7/7
+company_and_event
+  MinMax: Parts: 1/16; Granules: 7/22
+  Partition: Parts: 1/1; Granules: 7/7
+  PrimaryKey: Parts: 1/1; Granules: 1/7</pre>
+<aside class="notes"><p>Загружаем тот же набор с ключом sipHash64(company_id)%16. Все события компании 1 попадают в одну группу. В обоих запросах MinMax оставляет один парт из 16, а проверка Partition больше ничего не исключает.</p><p>При условии только company_id=1 первичный индекс оставляет все семь гранул этого парта. После добавления event_id=42 он выбирает одну гранулу из семи.</p><p>Parts показывает число оставшихся партов, Granules — гранул. Этапы проверки называются MinMax, Partition и PrimaryKey; счётчики после каждого этапа показывают, сколько данных осталось для следующего.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Партиции и ключи · Пример</span></div>
+</div>
+<div class="step slide " id="s27">
+<h1>Четыре подгруппы для каждой компании</h1>
+<p>PARTITION BY (company_id, hash(event_id) % 4). До четырёх партиций на компанию; при C компаниях — до 4C.</p>
+<pre><code>CREATE TABLE company_salted AS event_base
+ENGINE=MergeTree
+PARTITION BY (company_id,sipHash64(event_id)%4)
+ORDER BY (company_id,event_id);
+INSERT INTO company_salted SELECT * FROM event_base
+WHERE sipHash64(event_id)%4=0;
+INSERT INTO company_salted SELECT * FROM event_base
+WHERE sipHash64(event_id)%4=1;
+INSERT INTO company_salted SELECT * FROM event_base
+WHERE sipHash64(event_id)%4=2;
+INSERT INTO company_salted SELECT * FROM event_base
+WHERE sipHash64(event_id)%4=3;</code></pre>
+<aside class="notes"><p>Теперь первый элемент ключа — сама компания, второй — соль по событию. Тяжёлая компания разделяется на четыре подгруппы, но и каждая мелкая компания дробится до четырёх партиций. Получаем до 4C партиций вместо фиксированных 16.</p><p>Загружаем отдельно каждое значение соли. В нашем наборе это 64 партиции на INSERT; единый блок по всем 256 партициям превысил бы стандартный лимит 100 в проверяемой версии. Уже на загрузке видна цена выбранной кардинальности.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Партиции и ключи · Пример</span></div>
+</div>
+<div class="step slide  long" id="s28">
+<h1>Частичного условия на составной ключ достаточно</h1>
+<p>company_id=1 исключает чужие компании. Без event_id остаются все четыре подгруппы компании 1.</p>
+<pre><code>SELECT &#x27;company_only&#x27;;
+EXPLAIN indexes=1 SELECT event_id FROM company_salted
+WHERE company_id=1;
+SELECT &#x27;company_and_event&#x27;;
+EXPLAIN indexes=1 SELECT event_id FROM company_salted
+WHERE company_id=1 AND event_id=42;</code></pre>
+<p class="result-label">Проверенный результат · ClickHouse 24.12.3.47</p><pre class="result">company_only
+  MinMax: Parts: 4/256; Granules: 8/260
+  Partition: Parts: 4/4; Granules: 8/8
+  PrimaryKey: Parts: 4/4; Granules: 8/8
+company_and_event
+  MinMax: Parts: 4/256; Granules: 8/260
+  Partition: Parts: 1/4; Granules: 2/8
+  PrimaryKey: Parts: 1/1; Granules: 1/2</pre>
+<aside class="notes"><p>В company_only соль не задана. Тем не менее известен первый элемент ключа партиционирования, поэтому ClickHouse исключает парты остальных компаний. Остаться должны четыре подгруппы компании 1.</p><p>В company_and_event известен event_id=42. ClickHouse вычисляет sipHash64(42)%4 и исключает остальные подгруппы компании. Указывать вычисленную соль отдельным условием не требуется.</p><p>Стадии применяются последовательно. Если MinMax уже исключил чужие компании, Partition показывает отбор относительно оставшихся партов, а не исходного числа.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Партиции и ключи · Разбор</span></div>
+</div>
+<div class="step slide  long" id="s29">
+<h1>Пример: хеш пары</h1>
+<p>Компания разделена между группами. Проверим, выводит ли оптимизатор условие на хеш.</p>
+<pre><code>CREATE TABLE pair_hashed AS event_base
+ENGINE=MergeTree
+PARTITION BY sipHash64(company_id,event_id)%16
+ORDER BY (company_id,event_id);
+INSERT INTO pair_hashed SELECT * FROM event_base;
+SELECT &#x27;company_only&#x27;;
+EXPLAIN indexes=1 SELECT event_id FROM pair_hashed
+WHERE company_id=1;
+SELECT &#x27;company_and_event&#x27;;
+EXPLAIN indexes=1 SELECT event_id FROM pair_hashed
+WHERE company_id=1 AND event_id=42;</code></pre>
+<p class="result-label">Проверенный результат · ClickHouse 24.12.3.47</p><pre class="result">company_only
+  MinMax: Parts: 16/16; Granules: 16/16
+  Partition: Parts: 16/16; Granules: 16/16
+  PrimaryKey: Parts: 16/16; Granules: 16/16
+company_and_event
+  MinMax: Parts: 15/16; Granules: 15/16
+  Partition: Parts: 15/15; Granules: 15/15
+  PrimaryKey: Parts: 15/15; Granules: 15/15</pre>
+<aside class="notes"><p>Хешируем пару целиком, сохраняя общее число групп равным 16. Крупная компания делится между ними, а мелкие компании совместно заполняют те же группы.</p><p>В company_only все группы компании 1 остаются. В company_and_event оба значения известны, но ClickHouse 24.12 не вывел из двух равенств условие на выражение хеша. Отдельно проверим явное условие: математическая вычислимость значения не гарантирует преобразование оптимизатором.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Партиции и ключи · Пример</span></div>
+</div>
+<div class="step slide  long" id="s30">
+<h1>Явное условие на хеш выбирает одну корзину</h1>
+<p>Повторяем исходные условия и добавляем условие на выражение PARTITION BY. Аргументы констант приводим к типам столбцов.</p>
+<pre><code>EXPLAIN indexes=1
+SELECT event_id FROM pair_hashed
+WHERE company_id=1 AND event_id=42
+ AND sipHash64(company_id,event_id)%16
+     = sipHash64(toUInt64(1),toUInt64(42))%16;</code></pre>
+<p class="result-label">Проверенный результат · ClickHouse 24.12.3.47</p><pre class="result">  MinMax: Parts: 15/16; Granules: 15/16
+  Partition: Parts: 1/15; Granules: 1/15
+  PrimaryKey: Parts: 1/1; Granules: 1/1</pre>
+<aside class="notes"><p>Добавляем равенство непосредственно для sipHash64(company_id,event_id)%16. Исходные условия по компании и событию сохраняем: одна хеш-корзина содержит и другие пары.</p><p>Константы передаём в sipHash64 как UInt64, поскольку хеш зависит от типов аргументов. В проверенном плане Partition теперь отбирает одну корзину из партов, оставшихся после MinMax.</p><p>Это пример различия между информацией, доступной из WHERE, и преобразованиями конкретного оптимизатора. Поведение нужно проверять в EXPLAIN своей версии.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Партиции и ключи · Разбор</span></div>
+</div>
+<div class="step slide  long" id="s31">
+<h1>Размеры партиций: сравниваем четыре схемы</h1>
+<p>Измеряем число партиций и размер крупнейшей по строкам. Это не замер времени запроса.</p>
+<pre><code>SELECT table, count() AS partitions,
+ sum(rows) AS total_rows, max(rows) AS max_rows
+FROM
+( SELECT table, partition, sum(rows) AS rows
+  FROM system.parts
+  WHERE database=&#x27;lecture10&#x27; AND active
+   AND table IN (&#x27;event_base&#x27;,&#x27;company_events&#x27;,
+                &#x27;company_salted&#x27;,&#x27;pair_hashed&#x27;)
+  GROUP BY table, partition )
+GROUP BY table ORDER BY table;</code></pre>
+<p class="result-label">Проверенный результат · ClickHouse 24.12.3.47</p><pre class="result">company_events    16    65536    60351
+company_salted    256    65536    15064
+event_base    1    65536    65536
+pair_hashed    16    65536    4168</pre>
+<aside class="notes"><p>Во всех таблицах должно быть 65536 строк. Сравниваем размер крупнейшей партиции и число групп: уменьшение крупнейшей группы может сопровождаться сильным ростом числа мелких.</p><p>В рабочей системе отдельно измеряют bytes_on_disk и поведение вставок, слияний и запросов. Равное число строк не гарантирует равного объёма в байтах. Для демонстрации храним четыре копии набора, но это не требование к рабочей схеме.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Партиции и ключи · Разбор</span></div>
+</div>
+<div class="step slide " id="s32">
+<h1>Сообщения: хеш рабочего пространства и год</h1>
+<p>Сервис хранит переписку компаний с клиентами: workspace_id — компания, conversation_id — диалог.</p><p>Хеш распределяет компании по 16 группам. Год задаёт временную границу; ORDER BY собирает сообщения диалога рядом.</p>
+<pre><code>CREATE TABLE workspace_messages
+( workspace_id UInt64, conversation_id UInt64,
+  created_at DateTime(&#x27;UTC&#x27;), message_id UInt64 )
+ENGINE=MergeTree
+PARTITION BY (sipHash64(workspace_id) % 16,
+              toYear(created_at))
+ORDER BY (workspace_id, conversation_id, created_at);
+INSERT INTO workspace_messages VALUES
+ (1,10,&#x27;2025-12-31 12:00:00&#x27;,101),
+ (1,10,&#x27;2026-01-01 12:00:00&#x27;,102),
+ (2,20,&#x27;2026-01-01 12:00:00&#x27;,103),
+ (12,30,&#x27;2026-01-01 12:00:00&#x27;,104);</code></pre>
+<aside class="notes"><p>В общей таблице хранится переписка нескольких компаний. workspace_id обозначает компанию, conversation_id — диалог, created_at — время сообщения. Основной запрос выбирает диалог одной компании за интервал.</p><p>PARTITION BY состоит из хеш-группы компании и года. Если сохраняются Y лет, возможно не более 16 × Y партиций независимо от числа компаний. Отдельная партиция для каждой компании такого ограничения не дала бы.</p><p>ORDER BY (workspace_id, conversation_id, created_at) собирает сообщения диалога рядом внутри каждого парта. Партиция ограничивает набор партов, а первичный индекс отбирает диапазоны внутри них. Число 16 — параметр примера, а не универсальная настройка.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Партиции и ключи · Пример</span></div>
+</div>
+<div class="step slide " id="s33">
+<h1>Разные компании могут разделять одну хеш-партицию</h1>
+<p>Условие по workspace_id и году определяет хеш-партицию. Но удалить одно рабочее пространство через DROP PARTITION нельзя: в группе могут быть и другие.</p>
+<pre><code>SELECT workspace_id, sipHash64(workspace_id)%16 AS bucket,
+ toYear(created_at) AS year, count()
+FROM workspace_messages
+GROUP BY workspace_id, bucket, year
+ORDER BY workspace_id, year;
+EXPLAIN indexes=1
+SELECT message_id FROM workspace_messages
+WHERE workspace_id=1
+ AND created_at &gt;= &#x27;2026-01-01 00:00:00&#x27;
+ AND created_at &lt; &#x27;2027-01-01 00:00:00&#x27;;</code></pre>
+<aside class="notes"><p>Компания 1 имеет сообщения двух лет: хеш-группа у них одинакова, годовые партиции различаются. Компания 12 также попадает в группу 14. В 2026 году её строка разделяет партицию со строкой компании 1.</p><p>WHERE workspace_id=1 и ограничение года выбирают нужные парты, а первичный индекс различает компании внутри общей хеш-группы. DROP PARTITION для этой группы года удалил бы обе компании. Такая граница не позволяет удалить одну компанию целиком.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Партиции и ключи · Разбор</span></div>
+</div>
+<div class="step slide section" id="s34">
+<h1>Версия — состояние платежа после изменения</h1>
+<p>У платежа A исправили сумму со 100 до 150 рублей. Это два состояния одного платежа, а не две оплаты.</p><table><tr><th>payment_id</th><th>amount, руб.</th><th>version</th></tr><tr><td>A</td><td>100</td><td>1</td></tr><tr><td>A</td><td>150</td><td>2</td></tr></table><p>Версия — состояние сущности с номером изменения. Актуальный вклад платежа A в отчёт — 150 рублей.</p>
+<aside class="notes"><p>Сущность — объект с устойчивым ключом идентичности, в примере payment_id. Состояние — значения её атрибутов, например сумма платежа. Версия — запись состояния с меткой порядка изменений. В нашем протоколе version растёт для каждого платежа, а текущее состояние выбирается по максимальной версии среди доступных строк этого платежа.</p><p>У A первоначально amount=100 и version=1. Исправление даёт amount=150 и version=2. Обе строки описывают один платёж. Они не являются двумя независимыми оплатами: актуальный вклад A равен 150, а не 250.</p><p>Неизменяемое событие описывает отдельную операцию с собственным event_id. Для журнала оплата и возврат — разные операции; для таблицы состояний исправление суммы — новая версия того же payment_id. Смысл строки задаёт источник, движок его не распознаёт автоматически.</p><p>«Актуальное» здесь означает максимальную известную версию в выбранной области данных. Запрос не доказывает, что источник уже доставил все изменения реального мира. Далее разберём повторную доставку, выбор версии, ключи и границы партиций.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Версии и история · Понятие</span></div>
+</div>
+<div class="step slide " id="s35">
+<h1>Почему не UPDATE? Можно — зависит от задачи</h1>
+<table><tr><th>Способ</th><th>Работа с данными</th><th>История</th></tr><tr><td>ALTER UPDATE</td><td>Переработка затронутых партов</td><td>Автоматически не ведётся</td></tr><tr><td>INSERT + ReplacingMergeTree</td><td>Новые парты; замещение при слияниях и чтении</td><td>Старые версии могут исчезнуть</td></tr><tr><td>INSERT в журнал изменений</td><td>Каждое состояние — новая строка</td><td>Доступна, пока прежние строки сохранены</td></tr></table><p>ALTER UPDATE в 24.12 по умолчанию асинхронен. Обработка партов не является атомарной заменой всей таблицы; ключевые поля изменять нельзя.</p>
+<aside class="notes"><p>ReplacingMergeTree — движок, который замещает строки с одинаковым полным ORDER BY одной выбранной строкой; при заданном version выбирается максимальная версия. Подробное правило разбирается на слайде 41.</p><p>Отсутствие истории — только одно отличие. В ClickHouse 24.12 ALTER UPDATE выполняется мутацией: условие выбирает строки, но результат записывается новыми версиями затронутых партов. При Wide неизменённые файлы столбцов можно переиспользовать; затраты определяются затронутыми данными, а не только количеством исправленных строк.</p><p>По умолчанию команда асинхронна. До завершения разные парты могут находиться на разных этапах изменения; атомарной замены всей таблицы нет. В нашей схеме нельзя обновлять поля первичного ключа и выражения партиционирования. История прежних значений для запросов сама не появляется.</p><p>Поэтому для редкой коррекции атрибута рассматриваем ALTER UPDATE, а для потока состояний — вставки версий. ReplacingMergeTree тоже требует работы: записи новых партов, фонового замещения и выбора версии при чтении. Для архива приложение само записывает каждое изменение новой строкой в отдельный журнал MergeTree и сохраняет прежние строки. Движок автоматически такой журнал не создаёт. Частоту, объём изменений и требования к видимости учитываем вместе с потребностью в истории.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Версии и история · Варианты</span></div>
+</div>
+<div class="step slide " id="s36">
+<h1>Повтор — не новая версия</h1>
+<table><tr><th>Запись</th><th>Смысл</th></tr><tr><td>A, v1, 100</td><td>Исходное состояние</td></tr><tr><td>A, v1, 100</td><td>Повтор доставки</td></tr><tr><td>A, v2, 150</td><td>Исправление суммы</td></tr></table><p>Актуальная сумма A — 150. Сумма всех доставленных строк — 350.</p>
+<aside class="notes"><p>Повтор доставки — повторное получение той же логической записи с тем же ключом и версией. Новая версия имеет тот же ключ сущности, но большую метку изменения. Дедупликация — устранение повторного представления одной логической записи; для ReplacingMergeTree физическое замещение определяется равенством ORDER BY.</p><p>У A сумма 100 версии 1. Повтор той же строки — повтор доставки. Сумма 150 версии 2 — исправление платежа. Три доставленные строки дают 350, но отчёт по актуальным состояниям должен выбрать версию 2 и получить 150.</p><p>Если одинаковым ключу и версии соответствуют разные значения, это конфликт данных, а не безвредный повтор. Наш протокол требует одинакового содержимого для такой пары. Обеспечение этого требования относится к источнику и загрузчику.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Версии и история · Мотивация</span></div>
+</div>
+<div class="step slide " id="s37">
+<h1>Версия задаётся источником</h1>
+<p>Для каждого платежа источник назначает возрастающий <code>version</code>.</p><p>Одинаковая версия должна содержать одинаковое состояние. Порядок доставки может отличаться от порядка версий.</p><p>Номер версии включать в ключ идентичности нельзя: иначе версии станут разными объектами.</p>
+<aside class="notes"><p>Источник назначает возрастающий version для каждого платежа. Порядок доставки может отличаться: старая версия приходит после новой.</p><p>В нашем протоколе одинаковые ключ и версия означают одинаковое содержимое. Разные состояния с одной максимальной версией этот протокол не разрешает. Сам version в ORDER BY не включаем: иначе каждая версия получила бы отдельный ключ.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Версии и история · Понятие</span></div>
+</div>
+<div class="step slide " id="s38">
+<h1>Замещение задаёт весь ORDER BY</h1>
+<p>Равенство полного ключа сортировки определяет кандидатов на замещение.</p><table><tr><th>Поле</th><th>Роль в примере</th></tr><tr><td>shop_id</td><td>Стабильная часть ключа, удобна для фильтра</td></tr><tr><td>payment_id</td><td>Стабильная идентичность платежа</td></tr><tr><td>version</td><td>Выбирает состояние с максимальной версией</td></tr></table><p>PRIMARY KEY может быть короче; это не меняет идентичность для замещения.</p>
+<aside class="notes"><p>Совпасть должен весь ORDER BY: здесь shop_id и payment_id. Изменение shop_id создало бы другой ключ, поэтому неизменяемость магазина — условие этой схемы.</p><p>PRIMARY KEY можно сократить для уменьшения индекса, но ключ замещения останется полным ORDER BY. Столбец version используется отдельно для выбора состояния.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Версии и история · Реализация</span></div>
+</div>
+<div class="step slide " id="s39">
+<h1>Партиция версии должна быть стабильной</h1>
+<p>Время создания платежа в нашем примере не меняется. Время исправления может перейти в другой месяц.</p><p>Если партиционировать по времени исправления, версии разойдутся по партициям и фоновое слияние их не объединит.</p><p class="callout">Поведение FINAL между партициями зависит от настроек; стабильная партиция сохраняет корректность фонового замещения.</p>
+<aside class="notes"><p>FINAL — модификатор SELECT, применяющий правило замещения при чтении ReplacingMergeTree. Он выбирает актуальную строку без изменения сохранённых партов.</p><p>Платёж создали в ноябре и исправили в декабре. При партиционировании по времени исправления версии разойдутся по партициям и не заместятся фоновым слиянием.</p><p>При do_not_merge_across_partitions_select_final=0 FINAL может выполнять замещение между партициями; при 1 обрабатывает их отдельно. В нашей схеме используем неизменяемый месяц создания: версии остаются в одной партиции.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Версии и история · Реализация</span></div>
+</div>
+<div class="step slide " id="s40">
+<h1>Все версии клиента должны попадать в одну подгруппу</h1>
+<table><tr><th>Тяжёлая группа</th><th>Соль</th><th>Результат</th></tr><tr><td>События компании</td><td>Хеш event_id</td><td>Разные события разделяются</td></tr><tr><td>Клиенты компании</td><td>Хеш customer_id</td><td>Версии клиента остаются вместе</td></tr><tr><td>Версии одной сущности</td><td>Хеш её ключа</td><td>Перекос внутри ключа не устраняется</td></tr></table>
+<aside class="notes"><p>Для независимых событий соль можно вычислять по event_id. Для версий профилей внутри компании — по customer_id: разных клиентов разделяем, а все версии одного клиента сохраняем вместе.</p><p>Случайная соль при вставке или смена правила между версиями разнесёт состояния одного ключа по партициям. Фоновое замещение их не объединит. Если тяжёлый объём принадлежит одной сущности, стабильная соль от её ключа этот объём не разделит.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Версии и история · Выбор</span></div>
+</div>
+<div class="step slide " id="s41">
+<h1>ReplacingMergeTree: правило замещения строк</h1>
+<p><code>ReplacingMergeTree(version)</code> оставляет одну строку среди строк с одинаковым полным <code>ORDER BY</code>.</p><table class="compact"><tr><th>Часть правила</th><th>Семантика</th></tr><tr><td>Идентичность</td><td>Совпадают все значения ORDER BY; PRIMARY KEY может быть короче</td></tr><tr><td>Выбор строки</td><td>Максимальный version; сохраняется вся строка победителя</td></tr><tr><td>Без version / при равенстве</td><td>Последняя строка из самого нового участвующего парта</td></tr><tr><td>Фоновое слияние</td><td>Правило применяется к участвующим партам одной партиции</td></tr><tr><td>SELECT FINAL</td><td>То же правило при чтении, без переписывания хранения</td></tr></table><p>INSERT допускает несколько версий. Слияние может удалить прежние состояния.</p>
+<aside class="notes"><p>ReplacingMergeTree заменяет несколько строк с одинаковым ключом одной выбранной строкой. Идентичность определяется полным ORDER BY. В нашей схеме ORDER BY (shop_id, payment_id): строки одного платежа в одном магазине считаются версиями одного объекта. Короткий PRIMARY KEY влияет на индекс, но не меняет это правило.</p><p>В ReplacingMergeTree(version) побеждает строка с максимальным значением version среди обрабатываемых строк этого ключа. Сохраняется вся строка победителя: значения столбцов не складываются и не выбираются независимо друг от друга. Если новая версия содержит пустое имя или нулевую сумму, эти значения также сохраняются; движок не восстанавливает их из старой версии.</p><p>Параметр version необязателен. У ReplacingMergeTree() остаётся последняя строка в порядке замещения: при последовательных вставках это последняя строка из наиболее нового участвующего парта. Значения времени внутри строки сами по себе не определяют победителя. При равных максимальных version применяется то же правило. Поэтому для потока с доставкой не по порядку задаём версию источника, а одинаковый ключ и одинаковая версия в нашем протоколе должны означать одинаковое содержимое. У argMax при равных версиях собственное правило выбора; согласованность с FINAL при конфликтующих строках не предполагаем.</p><p>INSERT записывает новые строки и не ищет прежнюю строку с таким ключом для немедленной замены. Фоновое слияние применяет правило только к строкам участвующих партов внутри одной партиции. Другие парты могут ещё содержать версии того же объекта. Срок полного устранения повторов не гарантируется.</p><p>SELECT FINAL выполняет замещение при чтении и не переписывает сохранённые строки. Для версий в разных партициях действует разобранная настройка do_not_merge_across_partitions_select_final; наша схема сохраняет версии в одной партиции. Обычный SELECT читает сохранённые строки и потому может видеть несколько версий.</p><p>После физического замещения проигравшие версии могут быть удалены из активных данных. ReplacingMergeTree подходит для хранения текущего состояния с отложенным замещением. Если нужны запросы к прошлым состояниям, историю сохраняют отдельно. Вариант ReplacingMergeTree(version, is_deleted) добавляет версию удаления; его разберём в разделе об удалении.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Версии и история · Реализация</span></div>
+</div>
+<div class="step slide " id="s42">
+<h1>Как читать и когда менять хранение</h1>
+<table><tr><th>Способ</th><th>Назначение</th><th>Цена или ограничение</th></tr><tr><td>Обычный SELECT</td><td>Просмотр сохранённых строк</td><td>Результат зависит от выполненных слияний</td></tr><tr><td>SELECT FINAL</td><td>Актуальное состояние по правилам движка</td><td>Дополнительная обработка при чтении</td></tr><tr><td>argMax + GROUP BY</td><td>argMax(a,v) возвращает a строки с максимальным v</td><td>Нужен корректный ключ группы и порядок версий</td></tr><tr><td>OPTIMIZE FINAL</td><td>Физическое слияние партов</td><td>Переписывает данные; новые вставки снова добавят версии</td></tr></table>
+<aside class="notes"><p>FINAL — модификатор чтения MergeTree-таблицы, применяющий правило её движка при выполнении SELECT. Для ReplacingMergeTree(version) это выбор строки с максимальной версией среди обрабатываемых строк одного полного ORDER BY. Чтение FINAL не меняет физические парты. Обработка разных партиций зависит от do_not_merge_across_partitions_select_final.</p><p>argMax(a,v) — агрегатная функция: для каждой группы она возвращает значение a из строки с максимальным v. При нескольких максимумах выбор a не определён однозначно. В примерах группируем по полному ключу сущности, а tuple(amount,created_at) сохраняет связанные атрибуты одного выбранного состояния.</p><p>Для Nullable-аргументов скалярный argMax пропускает строки с NULL в a или v. Кортеж с NULL внутри сам не является NULL, поэтому argMax(tuple(a),v) позволяет сохранить NULL в атрибуте выбранного состояния. Если нужен однозначный выбор при совпадающих версиях, дополнительный порядок должен быть частью протокола и аргумента сравнения.</p><p>OPTIMIZE TABLE t FINAL — команда принудительного слияния партов по правилам движка в пределах партиций. Она меняет хранение и отличается от модификатора SELECT FINAL. Новые вставки после слияния снова могут добавить версии. Для отчёта выбираем корректное правило чтения, а не запускаем OPTIMIZE перед каждым запросом.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Версии и история · Выбор</span></div>
+</div>
+<div class="step slide " id="s43">
+<h1>Пример: два исходных состояния платежей</h1>
+<p>Ключ сущности — (shop_id,payment_id), партиция — неизменяемый месяц создания. version выбирает новое состояние.</p>
+<pre><code>CREATE TABLE payment_versions
+( payment_id String, shop_id UInt32,
+  created_at DateTime(&#x27;UTC&#x27;),
+  amount Decimal(18, 2), version UInt64 )
+ENGINE=ReplacingMergeTree(version)
+PARTITION BY toYYYYMM(created_at)
+ORDER BY (shop_id, payment_id);
+SYSTEM STOP MERGES payment_versions;
+INSERT INTO payment_versions VALUES
+(&#x27;A&#x27;,7,&#x27;2026-11-01 12:00:00&#x27;,100,1),
+(&#x27;B&#x27;,7,&#x27;2026-11-01 12:10:00&#x27;,200,1);</code></pre>
+<aside class="notes"><p>Создаём payment_versions. В этом примере магазин и время создания платежа неизменяемы, поэтому ключ сущности и партиция сохраняются между версиями.</p><p>Останавливаем слияния, чтобы последующие промежуточные чтения были воспроизводимы. Вставляем A на 100 и B на 200 версии 1. Позднее явно возобновим фон.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Версии и история · Пример</span></div>
+</div>
+<div class="step slide " id="s44">
+<h1>Повтор, исправление и поздняя старая версия</h1>
+<p>После версии 2 приходит версия 1. Обычный SELECT при остановленном фоне показывает все пять вставленных строк.</p>
+<pre><code>INSERT INTO payment_versions VALUES
+(&#x27;A&#x27;,7,&#x27;2026-11-01 12:00:00&#x27;,100,1);
+INSERT INTO payment_versions VALUES
+(&#x27;A&#x27;,7,&#x27;2026-11-01 12:00:00&#x27;,150,2);
+INSERT INTO payment_versions VALUES
+(&#x27;A&#x27;,7,&#x27;2026-11-01 12:00:00&#x27;,100,1);
+SELECT payment_id, amount, version
+FROM payment_versions
+ORDER BY payment_id, version;</code></pre>
+<p class="result-label">Проверенный результат · ClickHouse 24.12.3.47</p><pre class="result">A    100    1
+A    100    1
+A    100    1
+A    150    2
+B    200    1</pre>
+<aside class="notes"><p>Повторяем A версии 1, добавляем A на 150 версии 2 и снова доставляем старую версию. Последняя доставленная строка не является самым новым состоянием.</p><p>Обычный SELECT показывает три копии A версии 1, A версии 2 и B версии 1. Теперь применим два заранее разобранных способа выбора состояния.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Версии и история · Пример</span></div>
+</div>
+<div class="step slide " id="s45">
+<h1>FINAL и argMax дают актуальные A и B</h1>
+<p>FINAL возвращает A=150 и B=200. Явный выбор версии через argMax даёт общую сумму 350.</p>
+<pre><code>SELECT payment_id, amount, version
+FROM payment_versions FINAL
+ORDER BY payment_id;
+SELECT sum(state.1) AS current_amount
+FROM
+( SELECT shop_id, payment_id,
+    argMax(tuple(amount, created_at), version) AS state
+  FROM payment_versions
+  GROUP BY shop_id, payment_id );</code></pre>
+<p class="result-label">Проверенный результат · ClickHouse 24.12.3.47</p><pre class="result">A    150    2
+B    200    1
+350</pre>
+<aside class="notes"><p>FINAL оставляет максимальную версию каждого полного ключа ORDER BY. Для A это версия 2 на 150, для B — версия 1 на 200.</p><p>Во втором запросе сначала выбираем tuple(amount,created_at) по максимальной версии для каждого платежа, затем складываем выбранные суммы. Порядок действий соответствует отчёту по состояниям: выбор версии предшествует агрегации.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Версии и история · Пример</span></div>
+</div>
+<div class="step slide " id="s46">
+<h1>Ошибка: сумма в ключе</h1>
+<p>У одной сущности получаются два разных ключа.</p>
+<pre><code>CREATE TABLE wrong_key
+(payment_id String, amount Decimal(18, 2), version UInt64)
+ENGINE=ReplacingMergeTree(version)
+ORDER BY (payment_id, amount);
+INSERT INTO wrong_key VALUES
+(&#x27;A&#x27;,100,1),(&#x27;A&#x27;,150,2);
+SELECT * FROM wrong_key FINAL ORDER BY amount;</code></pre>
+<p class="result-label">Проверенный результат · ClickHouse 24.12.3.47</p><pre class="result">A    100    1
+A    150    2</pre>
+<aside class="notes"><p>В wrong_key сумма включена в ORDER BY. Поэтому (A, 100) и (A, 150) — разные ключи, и FINAL сохраняет обе строки.</p><p>То же произойдёт с изменяемым статусом или временем исправления в ключе. Поля идентичности должны сохраняться между версиями, которые требуется заместить.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Версии и история · Разбор</span></div>
+</div>
+<div class="step slide " id="s47">
+<h1>FINAL и OPTIMIZE FINAL</h1>
+<p>Первый меняет выполнение чтения; второй инициирует физическое слияние.</p>
+<pre><code>SYSTEM START MERGES payment_versions;
+OPTIMIZE TABLE payment_versions FINAL;
+SELECT count(), sum(amount)
+FROM payment_versions;</code></pre>
+<p class="result-label">Проверенный результат · ClickHouse 24.12.3.47</p><pre class="result">2    350</pre>
+<aside class="notes"><p>START MERGES возобновляет фон. OPTIMIZE FINAL на учебной таблице физически объединяет парты с замещением версий. После этого обычный SELECT показывает две строки на 350.</p><p>SELECT FINAL выполнял замещение при чтении, а OPTIMIZE переписал хранение. Новая вставка снова может принести несколько версий, поэтому OPTIMIZE не заменяет способ корректного чтения при продолжающейся загрузке.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Версии и история · Пример</span></div>
+</div>
+<div class="step slide " id="s48">
+<h1>Пример: профили без временной партиции</h1>
+<p>У профиля нет календарного срока хранения. Версии клиента направляются в одну из 16 хеш-групп, а состояние выбирает ReplacingMergeTree.</p>
+<pre><code>CREATE TABLE customer_profiles
+(customer_id UInt64, name String, version UInt64)
+ENGINE=ReplacingMergeTree(version)
+PARTITION BY sipHash64(customer_id)%16 ORDER BY customer_id;
+INSERT INTO customer_profiles VALUES
+ (1,&#x27;Alice&#x27;,1),(2,&#x27;Bob&#x27;,1),(1,&#x27;Alice Smith&#x27;,2);
+SELECT customer_id,name,version
+FROM customer_profiles FINAL ORDER BY customer_id;</code></pre>
+<p class="result-label">Проверенный результат · ClickHouse 24.12.3.47</p><pre class="result">1    Alice Smith    2
+2    Bob    1</pre>
+<aside class="notes"><p>Для текущих профилей месяц изменения не является границей хранения. Хеш неизменяемого customer_id сохраняет все состояния клиента в одной группе. Число возможных групп фиксировано, а их размеры не обязаны совпадать.</p><p>ReplacingMergeTree выбирает Alice Smith версии 2 и Bob версии 1. Без PARTITION BY замещение тоже было бы корректным: общая партиция остаётся исходным вариантом, с которым сравниваем хеш-разбиение.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Версии и история · Пример</span></div>
+</div>
+<div class="step slide " id="s49">
+<h1>Что означает запрос к прошлому состоянию</h1>
+<p><strong>История состояний</strong> — сохранённые версии, достаточные для восстановления состояния на выбранную границу.</p><p><strong>Исторический срез на b</strong>: для каждого ключа выбираем последнюю версию среди записей с <code>batch ≤ b</code>.</p><p><strong>Опубликованный batch</strong> — полностью загруженный набор изменений с общей для всех сущностей меткой порядка.</p><p>Версия 2 объекта A и версия 2 объекта B общей границы не задают.</p>
+<aside class="notes"><p>История состояний — набор сохранённых версий, позволяющий восстановить прежние состояния объектов. Исторический срез на общую границу b выбирает для каждого ключа запись с максимальной меткой не больше b. Если до границы объект ещё не создан, его в срезе нет. Для удалений потребовалось бы также учитывать последнюю версию удаления; в этом примере удалений нет.</p><p>В примере batch — общая для всех платежей метка загрузки. Опубликованный batch означает, что загрузчик полностью записал соответствующий набор изменений и больше не добавит в него запоздалые строки. При одинаковых ключе и batch должно быть одно определённое состояние. Сначала фильтруем batch&lt;=b, затем выбираем argMax по каждой сущности.</p><p>Независимые версии сущностей общей границы не задают. Полнота batch — прикладной контракт источника и загрузчика. Это не автоматически возникший транзакционный снимок ClickHouse.</p><p>История существует потому, что приложение явно вставляет изменения отдельными строками и сохраняет их. Обычный MergeTree не предоставляет автоматического SQL-журнала прежних значений UPDATE/DELETE, а ReplacingMergeTree может удалить прежние версии при слиянии.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Версии и история · Понятие</span></div>
+</div>
+<div class="step slide " id="s50">
+<h1>Прошлые состояния требуют сохранённой истории</h1>
+<p>batch — общий номер завершённой загрузки. batch=1: два платежа; batch=2: исправление A; batch=3: исправление B.</p><p>Историю ведём добавлением строк в MergeTree. Прежние состояния не обновляем и не удаляем. ReplacingMergeTree мог бы убрать их при слиянии.</p>
+<pre><code>CREATE TABLE payment_history
+(payment_id String, batch UInt64, amount Decimal(18, 2))
+ENGINE=MergeTree ORDER BY (payment_id,batch);
+INSERT INTO payment_history VALUES
+ (&#x27;A&#x27;,1,100),(&#x27;B&#x27;,1,200),
+ (&#x27;A&#x27;,2,150),
+ (&#x27;B&#x27;,3,250);</code></pre>
+<aside class="notes"><p>Здесь хотим получить состояние платежей после каждой загрузки. batch задаёт одну общую шкалу для всех платежей. В загрузке 1 созданы A на 100 и B на 200; загрузка 2 исправляет A на 150; загрузка 3 — B на 250.</p><p>Каждое изменение приложение вставляет отдельной строкой в обычный MergeTree. UPDATE и DELETE к этой истории не применяем; TTL и удаление партиций, стирающие нужные состояния, не задаём. Обычные слияния эти строки не замещают. Номер batch назначает загрузчик. Прежде чем объявить границу доступной, он должен полностью загрузить её данные; после публикации границы добавлять в неё запоздалые изменения нельзя.</p><p>Одинаковый payment_id в одном batch должен иметь одно определённое состояние. Обычные независимые номера версий A и B не задают такой общей границы: версия 2 у одного платежа может относиться к другому моменту, чем версия 2 у другого.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Версии и история · Пример</span></div>
+</div>
+<div class="step slide " id="s51">
+<h1>Срез на batch=2: выбираем состояние до границы</h1>
+<p>Сначала WHERE batch ≤ 2, затем последнее состояние каждого платежа. A=150, B=200: сумма 350.</p>
+<pre><code>SELECT payment_id, argMax(amount,batch) AS amount
+FROM payment_history WHERE batch&lt;=2
+GROUP BY payment_id ORDER BY payment_id;
+SELECT sum(amount) AS total FROM
+( SELECT payment_id, argMax(amount,batch) AS amount
+  FROM payment_history WHERE batch&lt;=2
+  GROUP BY payment_id );</code></pre>
+<p class="result-label">Проверенный результат · ClickHouse 24.12.3.47</p><pre class="result">A    150
+B    200
+350</pre>
+<aside class="notes"><p>Сначала исключаем изменения после batch=2. Затем argMax выбирает последнее состояние каждого платежа внутри оставшейся истории. Для A это загрузка 2, для B — загрузка 1: исправление B из загрузки 3 ещё не входит в срез. Итоговая сумма равна 350.</p><p>Если сначала выбрать самые новые состояния всей таблицы, а затем пытаться отсечь будущие, нужные старые значения уже будут потеряны. Граница должна применяться до выбора состояния.</p><p>Такой запрос даёт прикладной срез истории на опубликованную границу. Он не создаёт автоматически согласованный снимок нескольких таблиц. Для этого источник и загрузчик должны обеспечить общую завершённую границу. Для состояния с удалениями в историю также нужно сохранять флаг удаления и учитывать его после выбора последней версии.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Версии и история · Разбор</span></div>
+</div>
+<div class="step slide section" id="s52">
+<h1>Изменение данных: новая запись или преобразование существующих</h1>
+<table><tr><th>Задача</th><th>Механизм</th></tr><tr><td>Поступают состояния сущности</td><td>INSERT новой версии в ReplacingMergeTree</td></tr><tr><td>Разовое исправление существующих строк</td><td>ALTER TABLE … UPDATE</td></tr><tr><td>Удаление по условию</td><td>DELETE FROM либо ALTER TABLE … DELETE</td></tr><tr><td>Удаление периода или по сроку</td><td>DROP PARTITION либо TTL</td></tr></table>
+<aside class="notes"><p>ReplacingMergeTree принимает новые состояния и выбирает актуальную версию. Он не заменяет все способы изменения уже сохранённых данных.</p><p>Для разового исправления рассмотрим мутацию UPDATE, для удаления — тяжёлую мутацию и лёгкую маску. Затем вернёмся к партициям и TTL. SQL проверяем на версии 24.12: возможности более новых версий не подставляем в этот сценарий.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Изменение и удаление · Понятие и варианты</span></div>
+</div>
+<div class="step slide " id="s53">
+<h1>Мутация создаёт новые версии затронутых партов</h1>
+<p><strong>Мутация</strong> — фоновое преобразование уже записанных данных с заменой затронутых активных партов новыми.</p><p><code>ALTER UPDATE</code> вычисляет новые значения выбранных строк; <code>ALTER DELETE</code> исключает выбранные строки.</p><table class="compact"><tr><th>Формат парта</th><th>Организация данных и следствие</th></tr><tr><td>Wide</td><td>Столбцы в отдельных файлах; неизменённые файлы можно переиспользовать</td></tr><tr><td>Compact</td><td>Столбцы в общем файле; изменение может потребовать его переписывания</td></tr></table><p>Парт заменяется отдельно; вся таблица не переключается атомарно.</p>
+<aside class="notes"><p>Мутация — фоновое преобразование уже записанных данных таблицы. Для затронутых партов создаются новые версии с изменёнными данными, после чего новые парты заменяют старые в активном наборе. В ALTER UPDATE условие WHERE выбирает строки, а выражения SET задают новые значения столбцов. В ALTER DELETE выбранные строки не входят в новое содержимое парта.</p><p>Замена активного парта не означает атомарного изменения всей таблицы: разные парты одной мутации могут обрабатываться в разное время. Успешный возврат асинхронного ALTER означает принятие операции; завершение контролируется отдельно.</p><p>Wide и Compact — форматы хранения парта. В Wide данные разных столбцов находятся в отдельных файлах; неизменённые файлы при мутации могут переиспользоваться через жёсткие ссылки. В Compact данные столбцов собраны в общем файле, и изменение может требовать его переписывания. В Docker-опыте различие подтверждается inode файлов до и после UPDATE.</p><p>Формат и объём затронутых данных определяют работу по переработке. Одной подходящей строке может соответствовать переписывание большого файла. В нашей схеме UPDATE не может менять поля первичного ключа и выражения партиционирования; соответствующие команды отдельно проверяются как ожидаемые ошибки.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Изменение и удаление · Мотивация</span></div>
+</div>
+<div class="step slide " id="s54">
+<h1>Завершение ALTER и завершение мутации</h1>
+<pre class="diagram">mutations_sync=0: команда принята → фоновая обработка
+mutations_sync=1: ответ после завершения на этом сервере
+
+парт A: старый → новый
+парт B: старый → новый</pre><p>До завершения разные парты могут находиться на разных этапах изменения.</p>
+<aside class="notes"><p>Асинхронная операция возвращает управление после принятия задания, до обязательного завершения обработки. Синхронное ожидание задерживает ответ до выполнения заданного условия завершения. Атомарность означает неделимость изменения для наблюдателя: частично изменённое состояние не должно быть видно. Ожидание завершения и атомарность — разные свойства.</p><p>По умолчанию mutations_sync=0: успешный ответ означает принятие мутации, а не завершение переписывания. Поэтому SELECT сразу после асинхронной команды может ещё читать старое состояние или промежуточное сочетание партов.</p><p>mutations_sync=1 в наших опытах ждёт завершения на текущем сервере. Это не превращает ClickHouse в транзакционную систему с атомарной заменой всей таблицы. Реплики и ожидание нескольких серверов разберём отдельно в теме кластера.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Изменение и удаление · Реализация</span></div>
+</div>
+<div class="step slide " id="s55">
+<h1>Что проверяем перед разовым исправлением</h1>
+<p>Изменяется атрибут, а не ключ размещения? Нужна история прежних значений? Когда результат должен стать видимым?</p><p>Для UPDATE задаём условие, оцениваем затронутые парты и выбираем ожидание либо наблюдение через system.mutations.</p>
+<aside class="notes"><p>Сначала отделяем изменение состояния с сохранением истории от исправления уже записанных строк. Затем проверяем, не меняется ли ключ. Для наблюдения мутации используем is_done, оставшиеся парты и причину последней ошибки.</p><p>Успешное принятие команды не доказывает завершение. В учебном UPDATE дождёмся mutations_sync=1 на текущем сервере, а в system.mutations проверим итоговый статус.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Изменение и удаление · Выбор</span></div>
+</div>
+<div class="step slide  long" id="s56">
+<h1>Пример: исправление суммы существующего платежа</h1>
+<p>Копируем три строки в mutation_demo. UPDATE меняет 100 на 150; ожидание задано явно.</p>
+<pre><code>CREATE TABLE change_source
+(id UInt64, paid_at DateTime(&#x27;UTC&#x27;), amount Decimal(18, 2))
+ENGINE=MergeTree
+PARTITION BY toYYYYMM(paid_at) ORDER BY id
+SETTINGS min_bytes_for_wide_part=0;
+INSERT INTO change_source VALUES
+ (1,&#x27;2026-11-20 12:00:00&#x27;,100),
+ (2,&#x27;2026-11-20 12:01:00&#x27;,200),
+ (3,&#x27;2026-11-20 12:02:00&#x27;,300);
+CREATE TABLE mutation_demo AS change_source;
+INSERT INTO mutation_demo SELECT * FROM change_source;
+ALTER TABLE mutation_demo
+ UPDATE amount=150 WHERE id=1
+ SETTINGS mutations_sync=1;
+SELECT id, amount FROM mutation_demo ORDER BY id;</code></pre>
+<p class="result-label">Проверенный результат · ClickHouse 24.12.3.47</p><pre class="result">1    150
+2    200
+3    300</pre>
+<aside class="notes"><p>Создаём исходный набор и его копию для мутации. Wide выбран для последующего наблюдения маски удаления; это влияет на работу с файлами, а не на смысл суммы.</p><p>ALTER UPDATE исправляет amount у id=1. После ожидания видим 150, 200 и 300. Источник новых версий здесь не участвует, и историю прежней суммы этот UPDATE для запросов не сохраняет.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Изменение и удаление · Пример</span></div>
+</div>
+<div class="step slide " id="s57">
+<h1>system.mutations: проверяем результат обработки</h1>
+<p>is_done показывает завершение, parts_to_do — оставшуюся работу. Ошибку смотрим в latest_fail_reason, а не по одному факту принятия команды.</p>
+<pre><code>SELECT command, is_done, parts_to_do,
+ latest_fail_reason
+FROM system.mutations
+WHERE database=&#x27;lecture10&#x27; AND table=&#x27;mutation_demo&#x27;
+ORDER BY mutation_id;</code></pre>
+<p class="result-label">Проверенный результат · ClickHouse 24.12.3.47</p><pre class="result">UPDATE amount = 150 WHERE id = 1    1    0</pre>
+<aside class="notes"><p>system.mutations — системная таблица наблюдения за мутациями. command описывает преобразование; is_done показывает завершение, parts_to_do — число оставшихся партов, latest_failed_part и latest_fail_reason — последнюю обнаруженную ошибку. Непустая последняя ошибка требует разбора, а нулевое число оставшихся партов само по себе не заменяет проверку is_done.</p><p>После синхронного UPDATE видим is_done=1 и parts_to_do=0. В случае задержки или ошибки читаем latest_failed_part и latest_fail_reason; незавершённую мутацию нельзя считать применённой только потому, что ALTER вернул успех.</p><p>Запрос показывает состояние на этом сервере. Для таблицы с несколькими репликами проверять одну строку на одном узле недостаточно для вывода о всём кластере.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Изменение и удаление · Разбор</span></div>
+</div>
+<div class="step slide " id="s58">
+<h1>Ключевые поля нельзя исправить такой мутацией</h1>
+<p>id входит в первичный ключ, paid_at — в выражение партиционирования. Обе попытки завершаются CANNOT_UPDATE_COLUMN.</p>
+<pre><code>-- Эти команды намеренно не входят в demo.sql.
+ALTER TABLE mutation_demo UPDATE id=10 WHERE id=1;
+ALTER TABLE mutation_demo
+ UPDATE paid_at=toDateTime(&#x27;2026-12-01 00:00:00&#x27;,&#x27;UTC&#x27;)
+ WHERE id=1;</code></pre>
+<aside class="notes"><p>Сумма не определяет размещение строки, поэтому её UPDATE допустим. id определяет первичный ключ, paid_at участвует в PARTITION BY; менять эти поля мутацией в данном определении нельзя.</p><p>Обе команды на слайде проверены отдельно и завершаются CANNOT_UPDATE_COLUMN. Они исключены из общего сценария, чтобы ожидаемая ошибка не прерывала остальные примеры. Если требуется изменить идентичность или размещение, нужен отдельно организованный перенос данных, а не UPDATE ключевого поля.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Изменение и удаление · Разбор</span></div>
+</div>
+<div class="step slide " id="s59">
+<h1>Два способа удаления строк по условию</h1>
+<table class="compact"><tr><th>Операция</th><th>Определение эффекта</th></tr><tr><td>ALTER TABLE … DELETE WHERE P</td><td>Мутация создаёт активные парты без строк, для которых P истинно</td></tr><tr><td>DELETE FROM … WHERE P</td><td>Лёгкое удаление: маска _row_exists скрывает выбранные строки при чтении</td></tr><tr><td>APPLY DELETED MASK</td><td>Перерабатывает парты, исключая строки с маской удаления</td></tr></table><p>Скрытие строки, её исключение из активного парта и очистка старых файлов — разные этапы.</p>
+<aside class="notes"><p>Удаление по условию задаёт предикат P(r), определяющий удаляемые строки. ALTER TABLE t DELETE WHERE P выполняется мутацией и создаёт активные парты, в которых выбранные строки отсутствуют.</p><p>DELETE FROM t WHERE P — лёгкое удаление. Внутренняя маска _row_exists определяет, какие физически сохранённые строки видимы обычному чтению: значение 0 скрывает строку. Это не немедленное удаление всех файлов её значений. Для Wide можно сохранить прежние файлы столбцов и записать отдельный файл маски.</p><p>ALTER TABLE t APPLY DELETED MASK перерабатывает парты с маской, исключая скрытые строки из нового активного содержимого. Старые неактивные парты могут оставаться на диске до очистки. Поэтому SELECT count(), system.parts.rows активных партов и наличие файлов отвечают на разные вопросы.</p><p>Выбор способа зависит от нужного эффекта, формата партов, условия и доли удаляемых строк. Ожидание завершения также задаётся отдельно: lightweight_deletes_sync для лёгкого удаления, mutations_sync для соответствующих ALTER-мутаций.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Изменение и удаление · Варианты</span></div>
+</div>
+<div class="step slide " id="s60">
+<h1>Почему лёгкий DELETE не всегда дешёвый</h1>
+<table><tr><th>Условие</th><th>Следствие</th></tr><tr><td>Wide: столбцы в отдельных файлах</td><td>Можно записать маску и переиспользовать остальные файлы</td></tr><tr><td>Compact: столбцы в одном файле</td><td>Мутация может переписать общий файл</td></tr><tr><td>Много партов или сложный WHERE</td><td>Дороже поиск подходящих строк</td></tr><tr><td>Много скрытых строк</td><td>Маска экономит первоначальную запись, но не отменяет будущую переработку</td></tr></table>
+<aside class="notes"><p>Лёгким называется способ через маску, а не гарантированное время выполнения. В Wide можно переиспользовать файлы неизменённых столбцов. В Compact общая организация файла уменьшает это преимущество: при мутации переписывается общий файл.</p><p>Удаление также может ждать очередь мутаций и обрабатывать много партов. Поэтому для сравнения нужны размер и формат партов, условие и доля удаляемых строк. Три строки в опыте показывают механизм, а не производительность.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Изменение и удаление · Выбор</span></div>
+</div>
+<div class="step slide " id="s61">
+<h1>ALTER DELETE переписывает затронутые парты</h1>
+<p>Удаляем платёж 2. WHERE выбирает строки, но работа выполняется на уровне партов.</p>
+<pre><code>ALTER TABLE mutation_demo DELETE WHERE id=2
+ SETTINGS mutations_sync=1;
+SELECT id, amount FROM mutation_demo ORDER BY id;
+SELECT sum(rows) AS active_part_rows
+FROM system.parts
+WHERE database=&#x27;lecture10&#x27;
+ AND table=&#x27;mutation_demo&#x27; AND active;</code></pre>
+<p class="result-label">Проверенный результат · ClickHouse 24.12.3.47</p><pre class="result">1    150
+3    300
+2</pre>
+<aside class="notes"><p>Тяжёлая мутация DELETE создаёт новое содержимое затронутых партов без подходящих строк. После ожидания остаются id=1 на 150 и id=3 на 300; активные парты содержат две строки.</p><p>Даже точное условие по одной строке не делает переписывание точечным изменением одного байта. Такая операция также не запрещает будущую вставку того же id: это изменение существующих данных, а не ограничение для источника.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Изменение и удаление · Пример</span></div>
+</div>
+<div class="step slide " id="s62">
+<h1>DELETE FROM скрывает строки маской</h1>
+<p>После применения маски строка не читается. В активном парте её позиция пока остаётся.</p>
+<pre><code>CREATE TABLE light_demo AS change_source;
+INSERT INTO light_demo SELECT * FROM change_source;
+DELETE FROM light_demo WHERE id=2
+ SETTINGS lightweight_deletes_sync=1;
+SELECT &#x27;SELECT&#x27; AS source, count() AS rows FROM light_demo
+UNION ALL
+SELECT &#x27;active parts&#x27;, sum(rows) FROM system.parts
+WHERE database=&#x27;lecture10&#x27;
+ AND table=&#x27;light_demo&#x27; AND active;</code></pre>
+<p class="result-label">Проверенный результат · ClickHouse 24.12.3.47</p><pre class="result">SELECT    2
+active parts    3</pre>
+<aside class="notes"><p>DELETE FROM выполняет лёгкое удаление: добавляет маску _row_exists, и помеченные строки перестают участвовать в обычном чтении. lightweight_deletes_sync=1 ждёт применения маски на текущем сервере.</p><p>SELECT возвращает две строки, а system.parts сообщает три позиции в активном парте. Это наблюдаемые разные состояния: строка уже исключена из результата, но её значения ещё не убраны из данных парта. Стоимость включает поиск подходящих строк и запись маски.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Изменение и удаление · Пример</span></div>
+</div>
+<div class="step slide " id="s63">
+<h1>APPLY DELETED MASK убирает скрытые строки из активных партов</h1>
+<p>Явно запускаем переработку маленького учебного парта, чтобы не ждать будущих слияний.</p>
+<pre><code>ALTER TABLE light_demo APPLY DELETED MASK
+ SETTINGS mutations_sync=1;
+SELECT &#x27;SELECT&#x27; AS source, count() AS rows FROM light_demo
+UNION ALL
+SELECT &#x27;active parts&#x27;, sum(rows) FROM system.parts
+WHERE database=&#x27;lecture10&#x27;
+ AND table=&#x27;light_demo&#x27; AND active;</code></pre>
+<p class="result-label">Проверенный результат · ClickHouse 24.12.3.47</p><pre class="result">SELECT    2
+active parts    2</pre>
+<aside class="notes"><p>APPLY DELETED MASK переписывает данные с применением маски. Теперь и SELECT, и активные парты показывают две строки. В обычной работе маска также применяется при последующих слияниях.</p><p>Эта команда требует работы с данными; её не нужно добавлять после каждого DELETE только ради немедленного совпадения счётчиков. Завершение команды ещё не доказывает удаление старых файлов с диска.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Изменение и удаление · Пример</span></div>
+</div>
+<div class="step slide " id="s64">
+<h1>Строка не читается, старый файл ещё может существовать</h1>
+<p>После создания нового активного парта старые версии партов становятся неактивными. Их файлы очищаются позже.</p>
+<pre><code>SELECT active, count() AS parts, sum(rows) AS rows
+FROM system.parts
+WHERE database=&#x27;lecture10&#x27; AND table=&#x27;light_demo&#x27;
+GROUP BY active ORDER BY active;</code></pre>
+<p class="result-label">Проверенный результат · ClickHouse 24.12.3.47</p><pre class="result">0    2    6
+1    1    2</pre>
+<aside class="notes"><p>active=1 относится к текущему состоянию чтения. active=0 показывает старые парты, оставшиеся после мутаций. На нашем запуске они ещё присутствуют, хотя строки из них уже не участвуют в SELECT.</p><p>Поэтому различаем исключение строки из чтения, удаление из нового активного парта и очистку старых файлов. На последнюю влияют фоновые правила очистки и использование старых партов читающими запросами. Число неактивных партов в выводе меняется со временем.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Изменение и удаление · Разбор</span></div>
+</div>
+<div class="step slide " id="s65">
+<h1>Удаление в потоке изменений тоже имеет порядок</h1>
+<p><strong>Версия удаления</strong> — запись с ключом сущности, увеличенной версией и <code>is_deleted=1</code>.</p><p>В <code>ReplacingMergeTree(version,is_deleted)</code> сначала выбирается максимальная версия; если она помечена удалённой, FINAL не выдаёт сущность.</p><p>Запись удаления сохраняется и подавляет поздние строки с меньшей версией.</p><p><code>is_deleted</code> — поле модели сущности; <code>_row_exists</code> — внутренняя маска лёгкого DELETE.</p>
+<aside class="notes"><p>Версия удаления, также называемая tombstone, — запись с устойчивым ключом сущности, очередной версией и флагом is_deleted=1. Она сообщает, что после этого изменения сущность считается удалённой. Обычное физическое удаление имеющихся строк такого порядка для будущих вставок не задаёт.</p><p>В ReplacingMergeTree(version,is_deleted) правило максимальной версии применяется и к обычным состояниям, и к удалениям. Если победившая строка имеет is_deleted=1, SELECT FINAL не выдаёт сущность. По умолчанию строка удаления остаётся в хранении, в том числе после обычного слияния, чтобы поздняя строка с меньшей версией не восстановила объект.</p><p>Более высокая новая версия состояния может снова сделать сущность видимой; допустимость такого восстановления определяет протокол источника. Удаление самого tombstone требует отдельного соглашения о завершении доставки старых версий. В наших опытах CLEANUP не выполняется.</p><p>is_deleted относится к модели изменений сущности. _row_exists — внутренняя маска видимости физически сохранённых строк при лёгком DELETE. Эти механизмы не взаимозаменяемы.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Изменение и удаление · Понятие</span></div>
+</div>
+<div class="step slide " id="s66">
+<h1>Удаление строк не защищает от поздней доставки</h1>
+<p>После удаления всех строк клиента задержавшаяся старая версия может появиться снова.</p>
+<pre><code>CREATE TABLE delete_versions
+(id UInt64, amount Decimal(18, 2), version UInt64)
+ENGINE=ReplacingMergeTree(version) ORDER BY id;
+INSERT INTO delete_versions VALUES (1,100,1),(1,150,2);
+ALTER TABLE delete_versions DELETE WHERE id=1
+ SETTINGS mutations_sync=1;
+SELECT count() FROM delete_versions FINAL;
+INSERT INTO delete_versions VALUES (1,100,1);
+SELECT amount, version FROM delete_versions FINAL;</code></pre>
+<p class="result-label">Проверенный результат · ClickHouse 24.12.3.47</p><pre class="result">0
+100    1</pre>
+<aside class="notes"><p>Удаляем все существующие строки id=1 и дожидаемся мутации: count равен нулю. Затем источник повторно доставляет старую версию 1. В таблице больше нет состояния, которое позволило бы её отвергнуть, и SELECT FINAL снова возвращает платёж на 100.</p><p>DELETE меняет сохранённые данные, но не задаёт запрет на последующие вставки. Для продолжающейся доставки версий нужно представлять удаление как состояние с версией либо согласовывать загрузку с удалением.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Изменение и удаление · Пример</span></div>
+</div>
+<div class="step slide " id="s67">
+<h1>Удаление как новая версия: is_deleted</h1>
+<p>Флаг удаления версии 2 сохраняется и подавляет позднюю версию 1. Это пользовательский столбец, не маска _row_exists.</p>
+<pre><code>CREATE TABLE entity_lifecycle
+(id UInt64, version UInt64, is_deleted UInt8, amount Decimal(18, 2))
+ENGINE=ReplacingMergeTree(version,is_deleted) ORDER BY id;
+INSERT INTO entity_lifecycle VALUES (1,1,0,100);
+INSERT INTO entity_lifecycle VALUES (1,2,1,0);
+SELECT count() FROM entity_lifecycle FINAL;
+INSERT INTO entity_lifecycle VALUES (1,1,0,100);
+SELECT count() FROM entity_lifecycle FINAL;</code></pre>
+<p class="result-label">Проверенный результат · ClickHouse 24.12.3.47</p><pre class="result">0
+0</pre>
+<aside class="notes"><p>В ReplacingMergeTree(version,is_deleted) значение 1 означает удалённое состояние. Удаление получает новую версию 2. FINAL выбирает её и исключает сущность из результата.</p><p>Строка удаления по умолчанию сохраняется в хранении, поэтому поздняя версия 1 не восстанавливает сущность. Оба count на слайде равны нулю. Более высокая новая версия уже была бы новым состоянием по правилам источника.</p><p>is_deleted — часть модели версий, в отличие от внутренней маски лёгкого DELETE. Очистку строк удаления через CLEANUP здесь не выполняем: без такой строки защита от старых версий исчезнет.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Изменение и удаление · Пример</span></div>
+</div>
+<div class="step slide " id="s68">
+<h1>TTL — правило истечения строк по времени</h1>
+<p><strong>TTL (Time To Live)</strong> задаёт выражение срока и действие над данными по достижении этого срока.</p><p>Для удаления строк: <code>TTL e(r) DELETE</code>, где <code>e(r)</code> — дата или время истечения строки.</p><pre class="diagram">e(r) = event_at + INTERVAL 30 DAY</pre><p>Достижение срока делает строку подлежащей удалению. Физическое применение выполняется позже при обработке партов.</p><p>В этой лекции рассматриваем TTL DELETE.</p>
+<aside class="notes"><p>TTL, или Time To Live, — правило, связывающее вычисляемую дату или время с действием над данными. У ClickHouse есть несколько действий TTL; здесь рассматриваем табличный TTL DELETE, удаляющий строки по сроку.</p><p>Выражение e(r) вычисляет дату или время истечения для каждой строки. В TTL event_at+INTERVAL 30 DAY DELETE срок отсчитывается от event_at, а не от момента вставки. При достижении срока строка становится кандидатом на удаление. Обычный SELECT не обязан скрыть её ровно в эту секунду: применение TTL происходит при обработке партов.</p><p>MATERIALIZE TTL инициирует применение заданного правила к уже записанным данным; в учебном опыте используем mutations_sync=1 для ожидания на текущем сервере. Партиционирование по времени не является требованием TTL: правило работает и в хеш-партициях.</p><p>Если требуется удалить готовую партицию по явной границе, существует DROP PARTITION. TTL задаёт политику сроков и не выбирает актуальную версию сущности.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Изменение и удаление · Понятие</span></div>
+</div>
+<div class="step slide " id="s69">
+<h1>Партиции определяют цену удаления по сроку</h1>
+<pre class="diagram">Парт: только просроченные строки → можно удалить целиком
+Парт: старые + непросроченные   → нужна переработка
+
+Хеш клиента смешивает даты.
+Партиция по дате группирует близкие сроки истечения.</pre><p>TTL не отменяет компромисс между временным и хеш-разбиением.</p>
+<aside class="notes"><p>Если в одном парте смешаны просроченные и непросроченные строки, для удаления только старых данных требуется переработка. Полностью просроченный парт можно убрать целиком.</p><p>При сроке хранения от даты события временное партиционирование группирует близкие сроки истечения. DROP PARTITION удаляет период по явной команде, TTL задаёт правило фоновой обработки. Удаление по возрасту и замещение устаревшей версии сущности — разные операции.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Изменение и удаление · Выбор</span></div>
+</div>
+<div class="step slide " id="s70">
+<h1>Пример: две строки с разными сроками истечения</h1>
+<p>Строка должна истечь через 30 дней после event_at. Даты 2000 и 2100 выбраны для воспроизводимого опыта.</p>
+<pre><code>CREATE TABLE retention_demo
+(id UInt64, event_at DateTime(&#x27;UTC&#x27;))
+ENGINE=MergeTree ORDER BY id
+TTL event_at + INTERVAL 30 DAY DELETE;
+INSERT INTO retention_demo VALUES
+ (1,&#x27;2000-01-01 00:00:00&#x27;),
+ (2,&#x27;2100-01-01 00:00:00&#x27;);</code></pre>
+<aside class="notes"><p>Задаём срок event_at плюс 30 дней. Вставляем одну строку с датой 2000 года и одну с датой 2100 года: первая давно истекла, вторая ещё не достигла срока.</p><p>Набор проверяет применение правила к частично просроченным данным. Наблюдение сразу после INSERT не используем как гарантию задержки: фон может успеть применить TTL. Для воспроизводимого итогового результата явно материализуем правило.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Изменение и удаление · Пример</span></div>
+</div>
+<div class="step slide " id="s71">
+<h1>Применяем TTL к накопленным данным</h1>
+<p>MATERIALIZE TTL запускает обработку существующих партов. В опыте ждём завершения; в результате остаётся строка 2.</p>
+<pre><code>ALTER TABLE retention_demo MATERIALIZE TTL
+ SETTINGS mutations_sync=1;
+SELECT id, event_at FROM retention_demo ORDER BY id;</code></pre>
+<p class="result-label">Проверенный результат · ClickHouse 24.12.3.47</p><pre class="result">2    2100-01-01 00:00:00</pre>
+<aside class="notes"><p>MATERIALIZE TTL применяет действующее правило к существующим данным. mutations_sync=1 позволяет показать результат после завершения этой обработки на нашем сервере.</p><p>Остаётся id=2 с датой 2100 года. Явная команда нужна здесь для воспроизводимой демонстрации, а не для периодического запуска вместо фонового TTL. В рабочем потоке истечение и задержку обработки наблюдают отдельно.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Изменение и удаление · Разбор</span></div>
+</div>
+<div class="step slide " id="s72">
+<h1>Выбор способа изменения и удаления</h1>
+<table><tr><th>Требование</th><th>Что выбираем</th></tr><tr><td>Приходят исправленные состояния</td><td>Новые версии + ReplacingMergeTree</td></tr><tr><td>Разовая коррекция атрибута</td><td>ALTER UPDATE; контроль system.mutations</td></tr><tr><td>Убрать строки из чтения по условию</td><td>DELETE FROM; затем обработка маски</td></tr><tr><td>Переписать данные без выбранных строк</td><td>ALTER DELETE</td></tr><tr><td>Регулярный срок хранения</td><td>TTL + подходящая организация партов</td></tr><tr><td>Удалить целую партицию</td><td>DROP PARTITION</td></tr></table>
+<aside class="notes"><p>Начинаем с того, какая операция требуется и когда нужен её эффект. Для версий выбираем актуальное состояние, для мутации ждём или наблюдаем обработку, для маски отдельно учитываем последующую очистку данных.</p><p>Удаление периода целиком не заменяем построчной операцией без необходимости. Если достаточно DROP PARTITION, не требуется искать и исключать строки внутри каждого парта. В дальнейшем проверим ещё одну границу: изменения источника не пересчитывают инкрементальную витрину.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Изменение и удаление · Выбор</span></div>
+</div>
+<div class="step slide section" id="s73">
+<h1>Перерыв</h1>
+<p>После перерыва: состояния sum, count и avg; частичные агрегаты в материализованных представлениях.</p>
+<aside class="notes"><p>После перерыва разберём состояния sum, count, avg и числа уникальных покупателей. Затем сохраним их в таблице и объединим результаты нескольких вставок.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Перерыв · Перерыв</span></div>
+</div>
+<div class="step slide section" id="s74">
+<h1>GROUP BY: определение группы</h1>
+<p>Ключ группировки <code>G(r)=(g₁(r),…,gₙ(r))</code> вычисляется для каждой строки после WHERE.</p><p class="callout">r₁ и r₂ принадлежат одной группе ⇔ G(r₁) = G(r₂).</p><p>Агрегатные функции вычисляют показатели отдельно по строкам каждой группы. Обычный GROUP BY выдаёт одну строку на группу.</p><p>В ClickHouse значения NULL в ключе группируются вместе. Порядок результата GROUP BY не задан.</p>
+<aside class="notes"><p>Группировка разбивает входные строки на группы по значению набора выражений G(r). Две строки попадают в одну группу, если совпадают все компоненты ключа GROUP BY. Входом здесь являются строки после WHERE. Для обычного GROUP BY без дополнительных ROLLUP/CUBE/GROUPING SETS результат содержит одну строку на группу, оставшуюся после HAVING.</p><p>В ClickHouse NULL в ключе группировки рассматривается как отдельное значение: строки с одинаковыми остальными компонентами и NULL в одной позиции входят в одну группу. Это правило группировки не следует заменять обычным SQL-сравнением NULL через знак равенства.</p><p>Агрегатная функция вычисляет показатель по строкам своей группы. Выражения результата должны быть вычислимы из ключей группировки и агрегатов. GROUP BY не сортирует результат; если порядок важен, в запросе нужен ORDER BY.</p><p>Например, GROUP BY shop_id создаёт группу на магазин, а GROUP BY (shop_id,hour) — на пару магазина и часа. Физически исполнитель может искать группы через хеш-таблицу или использовать порядок чтения. Способ исполнения не меняет заданное разбиение на группы.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Выполнение агрегации · Понятие</span></div>
+</div>
+<div class="step slide " id="s75">
+<h1>Агрегатная функция и её состояние</h1>
+<p><strong>Агрегатная функция</strong> преобразует набор значений группы в один результат: сумму, количество, среднее или другой показатель.</p><p><strong>Состояние S</strong> — промежуточные данные для добавления строк и объединения порций.</p><pre class="diagram">начальное S → add(S, строка)
+merge(S₁, S₂) → объединённое S
+finalize(S) → готовый результат</pre><p>Готовое среднее не содержит всю информацию состояния: нужны сумма и количество.</p>
+<aside class="notes"><p>Агрегатная функция A получает значения строк группы и возвращает один результат. Для чисел это может быть sum или avg; результат не обязан быть числом — например, argMax может возвращать строку или кортеж. Агрегат отличается от обычной скалярной функции тем, что обрабатывает набор строк.</p><p>Состояние агрегата S — промежуточное представление, достаточное для дальнейшей обработки строк и объединения совместимых частичных результатов. Рассматриваем три операции: add добавляет входную строку, merge объединяет состояния порций, finalize получает готовое значение.</p><p>Для sum состояние содержит накопленную сумму, для count — количество, для avg — сумму и количество. Эти математические описания определяют нужную информацию и не обещают конкретный бинарный формат сериализации.</p><p>Частичное состояние рассчитано по части входа. Оно может существовать в отдельном потоке, блоке или строке таблицы AggregateFunction. Например, avgState для порции из одного платежа и avgState для трёх платежей нужно объединять как состояния с разными весами. Готовые средние этих порций таких весов не сохраняют.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Выполнение агрегации · Мотивация</span></div>
+</div>
+<div class="step slide " id="s76">
+<h1>Состояния sum и count</h1>
+<table class="compact"><tr><th>Функция</th><th>Определение</th><th>Объединение порций</th></tr><tr><td>sum(x)</td><td>Сумма участвующих значений x</td><td>s = s₁ + s₂</td></tr><tr><td>count()</td><td>Число строк группы</td><td>n = n₁ + n₂</td></tr><tr><td>count(x)</td><td>Число строк с x ≠ NULL</td><td>n = n₁ + n₂</td></tr></table><p>sum и avg пропускают NULL-аргументы. count() учитывает и такие строки.</p><p>При фиксированных типах состояния sum и count не растут с числом строк группы.</p>
+<aside class="notes"><p>sum накапливает сумму, count — количество строк. Частичные состояния объединяются сложением: s₁+s₂ и n₁+n₂. Сами платежи хранить в этих состояниях не требуется.</p><p>При фиксированных типах размер состояния одной группы не растёт с числом строк. Число разных ключей, однако, увеличивает число состояний.</p><p>В формулах n для count() — число строк группы. У count(x) считаются только строки с не-NULL значением x. sum(x) пропускает NULL, а avg(x) делит сумму на число не-NULL значений. Поэтому знаменатель avg(x) при Nullable-аргументе соответствует count(x), а не count(). Далее в денежных примерах amount не Nullable.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Выполнение агрегации · Понятие</span></div>
+</div>
+<div class="step slide " id="s77">
+<h1>Состояние avg: сумма и количество</h1>
+<p><code>avg(x) = sum(x) / count(x)</code> при count(x) &gt; 0.</p><pre class="diagram">Состояние avg: (sum, count)
+
+Поток 1: (100, 1)
+Поток 2: (900, 3)
+Объединение: (1000, 4)
+Результат: 250</pre><p>Частичные средние — 100 и 300. Их среднее равно 200, а среднее четырёх платежей — 250.</p>
+<aside class="notes"><p>Среднее avg(x) — сумма участвующих не-NULL значений, делённая на их количество, если количество положительно. Его состояние можно математически представить парой (s,n). Добавление значения x увеличивает s на x и n на 1; объединение двух состояний даёт (s₁+s₂,n₁+n₂); финализация делит s на n.</p><p>Первый поток обработал одну строку с суммой 100, второй — три с суммой 900. Объединение даёт (1000,4), результат — 250. Если сохранить только средние потоков 100 и 300 и снова взять среднее, потеряем веса и получим 200.</p><p>Для пустого набора и Nullable-аргументов важны конкретная функция и тип результата; формула с делением на n здесь определена только для n&gt;0. В примерах среднее проверяется на непустых группах. Готовое avg от Decimal в используемой версии имеет тип Float64; состояние при этом сохраняет тип исходного аргумента.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Выполнение агрегации · Понятие</span></div>
+</div>
+<div class="step slide " id="s78">
+<h1>Параллельная агрегация</h1>
+<div class="flow"><div class="node">Чтение потоками</div><span class="arrow">→</span><div class="node">Локальные группы</div><span class="arrow">→</span><div class="node">Слияние состояний</div><span class="arrow">→</span><div class="node">Финализация</div></div><p>Один магазин может встретиться в нескольких потоках. Перед выдачей его частичные состояния нужно объединить.</p>
+<aside class="notes"><p>Параллельная агрегация — вычисление частичных состояний по разным порциям входа с последующим объединением по ключам групп. Один магазин может встретиться в нескольких потоках; потоков исполнения и групп результата не обязано быть одинаковое число.</p><p>Частичное состояние — состояние, построенное по подмножеству строк группы. Стадия объединения применяет merge к совместимым состояниям одного ключа. Финализация преобразует объединённое состояние в готовый показатель: например, для avg делит сумму на количество.</p><p>Pipeline — граф операторов исполнения и потоков данных между ними. EXPLAIN PIPELINE показывает операторы чтения, агрегации и объединения. Несколько AggregatingTransform означают несколько исполнителей, а не несколько независимых бизнес-отчётов. Для наблюдаемого плана отдельно проверяем настройки max_threads и optimize_aggregation_in_order.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Выполнение агрегации · Реализация</span></div>
+</div>
+<div class="step slide " id="s79">
+<h1>Память зависит от групп и функции</h1>
+<p>Грубая модель: число групп × (ключ + состояние + служебные данные).</p><table><tr><th>Функция</th><th>Что хранится для одной группы</th></tr><tr><td>sum, count, avg</td><td>Состояние фиксированного размера</td></tr><tr><td>uniqExact</td><td>Набор различных значений</td></tr><tr><td>uniq</td><td>Ограниченная выборка хешей для оценки</td></tr></table><p>В параллельном плане частичные состояния могут существовать в нескольких потоках.</p>
+<aside class="notes"><p>Расход памяти включает ключи групп, состояния функций и служебные структуры. Для sum, count и avg размер состояния при фиксированных типах ограничен. Для uniqExact он растёт с числом различных значений.</p><p>Параллельная обработка может создавать несколько частичных состояний одного ключа. Поэтому память нельзя оценить только по числу групп на выходе.</p><p>Кардинальность группировки — число различных результатов G(r) на входе после фильтрации. uniqExact(x) возвращает точную мощность множества не-NULL значений x; uniq(x) оценивает эту мощность по ограниченной адаптивной выборке хешей. Одинаковые значения одного аргумента в разных строках учитываются один раз. Маленький набор может дать одинаковый ответ обеих функций, что не превращает uniq в точную функцию для всех наборов.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Выполнение агрегации · Реализация</span></div>
+</div>
+<div class="step slide " id="s80">
+<h1>Как может выполняться группировка</h1>
+<table><tr><th>Способ в ClickHouse 24.12</th><th>Условие</th><th>Компромисс</th></tr><tr><td>Хеш-агрегация</td><td>Общий случай</td><td>Хранит состояния активных групп в памяти</td></tr><tr><td>Агрегация по порядку</td><td>GROUP BY подходит к префиксу сортировки</td><td>Меньше активных состояний; не всегда быстрее</td></tr><tr><td>Внешняя агрегация</td><td>Разрешена выгрузка промежуточных данных</td><td>Меньше давления на память, дополнительные операции с диском</td></tr></table>
+<aside class="notes"><p>Хеш-агрегация ищет или создаёт состояние по ключу группы в хеш-таблице. Пока группа может встретиться снова, её состояние остаётся доступным для обновления. Детали представления ключей зависят от типов и выбранного метода исполнения.</p><p>Агрегация по порядку использует совместимый порядок входа: после завершения диапазона ключа можно завершить соответствующую группу, не удерживая её состояние до конца всего чтения. В нашем примере GROUP BY service_id совпадает с префиксом ORDER BY таблицы, а optimize_aggregation_in_order=1 разрешает этот способ. Наличие сортировки само по себе не означает, что любой GROUP BY выполнится по порядку.</p><p>Внешняя агрегация выгружает промежуточные агрегированные данные на диск и затем объединяет их. max_bytes_before_external_group_by задаёт порог начала выгрузки; это не общий жёсткий предел памяти всего запроса. Семантика агрегатных функций и число логических групп при этом не меняются.</p><p>Способ исполнения проверяется через EXPLAIN PIPELINE и ProfileEvents. В Docker-опыте внешняя агрегация подтверждается ExternalAggregationWritePart и ExternalAggregationCompressedBytes, а ответ сверяется с ожидаемым. Влияние на память измеряем отдельно; универсального обещания ускорения нет.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Выполнение агрегации · Варианты</span></div>
+</div>
+<div class="step slide " id="s81">
+<h1>Точность результата и способ выполнения выбираются отдельно</h1>
+<p>Точное число покупателей → uniqExact; допустима оценка → uniq.</p><p>Много групп → оценить состояния и память; при необходимости рассмотреть порядок или внешнюю агрегацию.</p><p>Сортировка не превращает любой GROUP BY в агрегацию по порядку.</p>
+<aside class="notes"><p>Выбор функции отвечает за смысл и точность показателя. uniqExact хранит точное множество, uniq использует ограниченную адаптивную выборку хешей. Это другой выбор, чем хеш-таблица, порядок чтения или выгрузка на диск.</p><p>Сначала определяем допустимую ошибку и ожидаемое число групп. Затем выбираем способ выполнения, проверяя фактический pipeline и память запроса. Пример с тремя пользователями покажет семантику, но не измерит ошибку оценки на большой кардинальности.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Выполнение агрегации · Выбор</span></div>
+</div>
+<div class="step slide " id="s82">
+<h1>Как три строки изменяют состояния двух групп</h1>
+<table><tr><th>Вход</th><th>Состояние после строки</th></tr><tr><td>shop 7, 200</td><td>7 → sum=200, count=1</td></tr><tr><td>shop 9, 300</td><td>9 → sum=300, count=1</td></tr><tr><td>shop 7, 400</td><td>7 → sum=600, count=2</td></tr></table><p>Выход: две группы. Обработка может идти параллельно, а не ровно в показанном порядке.</p>
+<pre><code>SELECT shop_id, sum(amount), count(), avg(amount)
+FROM events
+GROUP BY shop_id ORDER BY shop_id;</code></pre>
+<p class="result-label">Проверенный результат · ClickHouse 24.12.3.47</p><pre class="result">7    600    2    300
+9    300    1    300</pre>
+<aside class="notes"><p>Для магазина 7 первая строка создаёт сумму 200 и количество 1. После строки магазина 9 появляется вторая группа. Ещё одна строка магазина 7 доводит его сумму до 600 и количество до 2.</p><p>SELECT проверяет эти состояния: среднее магазина 7 равно 300, у магазина 9 одна строка на 300. Дальше отдельно проверим объединение средних порций разного размера.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Выполнение агрегации · Пример</span></div>
+</div>
+<div class="step slide " id="s83">
+<h1>Среднее средних: потеря веса групп</h1>
+<p>Одна группа содержит 1 платёж, другая — 3.</p>
+<pre><code>SELECT avg(x) AS correct_avg
+FROM values(&#x27;batch UInt8, x Decimal(18, 2)&#x27;,
+ (1,100),(2,300),(2,300),(2,300));
+SELECT avg(a) AS wrong_avg FROM
+( SELECT batch, avg(x) AS a
+  FROM values(&#x27;batch UInt8, x Decimal(18, 2)&#x27;,
+   (1,100),(2,300),(2,300),(2,300))
+  GROUP BY batch );</code></pre>
+<p class="result-label">Проверенный результат · ClickHouse 24.12.3.47</p><pre class="result">250
+200</pre>
+<aside class="notes"><p>Прямой avg по значениям 100, 300, 300, 300 возвращает 250.</p><p>Второй запрос сначала считает среднее каждой порции, затем среднее двух ответов: 200. Порциям из одной и трёх строк дали равный вес. Для корректного объединения нужны сумма и количество либо состояние avg.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Выполнение агрегации · Пример</span></div>
+</div>
+<div class="step slide " id="s84">
+<h1>Точное и приближённое число покупателей</h1>
+<p>Покупатель 10 встречается дважды. На этом наборе uniq и uniqExact возвращают 3. Пример проверяет учёт повторов, но не ошибку оценки на большой кардинальности.</p>
+<pre><code>SELECT uniqExact(user_id) AS exact,
+       uniq(user_id) AS approximate
+FROM values(&#x27;user_id UInt64&#x27;,
+ (10),(20),(10),(30));</code></pre>
+<p class="result-label">Проверенный результат · ClickHouse 24.12.3.47</p><pre class="result">3    3</pre>
+<aside class="notes"><p>Для пользователей 10, 20, 10, 30 обе функции возвращают 3. Маленький набор не показывает ошибку приближённой оценки.</p><p>uniqExact хранит точное множество. uniq использует адаптивную выборку до 65536 хешей. Если нужен точный результат, выбираем uniqExact с учётом роста его состояния.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Выполнение агрегации · Пример</span></div>
+</div>
+<div class="step slide " id="s85">
+<h1>64 сервиса и 262144 запроса: разное число групп</h1>
+<p>Число исходных строк одинаково, число групп различается в 4096 раз.</p>
+<pre><code>SELECT count() AS service_groups FROM
+ (SELECT service_id FROM access_log GROUP BY service_id);
+SELECT count() AS request_groups FROM
+ (SELECT request_id FROM access_log GROUP BY request_id);</code></pre>
+<p class="result-label">Проверенный результат · ClickHouse 24.12.3.47</p><pre class="result">64
+262144</pre>
+<aside class="notes"><p>По service_id получаем 64 группы, по request_id — 262144: в 4096 раз больше на том же наборе строк.</p><p>Запросы измеряют число групп. Память конкретной агрегации на сервере смотрим в system.query_log: её определяют также тип ключа, функции и число частичных состояний.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Выполнение агрегации · Разбор</span></div>
+</div>
+<div class="step slide " id="s86">
+<h1>Находим агрегацию в pipeline</h1>
+<p><code>AggregatingTransform × 4</code> накапливает частичные состояния в четырёх потоках. <code>Resize</code> перераспределяет потоки между стадиями.</p>
+<pre><code>EXPLAIN PIPELINE
+SELECT service_id, sum(duration_ms)
+FROM access_log
+GROUP BY service_id
+SETTINGS max_threads=4;</code></pre>
+<aside class="notes"><p>В pipeline нашего запроса четыре AggregatingTransform и четыре потока чтения. Resize перераспределяет потоки между стадиями; его кратность не равна числу сервисов.</p><p>max_threads ограничивает параллелизм. На меньшем наборе или другой версии число потоков может быть другим.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Выполнение агрегации · Пример</span></div>
+</div>
+<div class="step slide " id="s87">
+<h1>Агрегация по порядку сортировки</h1>
+<p>Таблица access_log отсортирована по (service_id, ts, request_id). При группировке по service_id строки каждой группы идут подряд внутри парта.</p><p><code>optimize_aggregation_in_order=1</code> позволяет завершать состояния пройденных групп, сокращая число одновременно хранимых состояний.</p>
+<pre><code>EXPLAIN PIPELINE
+SELECT service_id, sum(duration_ms)
+FROM access_log GROUP BY service_id
+SETTINGS optimize_aggregation_in_order=1,
+         max_threads=1;</code></pre>
+<aside class="notes"><p>В access_log строки отсортированы сначала по service_id. При группировке по этому префиксу можно завершать пройденные группы, сокращая число одновременно хранимых состояний.</p><p>С optimize_aggregation_in_order=1 в нашем pipeline появляются AggregatingInOrderTransform, FinishAggregatingInOrderTransform и объединение частичных состояний. Чтение нескольких дневных партов может сохранять несколько потоков даже при max_threads=1; число потоков смотрим в плане.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Выполнение агрегации · Пример</span></div>
+</div>
+<div class="step slide section" id="s88">
+<h1>Материализация сохраняет результат для повторного чтения</h1>
+<p><strong>Материализация</strong> — сохранение вычисленного результата для последующего чтения.</p><p><strong>Витрина</strong> — в наших примерах таблица показателей отчёта. Источник содержит операции, приёмник — результаты их обработки.</p><p><strong>Материализованное представление (MV)</strong> — объект ClickHouse с запросом преобразования и правилом обновления сохранённого результата.</p><p>Результат зависит от запроса и способа обновления: при вставке либо при полном пересчёте.</p>
+<aside class="notes"><p>Материализация — сохранение вычисленного результата, чтобы последующее чтение могло использовать его. Витриной в этой лекции называем таблицу показателей отчёта, например суммы платежей по магазину и часу. Это роль таблицы в модели, а не отдельный движок ClickHouse.</p><p>Источник — таблица, из которой берутся входные строки. Приёмник — таблица, в которую записываются результаты преобразования. Материализованное представление, MV, задаёт запрос преобразования и механизм обновления сохранённого результата; приёмник может быть задан явно через TO.</p><p>Обычное VIEW, инкрементальное MV и периодически обновляемое MV имеют разные правила исполнения. Инкрементальное применяет запрос к вставляемым блокам источника. Периодически обновляемое повторяет полный запрос. Поэтому определение одного SQL-запроса ещё не задаёт момент актуальности витрины.</p><p>Далее рассматриваем приёмники на SummingMergeTree и AggregatingMergeTree. Движок приёмника определяет обработку записанных частичных результатов, но не превращает изменения старых строк источника в новые входные события MV.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Материализованные витрины · Понятие</span></div>
+</div>
+<div class="step slide " id="s89">
+<h1>Почему сохранять отчёт, а не считать его каждый раз</h1>
+<p>Почасовой отчёт часто повторяется. Можно заново читать события либо сохранить результат и платить за его поддержание.</p><p>Выбор зависит от частоты чтения, допустимого запаздывания и характера изменений источника.</p>
+<aside class="notes"><p>Если отчёт читают редко и запрос укладывается в требования, достаточно прямого SELECT. Если одни и те же показатели запрашиваются часто, можно перенести вычисление на вставку либо периодический пересчёт.</p><p>Сохранённый результат требует дополнительного места и работы по поддержанию. Поэтому сначала выбираем момент вычисления и правило актуальности, а затем движок целевой таблицы.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Материализованные витрины · Мотивация</span></div>
+</div>
+<div class="step slide " id="s90">
+<h1>Три способа поддерживать результат</h1>
+<table class="compact"><tr><th>Объект</th><th>Сохраняет</th><th>Правило исполнения</th></tr><tr><td>VIEW AS Q</td><td>Определение запроса Q</td><td>Q вычисляется при обращении к VIEW</td></tr><tr><td>Refreshable MV</td><td>Результат полного Q</td><td>Пересчитывает по расписанию; в нашем варианте заменяет прежний результат</td></tr><tr><td>Incremental MV TO T AS Q</td><td>Q(B) записывается в приёмник T</td><td>Выполняется для каждого вставляемого блока B источника</td></tr></table><p>Refreshable MV в 24.12 — экспериментальная возможность. Здесь рассматриваем замену результата, без APPEND.</p>
+<aside class="notes"><p>Обычное представление CREATE VIEW v AS Q сохраняет определение Q. Обращение к v выполняет этот запрос; строки отчёта внутри обычного VIEW отдельно не хранятся. Входом Q является текущее состояние, видимое его чтению источников.</p><p>Refreshable materialized view периодически выполняет полный запрос Q и сохраняет его результат. В рассматриваемом режиме без APPEND успешное обновление заменяет предыдущий сохранённый результат. Между обновлениями читатели используют результат последнего завершённого расчёта. В ClickHouse 24.12 механизм экспериментальный; пример выполняется в Atomic с allow_experimental_refreshable_materialized_view=1.</p><p>Инкрементальное MV с TO T AS Q выполняет Q для каждого входного блока B вставки источника и передаёт Q(B) в таблицу-приёмник T. В простом запросе над одним источником Q получает строки блока, а не всю накопленную таблицу. Объединение Q(B₁), Q(B₂) и следующих вкладов определяется движком T и запросом чтения T.</p><p>UPDATE, DELETE, TTL и фоновые слияния уже записанного источника сами не запускают обратный пересчёт этих вкладов. Создание такого MV также не загружает прежние строки источника автоматически. В опытах нет JOIN и нескольких источников; их зависимости разберём отдельно.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Материализованные витрины · Варианты</span></div>
+</div>
+<div class="step slide " id="s91">
+<h1>Граница обработки — блок вставки</h1>
+<pre class="diagram">Вставка 1: shop 7 → 100 + 200 → 300
+Вставка 2: shop 7 → 300         → 300
+
+Витрина до слияния: 300, 300
+Отчёт после объединения: 600</pre><p>GROUP BY в MV обрабатывает блок, а не пересчитывает всю исходную таблицу.</p>
+<aside class="notes"><p>Блок вставки — порция столбцов и строк, поступающая в обработку инкрементального MV. Одна команда INSERT может состоять из нескольких блоков; запись «одна вставка — один блок» далее относится только к маленьким учебным вставкам.</p><p>Пусть Q группирует блок по магазину и часу и считает сумму. Для первого блока с платежами 100 и 200 Q(B₁) содержит сумму 300. Для второго блока с платежом 300 Q(B₂) также содержит 300. Это два частичных результата одной отчётной группы.</p><p>Отчёт по приёмнику должен объединить оба вклада и получить 600. В нашем опыте фон приёмника остановлен, поэтому две строки видны отдельно. После слияния их физическое представление может измениться, но корректный запрос суммы по ключу отчёта должен возвращать тот же результат.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Материализованные витрины · Реализация</span></div>
+</div>
+<div class="step slide " id="s92">
+<h1>Что не делает инкрементальное представление</h1>
+<p>Не загружает старую историю автоматически.</p><p>Не отменяет уже записанный вклад при UPDATE, DELETE или замещении версий источника.</p><p>Не объединяет результаты всех вставок само по себе: это задача запроса и движка приёмника.</p>
+<aside class="notes"><p>MV получает новые блоки. Для старой истории нужен отдельный backfill, согласованный с началом обработки новых данных. При исправлении уже записанной строки представление не получает её прежнюю сумму как отрицательный вклад.</p><p>Даже обычная группировка в MV видит только свой блок. Соседние вставки создают независимые частичные результаты, поэтому приёмник и чтение должны поддерживать корректное объединение. Эти ограничения следуют из границы обработки, а не из отдельной ошибки конфигурации.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Материализованные витрины · Реализация</span></div>
+</div>
+<div class="step slide " id="s93">
+<h1>Когда выбирать инкрементальный расчёт</h1>
+<p>Подходит: новые события дают независимые, объединяемые вклады в отчёт.</p><p>Полный пересчёт рассматриваем, если старые данные меняются и допустима периодическая актуализация.</p><p>Прямой SELECT сохраняем, если стоимость чтения приемлема и отдельная витрина не нужна.</p>
+<aside class="notes"><p>Для суммы неизменяемых операций вклад нового блока можно сложить с предыдущим. Для суммы актуальных состояний такая арифметика неверна без отмены старого вклада. Поэтому модель строк выбираем до MV.</p><p>Инкрементальный расчёт переносит часть работы с чтения на вставку. Получится ли ускорить чтение, зависит от размера приёмника, группировки и функций; обработка исправлений при этом усложняется. Полный пересчёт повторно читает источник, зато включает его текущее состояние на каждом запуске. Решение зависит от нагрузки и допустимой задержки отчёта.</p><p>Расписание не меняет смысл SELECT. Если источник хранит версии, полный запрос также должен выбирать актуальные состояния через FINAL или argMax; один факт пересчёта эту задачу не решает.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Материализованные витрины · Выбор</span></div>
+</div>
+<div class="step slide " id="s94">
+<h1>SummingMergeTree: правило суммирования строк</h1>
+<p><code>SummingMergeTree((total, payments_count))</code> объединяет строки с одинаковым полным ORDER BY в пределах сливаемых партов одной партиции.</p><table class="compact"><tr><th>Столбцы</th><th>Результат объединения</th></tr><tr><td>Ключ сортировки</td><td>Общее значение ключа группы</td></tr><tr><td>total, payments_count</td><td>Сумма соответствующего столбца по строкам группы</td></tr><tr><td>Прочие обычные столбцы</td><td>Произвольное значение; смысл последней версии отсутствует</td></tr></table><p>Если все суммируемые показатели равны нулю, при слиянии группа может исчезнуть.</p><p>Между партами могут оставаться частичные строки: читаем через GROUP BY и sum.</p>
+<aside class="notes"><p>SummingMergeTree — движок семейства MergeTree, который при слиянии объединяет строки с одинаковым полным ORDER BY внутри одной партиции. Для каждого указанного числового столбца он записывает сумму значений обрабатываемых строк этого ключа. В нашем варианте SummingMergeTree((total,payments_count)) суммируются ровно эти два показателя.</p><p>Ключ объединения задаётся ORDER BY, даже если PRIMARY KEY короче. Значения ключа сохраняются; обычные неключевые столбцы вне списка суммирования не имеют семантики последней версии — выбирается произвольное значение. Поэтому измерения отчёта, которые нужно различать, включаем в ключ.</p><p>Список суммируемых столбцов в параметре движка необязателен; без него в рассматриваемых плоских схемах суммируются числовые столбцы вне ключей сортировки и партиционирования. В лекции используем явный список, чтобы числовой атрибут случайно не стал показателем. Отдельные правила специальных типов, например AggregateFunction и Nested Map, здесь не рассматриваем.</p><p>Если после суммирования все указанные показатели равны нулю, строка может быть удалена при физическом слиянии. В нашей витрине payments_count положителен, поэтому нулевая денежная сумма сама по себе не означает нулевую группу.</p><p>Слияние может обработать лишь часть партов. Для того же ключа в других партах могут остаться частичные суммы, поэтому запрос отчёта продолжает использовать GROUP BY измерений и sum каждого показателя. Движок не обеспечивает одну физическую строку на ключ сразу после INSERT.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Материализованные витрины · Понятие</span></div>
+</div>
+<div class="step slide " id="s95">
+<h1>Ключ витрины должен сохранять измерения</h1>
+<p>Отчёт группируется по <code>(shop_id, hour)</code> — эти измерения сохраняем в ключе сортировки.</p><p>Если оставить только shop_id, слияние сможет сложить разные часы.</p><p>Если добавить event_id, строки одной отчётной группы не будут полностью укрупняться.</p>
+<aside class="notes"><p>Измерения отчёта — атрибуты, по значениям которых различаются группы: здесь shop_id и hour. Показатели — вычисляемые значения каждой группы: total и payments_count. Ключ отчётной группы — кортеж всех её измерений.</p><p>Приёмник должен сохранять различие тех групп, которые отчёт обязан различать. Для нашей почасовой витрины полный ORDER BY равен (shop_id,hour). Если убрать hour, слияние сможет сложить показатели разных часов одного магазина. Прочий столбец hour не сохранит несколько отдельных часов в одной строке.</p><p>Если приёмник, наоборот, сохраняет отдельный event_id и включает его в ORDER BY, строки разных событий не объединятся в одну строку магазина и часа при слиянии. Запрос всё ещё может их сгруппировать, но физическое укрупнение по отчётной группе будет потеряно.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Материализованные витрины · Выбор</span></div>
+</div>
+<div class="step slide " id="s96">
+<h1>Источник: неизменяемые события</h1>
+<p>В этом опыте каждая бизнес-операция вставляется один раз. Обычный MergeTree сам повторы не убирает.</p>
+<pre><code>CREATE TABLE payments
+( event_id UInt64, shop_id UInt32, user_id UInt64,
+  paid_at DateTime(&#x27;UTC&#x27;), amount Decimal(18, 2) )
+ENGINE=MergeTree
+PARTITION BY toYYYYMM(paid_at)
+ORDER BY (shop_id, paid_at, event_id);</code></pre>
+<aside class="notes"><p>В payments строка означает отдельное событие. Каждую операцию в опыте вставляем один раз.</p><p>MergeTree этого условия не обеспечивает. Повтор event_id может повторно попасть и в источник, и через MV в витрину. Защита загрузки от повторов — отдельное условие такого расчёта.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Материализованные витрины · Пример</span></div>
+</div>
+<div class="step slide " id="s97">
+<h1>SummingMergeTree хранит частичные суммы</h1>
+<p>Явно задаём, какие столбцы суммируются. Ключ задаёт магазин и час.</p>
+<pre><code>CREATE TABLE hourly_sums
+( shop_id UInt32, hour DateTime(&#x27;UTC&#x27;),
+  total Decimal(38, 2), payments_count UInt64 )
+ENGINE=SummingMergeTree((total, payments_count))
+PARTITION BY toYYYYMM(hour)
+ORDER BY (shop_id, hour);
+SYSTEM STOP MERGES hourly_sums;</code></pre>
+<aside class="notes"><p>В ENGINE явно перечисляем суммируемые столбцы: total и payments_count. Ключ магазина и часа задаёт группу, внутри которой они складываются.</p><p>Партиция месячная. STOP MERGES позволит увидеть вклады отдельных вставок до их физического объединения.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Материализованные витрины · Пример</span></div>
+</div>
+<div class="step slide " id="s98">
+<h1>CREATE MATERIALIZED VIEW … TO hourly_sums</h1>
+<p>Псевдонимы SELECT совпадают с именами столбцов целевой таблицы.</p>
+<pre><code>CREATE MATERIALIZED VIEW payments_to_sums
+TO hourly_sums AS
+SELECT shop_id, toStartOfHour(paid_at) AS hour,
+       sum(amount) AS total,
+       count() AS payments_count
+FROM payments
+GROUP BY shop_id, hour;</code></pre>
+<aside class="notes"><p>TO hourly_sums указывает приёмник. SELECT вычисляет час, сумму amount и count нового блока payments. Псевдонимы совпадают с именами столбцов приёмника.</p><p>GROUP BY объединяет строки блока. Такой же ключ в следующем блоке создаст ещё один частичный результат.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Материализованные витрины · Пример</span></div>
+</div>
+<div class="step slide " id="s99">
+<h1>Первая вставка: частичный отчёт</h1>
+<p>Оба платежа относятся к одному магазину и часу.</p>
+<pre><code>INSERT INTO payments VALUES
+(101,7,10,&#x27;2026-11-01 12:01:00&#x27;,100),
+(102,7,20,&#x27;2026-11-01 12:02:00&#x27;,200);
+SELECT shop_id, hour, total, payments_count
+FROM hourly_sums ORDER BY shop_id, hour;</code></pre>
+<p class="result-label">Проверенный результат · ClickHouse 24.12.3.47</p><pre class="result">7    2026-11-01 12:00:00    300    2</pre>
+<aside class="notes"><p>Платежи в 12:01 и 12:02 принадлежат одному магазину и часу. MV передаёт в hourly_sums одну строку: total=300, payments_count=2.</p><p>Отдельную команду обновления витрины не выполняем: расчёт запущен вставкой в источник.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Материализованные витрины · Пример</span></div>
+</div>
+<div class="step slide " id="s100">
+<h1>Вторая вставка: ещё одна частичная сумма</h1>
+<p>Слияния остановлены: наблюдаем вклад каждого блока.</p>
+<pre><code>INSERT INTO payments VALUES
+(103,7,10,&#x27;2026-11-01 12:03:00&#x27;,300);
+SELECT total, payments_count
+FROM hourly_sums ORDER BY payments_count;</code></pre>
+<p class="result-label">Проверенный результат · ClickHouse 24.12.3.47</p><pre class="result">300    1
+300    2</pre>
+<aside class="notes"><p>Третий платёж на 300 относится к тому же часу. Его вставка создаёт ещё одну строку витрины: total=300, payments_count=1.</p><p>При остановленных слияниях видны две строки. В отчёте их предстоит сложить.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Материализованные витрины · Пример</span></div>
+</div>
+<div class="step slide " id="s101">
+<h1>Складываем частичные суммы через GROUP BY</h1>
+<p>Две строки витрины дают total=600 и payments_count=3. Тот же запрос работает после их слияния в одну строку.</p>
+<pre><code>SELECT shop_id, hour,
+ sum(total) AS total,
+ sum(payments_count) AS payments_count
+FROM hourly_sums
+GROUP BY shop_id, hour ORDER BY shop_id, hour;</code></pre>
+<p class="result-label">Проверенный результат · ClickHouse 24.12.3.47</p><pre class="result">7    2026-11-01 12:00:00    600    3</pre>
+<aside class="notes"><p>Внешний GROUP BY магазина и часа объединяет результаты разных вставок. sum(total) даёт 600, sum(payments_count) — 3.</p><p>После слияния те же показатели будут храниться одной строкой. Запрос вернёт тот же ответ.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Материализованные витрины · Разбор</span></div>
+</div>
+<div class="step slide " id="s102">
+<h1>Как загрузить накопленную историю</h1>
+<p>Создание MV с TO hourly_sums не загружает уже записанные строки payments.</p><p>Простой учебный порядок: остановить запись → создать MV → загрузить историю → возобновить запись.</p>
+<pre><code>-- Только если история ещё не попала в витрину!
+INSERT INTO hourly_sums
+SELECT shop_id, toStartOfHour(paid_at) AS hour,
+       sum(amount), count()
+FROM payments
+GROUP BY shop_id, hour;</code></pre>
+<aside class="notes"><p>Backfill — отдельная загрузка в приёмник результатов по строкам, уже существовавшим в источнике до начала обработки новых вставок MV. Это не создание ещё одного вида движка, а операция согласования истории с новым способом расчёта.</p><p>CREATE MATERIALIZED VIEW ... TO hourly_sums не загружает прежние строки payments. В учебном варианте останавливаем запись источника, создаём MV, выполняем INSERT INTO приёмник SELECT ... FROM источник по всей ещё не учтённой истории и затем возобновляем запись.</p><p>Каждая исходная операция должна попасть в приёмник один раз: либо через историческую загрузку, либо через обработку новых вставок. Если повторить тот же backfill в суммирующий приёмник, вклад будет добавлен повторно. Конкурентная загрузка требует отдельной границы и протокола переключения.</p><p>SQL на этом слайде не входит в общий demo.sql, потому что текущие строки payments уже обработаны MV. Дополнительный Docker-сценарий проверяет backfill на отдельном источнике и показывает удвоение при повторе.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Материализованные витрины · Разбор</span></div>
+</div>
+<div class="step slide section" id="s103">
+<h1>State, Merge и MergeState</h1>
+<p><strong>Комбинатор</strong> — суффикс имени агрегатной функции, изменяющий её вход или выход.</p><table class="compact"><tr><th>Форма</th><th>Вход → выход</th></tr><tr><td>fState(x)</td><td>Исходные значения → состояние f</td></tr><tr><td>fMerge(s)</td><td>Совместимые состояния f → готовый результат f</td></tr><tr><td>fMergeState(s)</td><td>Совместимые состояния f → объединённое состояние f</td></tr></table><p><code>AggregateFunction(f, T…)</code> — тип столбца для состояния заданной функции с аргументами типов T…</p>
+<aside class="notes"><p>Комбинатор агрегатной функции — суффикс имени, меняющий её вход, выход или правило применения. Здесь рассматриваем State, Merge и MergeState, а в примере возвратов — If.</p><p>fState(x) обрабатывает исходные значения и возвращает промежуточное состояние f. Его можно хранить в столбце AggregateFunction(f,T…), где f — конкретная функция, а T… — типы её аргументов. Это типизированное состояние, а не готовое число и не обещание переносимого внутреннего бинарного устройства.</p><p>fMerge(s) принимает совместимые состояния той же функции, объединяет их и финализирует результат. fMergeState(s) также объединяет состояния, но возвращает состояние для дальнейшего хранения или объединения. Например, avgMerge возвращает среднее, а avgMergeState сохраняет объединённые сумму и количество.</p><p>Совместимость включает функцию, её параметры при наличии и типы аргументов. Состояние avg нельзя передать sumMerge только потому, что исходный аргумент был числом. Аналогично avgState(Decimal(18,2)) не объявляем состоянием avg от UInt64.</p><p>Комбинатор If добавляет условие участия строки: sumIf(amount,kind=&#x27;paid&#x27;) суммирует amount только для строк, где условие истинно. Он не хранит отдельную историю оплат и возвратов — это смысл исходных строк.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Хранение агрегатных состояний · Понятие</span></div>
+</div>
+<div class="step slide " id="s104">
+<h1>Среднее и уникальные не складываются</h1>
+<p>Средние требуют весов. Число уникальных требует учитывать пересечения покупателей между вставками.</p><pre class="diagram">Порция 1: пользователи {10, 20} → 2
+Порция 2: пользователи {10}     → 1
+Общий результат: {10, 20}      → 2, не 3</pre>
+<aside class="notes"><p>Для среднего нужны веса порций. Для числа уникальных — информация о пересечении пользователей.</p><p>Первая порция содержит {10, 20}, вторая — {10}. Сложение готовых чисел 2 и 1 даёт неверные 3. Для объединения сохраним состояния функций.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Хранение агрегатных состояний · Мотивация</span></div>
+</div>
+<div class="step slide " id="s105">
+<h1>Что можно сохранять между вставками</h1>
+<table><tr><th>Представление</th><th>Что умеет объединять</th><th>Граница</th></tr><tr><td>Готовая сумма и количество</td><td>Сложение числовых вкладов</td><td>Недостаточно для пересечений пользователей</td></tr><tr><td>Готовое среднее</td><td>Само по себе не сохраняет вес порции</td><td>Нельзя усреднять средние без весов</td></tr><tr><td>Состояние AggregateFunction</td><td>Объединение через подходящий Merge</td><td>Функция и типы аргументов должны совпасть</td></tr></table>
+<aside class="notes"><p>Промежуточное представление должно сохранять информацию, необходимую для объединения порций. Для среднего достаточно суммы и количества. Для уникальных покупателей нужно учитывать пересечения, поэтому числа уникальных по отдельным порциям недостаточно.</p><p>AggregateFunction хранит состояние конкретной функции с конкретными типами аргументов. Оно не является универсальным числом, которое можно передать любой Merge-функции.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Хранение агрегатных состояний · Варианты</span></div>
+</div>
+<div class="step slide " id="s106">
+<h1>AggregatingMergeTree: правило объединения состояний</h1>
+<p><code>AggregatingMergeTree</code> объединяет строки одного полного ORDER BY в сливаемых партах одной партиции.</p><p>Для каждого столбца <code>AggregateFunction(f,T…)</code> результат — объединённое состояние функции f. Финализация при таком слиянии не выполняется.</p><p>Частичные строки могут остаться в других партах. Читаем: <code>GROUP BY</code> измерений и соответствующие <code>fMerge</code>.</p><p>Число строк состояний не равно числу исходных операций.</p>
+<aside class="notes"><p>AggregatingMergeTree — движок семейства MergeTree, изменяющий правило обработки равных ключей при слиянии. Среди обрабатываемых строк с одинаковым полным ORDER BY внутри одной партиции состояния каждого столбца AggregateFunction(f,T…) объединяются операцией merge соответствующей функции f.</p><p>Результат слияния в таком столбце остаётся состоянием, а не финализированным показателем. Для avg это позволяет продолжать учитывать веса порций; для uniq — пересечения значений. PRIMARY KEY может быть короче, но равенство для объединения определяется полным ключом сортировки.</p><p>Другие парты могут ещё содержать состояния той же группы. Запрос чтения поэтому группирует по измерениям и применяет соответствующий fMerge к каждому столбцу состояния. Этот запрос корректен и до фонового объединения, и после него.</p><p>SimpleAggregateFunction(f,T) хранит значение типа T для функций, у которых результаты порций можно объединить применением той же f. Для sum это sum(sum(A),sum(B))=sum(A∪B), где A и B — порции строк с сохранением повторов. Движок поддерживает этот тип наряду с AggregateFunction. Готовое среднее такого свойства не имеет; avg/uniq в нашей схеме храним как состояния AggregateFunction. Обычные неключевые столбцы без агрегатного типа не превращаются в показатели автоматически: их произвольные значения не должны определять результат отчёта.</p><p>Один INSERT не означает одну сохранённую строку на группу, а число строк в приёмнике не является числом операций источника. Если сохранить только окончательные средние или числа уникальных, движок не восстановит потерянные веса и пересечения.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Хранение агрегатных состояний · Реализация</span></div>
+</div>
+<div class="step slide " id="s107">
+<h1>Как хранить сумму, среднее и число покупателей</h1>
+<table><tr><th>Показатель</th><th>Хранение</th></tr><tr><td>Сумма и количество</td><td>Числовые частичные суммы: SummingMergeTree</td></tr><tr><td>Среднее</td><td>Состояние avg или отдельно сумма и количество</td></tr><tr><td>Уникальные покупатели</td><td>Состояние uniq / uniqExact</td></tr><tr><td>Несколько агрегатов со своими состояниями</td><td>AggregatingMergeTree</td></tr></table>
+<aside class="notes"><p>Сумму и количество можно хранить числовыми частичными результатами в SummingMergeTree. Среднее — суммой с количеством либо состоянием avg. Для уникальных покупателей нужно состояние uniq или uniqExact.</p><p>AggregatingMergeTree объединяет состояния функций. Представление показателя выбираем так, чтобы независимые порции можно было объединить без потери нужной информации.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Хранение агрегатных состояний · Выбор</span></div>
+</div>
+<div class="step slide " id="s108">
+<h1>Типы аргумента, состояния и результата avg</h1>
+<p>Денежный аргумент — Decimal(18, 2). Состояние хранит тип функции и аргумента; готовое среднее в этой версии имеет Float64.</p>
+<pre><code>SELECT toTypeName(avgState(toDecimal64(number,2))) AS state_type,
+       toTypeName(avg(toDecimal64(number,2))) AS result_type
+FROM numbers(3);</code></pre>
+<p class="result-label">Проверенный результат · ClickHouse 24.12.3.47</p><pre class="result">AggregateFunction(avg, Decimal(18, 2))    Float64</pre>
+<aside class="notes"><p>toTypeName показывает AggregateFunction(avg,Decimal(18,2)) для состояния и Float64 для готового среднего. Тип аргумента, тип состояния и тип результата — разные характеристики функции.</p><p>В таблицу состояний записываем AggregateFunction(avg,Decimal(18,2)), поскольку денежный аргумент имеет Decimal. Для суммы используется Decimal(38,2). Выбор Decimal для хранения не означает, что любая статистическая функция также вернёт Decimal.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Хранение агрегатных состояний · Пример</span></div>
+</div>
+<div class="step slide " id="s109">
+<h1>Таблица для состояний</h1>
+<p>Тип функции и тип аргумента должны совпадать с выражением, которое создаёт состояние.</p>
+<pre><code>CREATE TABLE hourly_states
+( shop_id UInt32, hour DateTime(&#x27;UTC&#x27;),
+  avg_amount AggregateFunction(avg, Decimal(18, 2)),
+  users AggregateFunction(uniq, UInt64) )
+ENGINE=AggregatingMergeTree
+PARTITION BY toYYYYMM(hour)
+ORDER BY (shop_id, hour);
+SYSTEM STOP MERGES hourly_states;</code></pre>
+<aside class="notes"><p>avg_amount имеет тип AggregateFunction(avg,Decimal(18,2)), users — AggregateFunction(uniq,UInt64). Они соответствуют аргументам amount и user_id.</p><p>AggregatingMergeTree объединяет состояния одинакового (shop_id,hour). До слияний несколько строк группы могут сосуществовать; читаем их через Merge с группировкой по измерениям.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Хранение агрегатных состояний · Пример</span></div>
+</div>
+<div class="step slide " id="s110">
+<h1>MV создаёт состояния для каждого блока</h1>
+<p>Для отдельного опыта используем пустой источник той же структуры.</p>
+<pre><code>CREATE TABLE state_input AS payments;
+CREATE MATERIALIZED VIEW payments_to_states
+TO hourly_states AS
+SELECT shop_id, toStartOfHour(paid_at) AS hour,
+       avgState(amount) AS avg_amount,
+       uniqState(user_id) AS users
+FROM state_input
+GROUP BY shop_id, hour;</code></pre>
+<aside class="notes"><p>state_input — отдельный пустой источник структуры payments. Новое MV направляет его данные в hourly_states, не затрагивая предыдущую витрину сумм.</p><p>avgState(amount) и uniqState(user_id) создают состояния для каждого магазина и часа текущего блока.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Хранение агрегатных состояний · Пример</span></div>
+</div>
+<div class="step slide " id="s111">
+<h1>Пример: две вставки и повторный покупатель</h1>
+<p>Сначала два платежа от разных покупателей, затем ещё один от покупателя 10. Частичных состояний два, платежей три.</p>
+<pre><code>INSERT INTO state_input VALUES
+(201,7,10,&#x27;2026-11-01 12:01:00&#x27;,100),
+(202,7,20,&#x27;2026-11-01 12:02:00&#x27;,200);
+SELECT avgMerge(avg_amount), uniqMerge(users)
+FROM hourly_states;
+INSERT INTO state_input VALUES
+(203,7,10,&#x27;2026-11-01 12:03:00&#x27;,300);
+SELECT count() AS state_rows FROM hourly_states;</code></pre>
+<p class="result-label">Проверенный результат · ClickHouse 24.12.3.47</p><pre class="result">150    2
+2</pre>
+<aside class="notes"><p>Первый блок содержит 100 и 200 от покупателей 10 и 20. Merge по единственному состоянию даёт среднее 150 и двух покупателей.</p><p>Следующая вставка добавляет 300 от уже известного пользователя 10. При остановленных слияниях count строк hourly_states равен двум, хотя исходных платежей три. Теперь объединим состояния и сверим с прямым запросом.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Хранение агрегатных состояний · Пример</span></div>
+</div>
+<div class="step slide " id="s112">
+<h1>Объединение состояний совпадает с прямым расчётом</h1>
+<p>Оба запроса дают среднее 200 и двух покупателей. Покупатель 10 встречался в обеих вставках.</p>
+<pre><code>SELECT shop_id, hour,
+ avgMerge(avg_amount) AS avg_amount,
+ uniqMerge(users) AS users
+FROM hourly_states
+GROUP BY shop_id, hour ORDER BY shop_id, hour;
+SELECT shop_id, toStartOfHour(paid_at) AS hour,
+ avg(amount) AS avg_amount, uniq(user_id) AS users
+FROM state_input
+GROUP BY shop_id, hour ORDER BY shop_id, hour;</code></pre>
+<p class="result-label">Проверенный результат · ClickHouse 24.12.3.47</p><pre class="result">7    2026-11-01 12:00:00    200    2
+7    2026-11-01 12:00:00    200    2</pre>
+<aside class="notes"><p>Первый SELECT читает сохранённые состояния: avgMerge объединяет сумму 600 и количество 3, uniqMerge учитывает пересечение пользователей между порциями.</p><p>Второй SELECT считает показатели напрямую по трём исходным строкам. Совпадение проверяет формулу и объединение вставок. Набор намеренно содержит повтор пользователя между блоками: без него ошибка сложения готовых чисел уникальных могла бы не проявиться.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Хранение агрегатных состояний · Разбор</span></div>
+</div>
+<div class="step slide " id="s113">
+<h1>Слияние — тоже объединение состояний</h1>
+<p>AggregatingMergeTree объединяет состояния строк одинакового ключа. При чтении продолжаем использовать Merge.</p>
+<pre><code>SYSTEM START MERGES hourly_states;
+OPTIMIZE TABLE hourly_states FINAL;
+SELECT count(), avgMerge(avg_amount), uniqMerge(users)
+FROM hourly_states;</code></pre>
+<p class="result-label">Проверенный результат · ClickHouse 24.12.3.47</p><pre class="result">1    200    2</pre>
+<aside class="notes"><p>После START MERGES и OPTIMIZE два состояния одной группы объединяются физически. count возвращает 1, а avgMerge и uniqMerge по-прежнему дают 200 и 2.</p><p>Новые вставки снова могут создать несколько строк группы. Для отчёта сохраняем Merge и GROUP BY, независимо от текущего числа партов.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Хранение агрегатных состояний · Разбор</span></div>
+</div>
+<div class="step slide section" id="s114">
+<h1>Проверяем модель: события или текущие состояния</h1>
+<p>Проверим, исправит ли замещение версии сумму, которую MV уже записало в витрину.</p><div class="flow"><div class="node">ReplacingMergeTree</div><span class="arrow">→</span><div class="node">sum(amount) в MV</div><span class="arrow">→</span><div class="node">Суммирующая витрина</div></div>
+<aside class="notes"><p>Проверим их сочетание: источник хранит версии платежей, а MV складывает суммы новых вставок.</p><p>Если нужна сумма актуальных платежей, вторая версия должна заменить первый вклад. Контракт инкрементального MV сам такого вычитания не содержит. Проследим строки в обеих таблицах и выберем подходящую модель отчёта.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Согласование источника и отчёта · Мотивация</span></div>
+</div>
+<div class="step slide  long" id="s115">
+<h1>Пример: витрина складывает версии</h1>
+<p>Актуальное состояние источника: 150. Накопленная сумма витрины: 250.</p>
+<pre><code>CREATE TABLE version_input
+(payment_id String, amount Decimal(18, 2), version UInt64)
+ENGINE=ReplacingMergeTree(version)
+ORDER BY payment_id;
+CREATE TABLE version_total
+(k UInt8, total Decimal(38, 2))
+ENGINE=SummingMergeTree(total) ORDER BY k;
+CREATE MATERIALIZED VIEW version_to_total
+TO version_total AS
+SELECT toUInt8(1) AS k, sum(amount) AS total
+FROM version_input;
+INSERT INTO version_input VALUES (&#x27;A&#x27;,100,1);
+INSERT INTO version_input VALUES (&#x27;A&#x27;,150,2);
+SELECT sum(amount) AS current_amount
+FROM version_input FINAL;
+SELECT sum(total) AS materialized_amount
+FROM version_total;</code></pre>
+<p class="result-label">Проверенный результат · ClickHouse 24.12.3.47</p><pre class="result">150
+250</pre>
+<aside class="notes"><p>Создаём источник ReplacingMergeTree и MV с суммой нового блока. Версия 1 передаёт в приёмник 100, версия 2 — ещё 150.</p><p>Правило версии действует в источнике, но приёмник уже получил оба вклада. Успешные вставки и корректная работа каждого движка не означают соответствия витрины отчёту по актуальным состояниям.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Согласование источника и отчёта · Пример</span></div>
+</div>
+<div class="step slide " id="s116">
+<h1>Слияние источника не исправляет витрину</h1>
+<p>MV реагирует на вставки. Фоновое замещение, мутация или удаление партиции источника не вычитают ранее записанную сумму из витрины.</p>
+<pre><code>OPTIMIZE TABLE version_input FINAL;
+SELECT sum(amount) AS source FROM version_input;
+SELECT sum(total) AS target FROM version_total;</code></pre>
+<p class="result-label">Проверенный результат · ClickHouse 24.12.3.47</p><pre class="result">150
+250</pre>
+<aside class="notes"><p>После OPTIMIZE в источнике физически остаётся 150. Витрина по-прежнему хранит 250.</p><p>Слияние, мутация и удаление партиции источника не запускают обратный пересчёт инкрементального MV. FINAL в его определении также не вычитает ранее переданный вклад.</p><p>Истечение TTL источника также не отменяет уже переданный вклад. Если витрина должна хранить только заданный период, её срок хранения или пересчёт проектируют отдельно от очистки источника.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Согласование источника и отчёта · Разбор</span></div>
+</div>
+<div class="step slide " id="s117">
+<h1>Витрина для проверки UPDATE и DELETE</h1>
+<p>Источник содержит один платёж на 100. MV записывает его сумму в отдельную таблицу.</p>
+<pre><code>CREATE TABLE mv_change_source
+(id UInt64, amount Decimal(18, 2)) ENGINE=MergeTree ORDER BY id;
+CREATE TABLE mv_change_total
+(k UInt8, total Decimal(38, 2))
+ENGINE=SummingMergeTree(total) ORDER BY k;
+CREATE MATERIALIZED VIEW mv_change_capture
+TO mv_change_total AS
+SELECT toUInt8(1) AS k, sum(amount) AS total
+FROM mv_change_source;
+INSERT INTO mv_change_source VALUES (1,100);</code></pre>
+<aside class="notes"><p>Создаём независимую таблицу с одной строкой и витрину общей суммы. Первая вставка передаёт в приёмник 100.</p><p>Этот опыт отделён от таблиц версий: теперь проверяем прямую мутацию и лёгкое удаление уже записанной строки. Они не являются новыми вставленными событиями для MV.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Согласование источника и отчёта · Пример</span></div>
+</div>
+<div class="step slide " id="s118">
+<h1>UPDATE и DELETE источника не пересчитывают витрину</h1>
+<p>UPDATE меняет источник на 170, DELETE убирает строку. Витрина в обоих случаях сохраняет первоначальные 100.</p>
+<pre><code>ALTER TABLE mv_change_source
+ UPDATE amount=170 WHERE id=1 SETTINGS mutations_sync=1;
+SELECT sum(amount) AS source FROM mv_change_source;
+SELECT sum(total) AS target FROM mv_change_total;
+DELETE FROM mv_change_source WHERE id=1
+ SETTINGS lightweight_deletes_sync=1;
+SELECT count() AS source_rows FROM mv_change_source;
+SELECT sum(total) AS target FROM mv_change_total;</code></pre>
+<p class="result-label">Проверенный результат · ClickHouse 24.12.3.47</p><pre class="result">170
+100
+0
+100</pre>
+<aside class="notes"><p>После синхронного UPDATE источник возвращает 170, а витрина — 100. Затем DELETE с ожиданием маски делает источник пустым, но в витрине остаётся 100.</p><p>Следовательно, завершение изменения исходной таблицы и корректность отчёта в приёмнике — разные проверки. Для пересчёта нужен отдельный процесс либо модель событий с корректными вкладами и компенсациями. Сам DELETE или UPDATE такого вклада не отправляет.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Согласование источника и отчёта · Разбор</span></div>
+</div>
+<div class="step slide " id="s119">
+<h1>Журнал операций: отдельный возврат</h1>
+<p>Оплата 100 и возврат 30 — две операции. Считаем сумму оплат, сумму возвратов и разность. Каждую операцию учитываем один раз.</p><p><code>sumIf(x, P)</code> суммирует x только по строкам с истинным условием P.</p>
+<pre><code>SELECT sumIf(amount, kind=&#x27;paid&#x27;) AS paid,
+ sumIf(amount, kind=&#x27;refund&#x27;) AS refunded,
+ paid-refunded AS net
+FROM values(&#x27;event_id UInt64, kind String, amount Decimal(18, 2)&#x27;,
+ (1,&#x27;paid&#x27;,100),(2,&#x27;refund&#x27;,30));</code></pre>
+<p class="result-label">Проверенный результат · ClickHouse 24.12.3.47</p><pre class="result">100    30    70</pre>
+<aside class="notes"><p>Оплата на 100 и возврат на 30 — отдельные операции. Обе суммы положительны; sumIf разделяет их по kind, а разность даёт 70.</p><p>Такой журнал можно накапливать по операциям при однократном учёте каждой. Возврат сохраняет исходную оплату в истории. Повторная доставка операции требует защиты от двойного счёта.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Согласование источника и отчёта · Пример</span></div>
+</div>
+<div class="step slide " id="s120">
+<h1>Суммируем после выбора актуальных версий</h1>
+<p>Сначала FINAL оставляет A версии 2 с суммой 150. Затем sum(amount) считает отчёт по этим строкам.</p>
+<pre><code>SELECT sum(amount) AS total
+FROM version_input FINAL;</code></pre>
+<p class="result-label">Проверенный результат · ClickHouse 24.12.3.47</p><pre class="result">150</pre>
+<aside class="notes"><p>FINAL оставляет актуальную версию, затем sum(amount) даёт 150.</p><p>Если прямой расчёт слишком дорог, потребуется пересчёт витрины или протокол поправок, учитывающий повторы и порядок доставки. В нашем примере такого протокола нет; используем прямой запрос к состояниям.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Согласование источника и отчёта · Выбор</span></div>
+</div>
+<div class="step slide section" id="s121">
+<h1>Четыре движка: что происходит при слиянии?</h1>
+<table><tr><th>ENGINE</th><th>Равные ключи при обычном слиянии</th></tr><tr><td>MergeTree</td><td>Сохраняются все строки</td></tr><tr><td>ReplacingMergeTree(v)</td><td>Выбирается максимальная версия</td></tr><tr><td>SummingMergeTree</td><td>Складываются указанные числовые показатели</td></tr><tr><td>AggregatingMergeTree</td><td>Объединяются агрегатные состояния</td></tr></table>
+<aside class="notes"><p>Для журнала независимых операций сохраняем события. Для актуальных состояний выбираем версии. Для объединяемых числовых показателей подходит SummingMergeTree, для состояний функций — AggregatingMergeTree.</p><p>Движок выбирает действие над одинаковым ключом, а ключ — какие строки должны обрабатываться вместе. Корректный запрос учитывает, что фон ещё может не объединить парты. Ни одна из этих настроек не заменяет определение смысла строки и показателя.</p><p>Таблица сравнивает обработку равных ключей при обычном слиянии. Явные UPDATE/DELETE и правила TTL могут изменять или удалять строки отдельно; MergeTree не превращает эти операции в доступную для запросов историю.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Итоги · Выбор</span></div>
+</div>
+<div class="step slide " id="s122">
+<h1>Повторяем опыты целиком</h1>
+<p><a href="lecture-10-code/demo.sql">demo.sql</a> — примеры по порядку лекции.</p><p><a href="lecture-10-code/verification/report.md">Отчёт проверок</a> — утверждения, запросы и фактические ответы.</p><p><a href="lecture-10-code/README.txt">README.txt</a> — Docker, повторение и ручные запросы.</p><p><a href="bigdata-10-notes.md">Речь преподавателя</a> · заметки по клавише P.</p>
+<aside class="notes"><p>demo.sql содержит примеры в порядке слайдов. transcript.txt сохраняет фактический вывод, включая планы. Номера слайдов добавлены перед фрагментами.</p><p>Backfill со слайда 102 не выполняется в общем сценарии: текущие данные уже учтены. В README указаны запуск, повторение опытов и возобновление остановленных слияний.</p><p>Полная проверка включает дополнительные отрицательные опыты: запрещённые UPDATE, ошибочный ключ замещения, версии в разных партициях и повторный backfill. Для файлов Wide/Compact сравниваются inode, для внешней агрегации — ProfileEvents, для памяти — system.query_log. Рекомендации по выбору схемы и требования к загрузчику отделены от наблюдаемых свойств SQL.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Итоги · Материалы</span></div>
+</div>
+<div class="step slide " id="s123">
+<h1>Далее: соединение и распределение</h1>
+<p>Третья лекция: JOIN и размножение строк → словари → шарды и реплики → распределённый запрос.</p><p class="small">Документация: <a href="https://clickhouse.com/docs/partitions">партиции</a> · <a href="https://clickhouse.com/docs/engines/table-engines/mergetree-family/replacingmergetree">ReplacingMergeTree</a> · <a href="https://clickhouse.com/docs/engines/table-engines/mergetree-family/summingmergetree">SummingMergeTree</a> · <a href="https://clickhouse.com/docs/engines/table-engines/mergetree-family/aggregatingmergetree">AggregatingMergeTree</a> · <a href="https://clickhouse.com/docs/materialized-view/incremental-materialized-view">инкрементальные MV</a> · <a href="https://clickhouse.com/docs/sql-reference/statements/select/group-by">GROUP BY</a></p><p class="small">Правила выбора: <a href="https://clickhouse.com/docs/best-practices/choosing-a-partitioning-key">ClickHouse: choosing a partitioning key</a>.</p><p class="small">Изменение и удаление: <a href="https://clickhouse.com/docs/sql-reference/statements/alter/update">ALTER UPDATE</a> · <a href="https://clickhouse.com/docs/sql-reference/statements/alter/delete">ALTER DELETE</a> · <a href="https://clickhouse.com/docs/sql-reference/statements/delete">DELETE FROM</a> · <a href="https://clickhouse.com/docs/operations/system-tables/mutations">system.mutations</a> · <a href="https://clickhouse.com/docs/guides/developer/ttl">TTL</a>.</p>
+<aside class="notes"><p>В третьей лекции разберём JOIN: поиск совпадений и размножение строк при нескольких совпадениях справа. Затем добавим словари, шарды, реплики и распределённые запросы.</p><p>Для распределённой агрегации снова понадобятся частичные состояния и их объединение. Сегодня мы разобрали их внутри узла и между вставками.</p></aside>
+<div class="footer"><a href="lecture-10-code/demo.sql">SQL лекции</a><span>Итоги · Следующая лекция</span></div>
+</div>
+</div>
+<a class="ov" href="#/overview">Обзор</a>
+<script src="js/impress.js"></script>
+<script>
+  const slides = [...document.querySelectorAll('.step.slide')];
+  slides.forEach((slide, i) => {
+    slide.dataset.x = (i % 8) * 1100;
+    slide.dataset.y = Math.floor(i / 8) * 850;
+    let footer = slide.querySelector('.footer');
+    if (!footer) { footer = document.createElement('div'); footer.className = 'footer'; slide.append(footer); }
+    const counter = document.createElement('span'); counter.className = 'counter'; counter.textContent = `${i + 1} / ${slides.length}`;
+    footer.append(counter);
+  });
+  const overview = document.createElement('div'); overview.className = 'step'; overview.id = 'overview';
+  overview.dataset.x = 3850; overview.dataset.y = Math.floor((slides.length - 1) / 8) * 425;
+  overview.dataset.scale = Math.max(10, Math.ceil(slides.length / 8) * 1.5);
+  document.getElementById('impress').append(overview);
+  impress().init();
+</script>
+</body>
+</html>
