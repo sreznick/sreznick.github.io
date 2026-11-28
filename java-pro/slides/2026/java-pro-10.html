@@ -1,0 +1,707 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1024" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <title>GC: поколения, наблюдаемость и работа без длинной паузы</title>
+
+    <link href="//fonts.googleapis.com/css?family=Open+Sans:regular,semibold,italic,italicsemibold|PT+Sans:400,700,400italic,700italic|PT+Serif:400,700,400italic,700italic" rel="stylesheet" />
+
+    <link href="css/impress-demo.css" rel="stylesheet" />
+    <link href="css/impress-common.css" rel="stylesheet" />
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/default.min.css">
+
+    <style>
+        /* Стили кода, таблиц и разделов лекции. */
+
+        .slide {
+            font-size: 27px;
+            line-height: 1.3;
+            letter-spacing: -.5px;
+        }
+
+        .slide h1 {
+            font-size: 40px;
+            line-height: 1.15;
+            margin: 0 0 .5em;
+            text-align: left;
+        }
+
+        .slide ul,
+        .slide ol {
+            margin: 0;
+            padding-left: 1.1em;
+        }
+
+        .slide li {
+            margin: .25em 0;
+        }
+
+        .slide p {
+            margin: .6em 0 0;
+        }
+
+        .slide pre {
+            margin: 0 0 12px;
+            letter-spacing: 0;
+            text-shadow: none;
+        }
+
+        .slide pre code.hljs {
+            padding: 12px 16px;
+            font-size: 17px;
+            line-height: 1.35;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .slide pre.small code.hljs {
+            font-size: 15.5px;
+        }
+
+        .slide code:not(.hljs) {
+            background: #e2e8f0;
+            color: #1e293b;
+            padding: 0 .3em;
+            border-radius: 4px;
+            font-size: .85em;
+            letter-spacing: 0;
+        }
+
+        .slide.section code:not(.hljs),
+        .slide.title code:not(.hljs) {
+            background: rgba(255,255,255,.28);
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .slide table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 22px;
+            line-height: 1.25;
+        }
+
+        .slide th,
+        .slide td {
+            border-bottom: 1px solid #ccc;
+            padding: 6px 10px;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .slide th {
+            background: #e2e8f0;
+            color: #1e293b;
+        }
+
+        .slide .hl {
+            color: #b91c1c;
+        }
+
+        .slide.section {
+            background: linear-gradient(135deg,#0f766e,#1d4ed8);
+            color: #fff;
+            text-shadow: none;
+        }
+
+        .slide.section h1 {
+            color: #fff;
+            font-size: 50px;
+        }
+
+        .slide.section .num {
+            position: absolute;
+            right: 40px;
+            top: 0;
+            font-size: 200px;
+            font-weight: 700;
+            opacity: .18;
+            line-height: 1;
+        }
+
+        .slide.title .hint {
+            font-size: 20px;
+            color: #999;
+            margin-top: 40px;
+        }
+
+        .notes {
+            display: none;
+        }
+
+        .ov {
+            position: fixed;
+            left: 14px;
+            bottom: 12px;
+            color: #93c5fd;
+            font-size: 14px;
+            text-decoration: none;
+            z-index: 10;
+        }
+
+        #overview {
+            background: none!important;
+            border: 0!important;
+            box-shadow: none!important;
+            pointer-events: none;
+        }
+    </style>
+
+    <style>
+        .slide { background: #111; color: #fff; }
+        .slide h2 { font-size: 30px; margin: .7em 0; }
+        .slide .lead { font-size: 32px; margin: 1em 0; }
+        .slide .takeaway { border-left: 4px solid #38bdf8; padding-left: 16px; margin-top: 24px; font-size: 24px; }
+        .slide .muted { color: #b8c4d4; font-size: 21px; }
+        .slide .counter { position: absolute; bottom: 18px; right: 28px; font-size: 15px; color: #94a3b8; }
+        .slide ol { list-style-type: decimal; }
+        .slide pre code { display: block; white-space: pre; background: #f3f4f6; color: #111827; padding: 12px 16px; font: 17px/1.35 monospace; border-radius: 8px; }
+        .slide table { font-size: 21px; }
+        .slide a { color: #7dd3fc; background: none; text-shadow: none; text-decoration: underline; }
+        .slide.section { background: linear-gradient(135deg,#0f766e,#1d4ed8); }
+        .slide.section .muted { color: #e2e8f0; }
+        .slide .flow { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 30px 0; font-size: 22px; }
+        .slide .box { border: 1px solid #38bdf8; border-radius: 8px; padding: 16px 12px; text-align: center; }
+        #overview { color: #fff; }
+        .ov { color: #164e63; }
+        @media print {
+            html, body { background: #fff !important; min-height: 0; }
+            #impress { position: static !important; transform: none !important; }
+            .step.slide { position: relative !important; transform: none !important; opacity: 1 !important; margin: 0 auto !important; break-after: page; box-shadow: none; }
+            #overview, .ov, .impress-progress, .impress-progressbar, .fallback-message { display: none !important; }
+            * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+    </style>
+<style>
+.slide .flow { flex-wrap: nowrap; }
+.slide .box { flex: 1; }
+.slide li { margin: .4em 0; }
+.slide pre code { font-size: 17px; line-height: 1.35; }
+.slide pre code.hljs { font-size: 17px; line-height: 1.35; }
+#demo-code pre code { font-size: 16px; line-height: 1.25; }
+.slide .counter { pointer-events: none; }
+</style>
+<style>
+.slide { font-size:26px; line-height:1.32; }
+.slide h1 { font-size:38px; }
+.slide .lead { font-size:32px; }
+.slide .takeaway { font-size:23px; margin-top:22px; }
+.slide li { margin:.42em 0; }
+.slide .flow { font-size:20px; gap:8px; margin:26px 0; }
+.slide .flow .box { padding:15px 10px; }
+.slide .arrow { color:#7dd3fc; flex:0 0 auto; }
+.slide .heap-label { font-size:19px; color:#b8c4d4; margin:22px 0 8px; }
+.slide .heap { display:flex; gap:5px; width:100%; margin-bottom:20px; }
+.slide .cell { min-width:0; border:2px solid #38bdf8; border-radius:7px; text-align:center; padding:16px 2px; font-size:24px; }
+.slide .cell small { display:block; font-size:15px; margin-top:8px; letter-spacing:0; }
+.slide .live { background:#164e63; }
+.slide .dead { background:#7f1d1d; border-color:#f87171; }
+.slide .free { background:#1e293b; border-style:dashed; border-color:#94a3b8; }
+.slide .pending { background:#713f12; border-color:#fbbf24; }
+.slide .graph { display:block; width:100%; height:310px; margin:8px 0; }
+.slide table { font-size:21px; }
+.slide td code { overflow-wrap:anywhere; }
+.slide .num { pointer-events:none; }
+.ov { pointer-events:auto; }
+.slide .section { position:relative; }
+.slide .section h1, .slide.section .lead { position:relative; z-index:1; }
+@media print { @page { size: landscape; margin:0; } .step.slide { break-inside:avoid; } }
+</style>
+<style>
+.slide ul {list-style:disc; padding-left:1.15em}
+.slide .eyebrow {font-size:16px; text-transform:uppercase; letter-spacing:2px; color:#7dd3fc; margin:0 0 14px}
+.slide .graph {height:250px}
+.slide .legend {font-size:18px;color:#b8c4d4}
+.slide .pair {display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:22px}
+.slide .panel {padding:18px;border:1px solid #475569;border-radius:9px;font-size:23px}
+.slide .panel h2 {font-size:25px;margin:0 0 12px;color:#7dd3fc}
+.slide .strip {display:flex;gap:6px;margin:24px 0}
+.slide .tile {flex:1;text-align:center;padding:20px 6px;border:2px solid #64748b;border-radius:6px;font-size:22px}
+.slide .dirty {background:#713f12;border-color:#fbbf24}
+.slide .young {background:#164e63;border-color:#38bdf8}
+.slide .old {background:#3b2764;border-color:#c4b5fd}
+.slide .timeline {margin:26px 0;font-size:21px}
+.slide .lane {display:flex;align-items:center;gap:5px;margin:10px 0}
+.slide .lane b {width:140px;flex-shrink:0;font-size:18px}
+.slide .segment {padding:14px 8px;flex:1;background:#164e63;text-align:center;border-radius:4px}
+.slide .segment.stop {background:#7f1d1d}
+.slide .segment.work {background:#3b2764}
+.slide .segment.idle {background:#1e293b;color:#94a3b8}
+.slide pre code,.slide pre code.hljs {font-size:17px;line-height:1.4}
+.slide .source {position:absolute;bottom:18px;left:60px;font-size:13px;max-width:650px;color:#94a3b8}
+.slide .source a {color:#94a3b8}
+.slide .question {color:#fbbf24;font-size:26px;margin-top:24px}
+.slide .big {font-size:58px;color:#7dd3fc;margin:25px 0}
+</style></head><body class="impress-not-supported">
+<div class="fallback-message"><p>Для показа используйте браузер с поддержкой impress.js. Навигация: стрелки или пробел.</p></div>
+<div id="impress" data-transition-duration="600" data-width="1024" data-height="768" data-max-scale="100" data-min-scale="0" data-perspective="1000">
+
+
+<div id="intro" class="step slide section" data-x="0" data-y="0">
+<h1>GC: поколения и короткие паузы</h1>
+<p class="eyebrow">Промышленная разработка на JVM · Лекция 10</p><p class="lead">Как собирать часть графа<br>и продолжать работу приложения?</p><div class="flow"><div class="box">Поколения</div><span class="arrow">→</span><div class="box">Наблюдаемость</div><span class="arrow">→</span><div class="box">Parallel</div><span class="arrow">→</span><div class="box">Incremental / Concurrent</div></div><p class="muted">HotSpot JDK 25 · продолжение лекции о копировании</p><div class="counter">1 / 66</div>
+</div>
+
+<div id="slide-02" class="step slide " data-x="1100" data-y="0">
+<p class="eyebrow">Поколения</p><h1>Что мы уже умеем</h1>
+<div class="flow"><div class="box">GC roots</div><span class="arrow">→</span><div class="box">Обход</div><span class="arrow">→</span><div class="box">Эвакуация</div><span class="arrow">→</span><div class="box">Исправление ссылок</div></div><ul><li>Приложение остановлено: граф не меняется.</li><li>Forwarding сохраняет единственную копию объекта.</li><li>Необнаруженные объекты можно освободить.</li></ul><p class="takeaway">Что изменится, если Holder останется вне собираемой области?</p><div class="counter">2 / 66</div>
+</div>
+
+<div id="slide-03" class="step slide " data-x="2200" data-y="0">
+<p class="eyebrow">Поколения</p><h1>Контракт перемещающего сборщика</h1>
+<pre><code class="language-text">root → A → C
+       B → C
+
+После эвакуации:
+root → A′ → C′
+       B′ → C′</code></pre><ul><li>Живой объект сохраняет идентичность.</li><li>Все используемые ссылки должны вести к актуальному объекту.</li><li>Перед переиспользованием from-space исправляем ссылки из корней и полей объектов.</li></ul><div class="counter">3 / 66</div>
+</div>
+
+<div id="slide-04" class="step slide " data-x="3300" data-y="0">
+<p class="eyebrow">Поколения</p><h1>Почему собирать только young?</h1>
+<div class="pair"><div class="panel"><h2>Наблюдение</h2>Многие объекты становятся недостижимыми вскоре после создания.</div><div class="panel"><h2>Идея</h2>Часто собирать небольшую область новых объектов. Старые просматривать реже.</div></div><p class="takeaway">Цена копирования зависит прежде всего от объёма выживших и работы по поиску ссылок.</p><p class="muted">Если объекты переживают несколько young GC, их приходится копировать повторно до продвижения в old.</p><div class="counter">4 / 66</div>
+</div>
+
+<div id="slide-05" class="step slide " data-x="4400" data-y="0">
+<p class="eyebrow">Поколения</p><h1>Граница поколения пересекает граф</h1>
+<svg class="graph" viewBox="0 0 780 250" role="img" aria-label="Граф: корень, Holder в old, A и B в young"><defs><marker id="arrow-5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10Z" fill="#94a3b8"/></marker></defs><rect x="180" y="20" width="230" height="205" rx="12" fill="#251c3d" stroke="#c4b5fd"/><text x="200" y="52" fill="#c4b5fd" font-size="22">OLD</text><rect x="450" y="20" width="310" height="205" rx="12" fill="#103344" stroke="#38bdf8"/><text x="470" y="52" fill="#7dd3fc" font-size="22">YOUNG</text><path d="M110 125 H233" stroke="#94a3b8" stroke-width="3" marker-end="url(#arrow-5)"/><path d="M357 125 H493 M577 125 H648" fill="none" stroke="#94a3b8" stroke-width="3" marker-end="url(#arrow-5)"/><rect x="23" y="95" width="84" height="60" rx="10" fill="#164e63" stroke="#94a3b8"/><text x="65" y="133" text-anchor="middle" fill="white" font-size="23">root</text><rect x="234" y="95" width="122" height="60" rx="10" fill="#3b2764" stroke="#94a3b8"/><text x="295" y="133" text-anchor="middle" fill="white" font-size="23">Holder</text><rect x="493" y="95" width="84" height="60" rx="10" fill="#164e63" stroke="#94a3b8"/><text x="535" y="133" text-anchor="middle" fill="white" font-size="23">A</text><rect x="648" y="95" width="84" height="60" rx="10" fill="#164e63" stroke="#94a3b8"/><text x="690" y="133" text-anchor="middle" fill="white" font-size="23">B</text><text x="365" y="108" fill="#fbbf24" font-size="17">item</text></svg><p class="muted">Собираем только young. Holder уже находится в old.</p><p class="question">Какие объекты нужно перенести? Откуда начать?</p><div class="notes">A и B живы. Прямой ссылки root → young нет. Попросить предложить начальную очередь young-обхода.</div><div class="counter">5 / 66</div>
+</div>
+
+<div id="slide-06" class="step slide " data-x="5500" data-y="0">
+<p class="eyebrow">Поколения</p><h1>Попытка: взять только прямые корни</h1>
+<svg class="graph" viewBox="0 0 780 250" role="img" aria-label="Граф: корень, Holder в old, A и B в young"><defs><marker id="arrow-6" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10Z" fill="#94a3b8"/></marker></defs><rect x="180" y="20" width="230" height="205" rx="12" fill="#251c3d" stroke="#c4b5fd"/><text x="200" y="52" fill="#c4b5fd" font-size="22">OLD</text><rect x="450" y="20" width="310" height="205" rx="12" fill="#103344" stroke="#38bdf8"/><text x="470" y="52" fill="#7dd3fc" font-size="22">YOUNG</text><path d="M110 125 H233" stroke="#94a3b8" stroke-width="3" marker-end="url(#arrow-6)"/><path d="M357 125 H493 M577 125 H648" fill="none" stroke="#94a3b8" stroke-width="3" marker-end="url(#arrow-6)"/><rect x="23" y="95" width="84" height="60" rx="10" fill="#164e63" stroke="#94a3b8"/><text x="65" y="133" text-anchor="middle" fill="white" font-size="23">root</text><rect x="234" y="95" width="122" height="60" rx="10" fill="#3b2764" stroke="#94a3b8"/><text x="295" y="133" text-anchor="middle" fill="white" font-size="23">Holder</text><rect x="493" y="95" width="84" height="60" rx="10" fill="#164e63" stroke="#94a3b8"/><text x="535" y="133" text-anchor="middle" fill="white" font-size="23">A</text><rect x="648" y="95" width="84" height="60" rx="10" fill="#164e63" stroke="#94a3b8"/><text x="690" y="133" text-anchor="middle" fill="white" font-size="23">B</text><text x="365" y="108" fill="#fbbf24" font-size="17">item</text></svg><pre><code class="language-text">queue = youngObjectsReferencedByGcRoots()
+while (!queue.isEmpty()) scan(queue.remove());</code></pre><p class="takeaway">В этом графе начальная очередь пуста.</p><div class="notes">Это намеренно неверный алгоритм. При обходе root только до границы old мы не достигаем A.</div><div class="counter">6 / 66</div>
+</div>
+
+<div id="slide-07" class="step slide " data-x="6600" data-y="0">
+<p class="eyebrow">Поколения</p><h1>Потеряли живые A и B</h1>
+<svg class="graph" viewBox="0 0 780 250" role="img" aria-label="Граф: корень, Holder в old, A и B в young"><defs><marker id="arrow-7" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10Z" fill="#94a3b8"/></marker></defs><rect x="180" y="20" width="230" height="205" rx="12" fill="#251c3d" stroke="#c4b5fd"/><text x="200" y="52" fill="#c4b5fd" font-size="22">OLD</text><rect x="450" y="20" width="310" height="205" rx="12" fill="#103344" stroke="#38bdf8"/><text x="470" y="52" fill="#7dd3fc" font-size="22">YOUNG</text><path d="M110 125 H233" stroke="#94a3b8" stroke-width="3" marker-end="url(#arrow-7)"/><path d="M357 125 H493 M577 125 H648" fill="none" stroke="#94a3b8" stroke-width="3" marker-end="url(#arrow-7)"/><rect x="23" y="95" width="84" height="60" rx="10" fill="#164e63" stroke="#94a3b8"/><text x="65" y="133" text-anchor="middle" fill="white" font-size="23">root</text><rect x="234" y="95" width="122" height="60" rx="10" fill="#3b2764" stroke="#94a3b8"/><text x="295" y="133" text-anchor="middle" fill="white" font-size="23">Holder</text><rect x="493" y="95" width="84" height="60" rx="10" fill="#164e63" stroke="#94a3b8"/><text x="535" y="133" text-anchor="middle" fill="white" font-size="23">A</text><rect x="648" y="95" width="84" height="60" rx="10" fill="#164e63" stroke="#94a3b8"/><text x="690" y="133" text-anchor="middle" fill="white" font-size="23">B</text><text x="365" y="108" fill="#fbbf24" font-size="17">item</text></svg><ul><li>Root удерживает Holder, Holder удерживает A, A удерживает B.</li><li>После освобождения young поле Holder.item будет указывать в переиспользуемую память.</li></ul><p class="takeaway">Для частичной сборки нужны ссылки, входящие извне.</p><div class="counter">7 / 66</div>
+</div>
+
+<div id="slide-08" class="step slide " data-x="7700" data-y="0">
+<p class="eyebrow">Поколения</p><h1>Поля old — точки входа в young</h1>
+<svg class="graph" viewBox="0 0 780 250" role="img" aria-label="Граф: корень, Holder в old, A и B в young"><defs><marker id="arrow-8" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10Z" fill="#94a3b8"/></marker></defs><rect x="180" y="20" width="230" height="205" rx="12" fill="#251c3d" stroke="#c4b5fd"/><text x="200" y="52" fill="#c4b5fd" font-size="22">OLD</text><rect x="450" y="20" width="310" height="205" rx="12" fill="#103344" stroke="#38bdf8"/><text x="470" y="52" fill="#7dd3fc" font-size="22">YOUNG</text><path d="M110 125 H233" stroke="#94a3b8" stroke-width="3" marker-end="url(#arrow-8)"/><path d="M357 125 H493 M577 125 H648" fill="none" stroke="#94a3b8" stroke-width="3" marker-end="url(#arrow-8)"/><rect x="23" y="95" width="84" height="60" rx="10" fill="#164e63" stroke="#94a3b8"/><text x="65" y="133" text-anchor="middle" fill="white" font-size="23">root</text><rect x="234" y="95" width="122" height="60" rx="10" fill="#3b2764" stroke="#94a3b8"/><text x="295" y="133" text-anchor="middle" fill="white" font-size="23">Holder</text><rect x="493" y="95" width="84" height="60" rx="10" fill="#164e63" stroke="#94a3b8"/><text x="535" y="133" text-anchor="middle" fill="white" font-size="23">A</text><rect x="648" y="95" width="84" height="60" rx="10" fill="#164e63" stroke="#94a3b8"/><text x="690" y="133" text-anchor="middle" fill="white" font-size="23">B</text><text x="365" y="108" fill="#fbbf24" font-size="17">item</text></svg><table><thead><tr><th>Источник ссылки</th><th>Что делаем при young GC</th></tr></thead><tbody><tr><td>GC roots</td><td>Обрабатываем ссылки в собираемую область.</td></tr><tr><td>Поля в old</td><td>Находим входящие ссылки и начинаем от них обход.</td></tr></tbody></table><div class="notes">Поле old-объекта не становится глобальным GC root. Это дополнительный корень относительно выбранной области сборки.</div><div class="counter">8 / 66</div>
+</div>
+
+<div id="slide-09" class="step slide " data-x="8800" data-y="0">
+<p class="eyebrow">Поколения</p><h1>Решение: просмотреть всё old</h1>
+<div class="flow"><div class="box">GC roots</div><span class="arrow">→</span><div class="box">Все поля old</div><span class="arrow">→</span><div class="box">Обход young</div></div><pre><code class="language-text">for (slot : referenceFieldsInOld) {
+    if (pointsIntoYoung(slot))
+        evacuateAndUpdate(slot);
+}</code></pre><p class="takeaway">Корректно даже без информации о предыдущих записях.</p><div class="counter">9 / 66</div>
+</div>
+
+<div id="slide-10" class="step slide " data-x="9900" data-y="0">
+<p class="eyebrow">Поколения</p><h1>Цена сканирования old при каждой young GC</h1>
+<div class="pair"><div class="panel"><h2>Собираем</h2>Небольшое young, где почти всё уже умерло.</div><div class="panel"><h2>Сканируем</h2>Всё old, включая объекты без ссылок на young.</div></div><p class="takeaway">Работа ≈ корни + сканирование old + обход и копирование выживших.</p><p class="question">Можно ли найти Holder.item, не просматривая остальные поля old?</p><div class="counter">10 / 66</div>
+</div>
+
+<div id="slide-11" class="step slide " data-x="11000" data-y="0">
+<p class="eyebrow">Поколения</p><h1>Ссылка появилась при записи поля</h1>
+<pre><code class="language-java">Holder holder = ...; // уже в old
+Item item = new Item(); // в young
+holder.item = item;</code></pre><svg class="graph" viewBox="0 0 780 250" role="img" aria-label="Граф: корень, Holder в old, A и B в young"><defs><marker id="arrow-11" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10Z" fill="#94a3b8"/></marker></defs><rect x="180" y="20" width="230" height="205" rx="12" fill="#251c3d" stroke="#c4b5fd"/><text x="200" y="52" fill="#c4b5fd" font-size="22">OLD</text><rect x="450" y="20" width="310" height="205" rx="12" fill="#103344" stroke="#38bdf8"/><text x="470" y="52" fill="#7dd3fc" font-size="22">YOUNG</text><path d="M110 125 H233" stroke="#94a3b8" stroke-width="3" marker-end="url(#arrow-11)"/><path d="M357 125 H493 M577 125 H648" fill="none" stroke="#94a3b8" stroke-width="3" marker-end="url(#arrow-11)"/><rect x="23" y="95" width="84" height="60" rx="10" fill="#164e63" stroke="#94a3b8"/><text x="65" y="133" text-anchor="middle" fill="white" font-size="23">root</text><rect x="234" y="95" width="122" height="60" rx="10" fill="#3b2764" stroke="#94a3b8"/><text x="295" y="133" text-anchor="middle" fill="white" font-size="23">Holder</text><rect x="493" y="95" width="84" height="60" rx="10" fill="#164e63" stroke="#94a3b8"/><text x="535" y="133" text-anchor="middle" fill="white" font-size="23">A</text><rect x="648" y="95" width="84" height="60" rx="10" fill="#164e63" stroke="#94a3b8"/><text x="690" y="133" text-anchor="middle" fill="white" font-size="23">B</text><text x="365" y="108" fill="#fbbf24" font-size="17">item</text></svg><p class="muted">Для обновления ссылки после эвакуации нужен адрес поля holder.item.</p><div class="counter">11 / 66</div>
+</div>
+
+<div id="slide-12" class="step slide " data-x="12100" data-y="0">
+<p class="eyebrow">Поколения</p><h1>Write barrier: запись плюс учёт</h1>
+<div class="flow"><div class="box">Записать ссылку</div><span class="arrow">→</span><div class="box">Выполнить барьер</div><span class="arrow">→</span><div class="box">Оставить отметку</div></div><pre><code class="language-text">// Учебная модель post-write barrier
+storeReference(slot, value);
+markCardContaining(slot);</code></pre><ul><li>Приложение отмечает запись; GC позже использует отметку для сканирования.</li><li>Это не Java Memory Model barrier для volatile.</li></ul><div class="source"><a href="https://github.com/openjdk/jdk/blob/jdk-25%2B36/src/hotspot/share/gc/shared/cardTableBarrierSet.hpp">HotSpot 25: CardTableBarrierSet</a></div><div class="counter">12 / 66</div>
+</div>
+
+<div id="slide-13" class="step slide " data-x="13200" data-y="0">
+<p class="eyebrow">Поколения</p><h1>Card table: одна отметка на диапазон</h1>
+<div class="strip"><div class="tile old">card 0<br><small>…</small></div><div class="tile old">card 1<br><small>…</small></div><div class="tile old">card 2<br><small>Holder.item</small></div><div class="tile old">card 3<br><small>…</small></div><div class="tile old">card 4<br><small>…</small></div></div><pre><code class="language-text">cardIndex = (slotAddress - heapBase) / cardSize
+cardTable[cardIndex] = DIRTY</code></pre><ul><li>Card описывает диапазон адресов heap.</li><li>Отметка не перечисляет объекты и поля внутри.</li><li>Границы объектов и расположение ссылочных полей определяются по метаданным heap.</li></ul><div class="notes">Размер card намеренно не фиксируется: это деталь реализации, не принцип алгоритма.</div><div class="source"><a href="https://github.com/openjdk/jdk/blob/jdk-25%2B36/src/hotspot/share/gc/shared/cardTableBarrierSet.hpp">HotSpot 25: CardTableBarrierSet</a></div><div class="counter">13 / 66</div>
+</div>
+
+<div id="slide-14" class="step slide " data-x="14300" data-y="0">
+<p class="eyebrow">Поколения</p><h1>Помечаем card источника</h1>
+<div class="strip"><div class="tile old">card 0<br><small>…</small></div><div class="tile old">card 1<br><small>…</small></div><div class="tile dirty">card 2<br><small>Holder.item</small></div><div class="tile old">card 3<br><small>…</small></div><div class="tile old">card 4<br><small>…</small></div></div><pre><code class="language-text">holder.item = item;
+// slot(holder.item) находится в old:card2
+// item находится в young</code></pre><p class="question">Где ставить DIRTY: в card Holder или в card Item?</p><div class="notes">Ответ: в card, содержащей поле Holder.item. Для массива — место элемента, а не обязательно начало массива.</div><div class="source"><a href="https://github.com/openjdk/jdk/blob/jdk-25%2B36/src/hotspot/share/gc/shared/cardTableBarrierSet.hpp">HotSpot 25: CardTableBarrierSet</a></div><div class="counter">14 / 66</div>
+</div>
+
+<div id="slide-15" class="step slide " data-x="15400" data-y="0">
+<p class="eyebrow">Поколения</p><h1>От dirty card к объектам young</h1>
+<div class="strip"><div class="tile old">card 0<br><small>…</small></div><div class="tile old">card 1<br><small>…</small></div><div class="tile dirty">card 2<br><small>Holder.item</small></div><div class="tile old">card 3<br><small>…</small></div><div class="tile old">card 4<br><small>…</small></div></div><div class="flow"><div class="box">Найти dirty</div><span class="arrow">→</span><div class="box">Просмотреть поля</div><span class="arrow">→</span><div class="box">Найти A</div><span class="arrow">→</span><div class="box">Обойти A → B</div></div><ul><li>В диапазоне могут оказаться null, old-ссылки и young-ссылки.</li><li>Отметка грубая: не каждое поле потребует эвакуации.</li><li>Приложение остановлено на время этого учебного обхода.</li></ul><div class="source"><a href="https://github.com/openjdk/jdk/blob/jdk-25%2B36/src/hotspot/share/gc/serial/defNewGeneration.cpp">HotSpot 25: DefNewGeneration</a></div><div class="counter">15 / 66</div>
+</div>
+
+<div id="slide-16" class="step slide " data-x="16500" data-y="0">
+<p class="eyebrow">Поколения</p><h1>Эвакуация должна изменить Holder.item</h1>
+<svg class="graph" viewBox="0 0 780 250" role="img" aria-label="Граф: корень, Holder в old, A и B в young"><defs><marker id="arrow-16" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10Z" fill="#94a3b8"/></marker></defs><rect x="180" y="20" width="230" height="205" rx="12" fill="#251c3d" stroke="#c4b5fd"/><text x="200" y="52" fill="#c4b5fd" font-size="22">OLD</text><rect x="450" y="20" width="310" height="205" rx="12" fill="#103344" stroke="#38bdf8"/><text x="470" y="52" fill="#7dd3fc" font-size="22">YOUNG</text><path d="M110 125 H233" stroke="#94a3b8" stroke-width="3" marker-end="url(#arrow-16)"/><path d="M357 125 H493 M577 125 H648" fill="none" stroke="#94a3b8" stroke-width="3" marker-end="url(#arrow-16)"/><rect x="23" y="95" width="84" height="60" rx="10" fill="#164e63" stroke="#94a3b8"/><text x="65" y="133" text-anchor="middle" fill="white" font-size="23">root</text><rect x="234" y="95" width="122" height="60" rx="10" fill="#3b2764" stroke="#94a3b8"/><text x="295" y="133" text-anchor="middle" fill="white" font-size="23">Holder</text><rect x="493" y="95" width="84" height="60" rx="10" fill="#164e63" stroke="#94a3b8"/><text x="535" y="133" text-anchor="middle" fill="white" font-size="23">A′</text><rect x="648" y="95" width="84" height="60" rx="10" fill="#164e63" stroke="#94a3b8"/><text x="690" y="133" text-anchor="middle" fill="white" font-size="23">B′</text><text x="365" y="108" fill="#fbbf24" font-size="17">item</text></svg><pre><code class="language-text">slot = addressOf(holder.item)
+slot.value = evacuate(slot.value) // A → A′
+// A′.next также должен вести на B′</code></pre><p class="takeaway">Запоминаем места ссылок: после перемещения их нужно исправлять.</p><div class="counter">16 / 66</div>
+</div>
+
+<div id="slide-17" class="step slide " data-x="17600" data-y="0">
+<p class="eyebrow">Поколения</p><h1>Нельзя просто забыть все cards</h1>
+<pre><code class="language-text">До GC:     old Holder → young A
+После GC:  old Holder → survivor A′
+Между GC:  holder.item больше не меняли</code></pre><ul><li>A′ всё ещё может оставаться в young.</li><li>Следующая сборка тоже должна обнаружить эту ссылку.</li><li>Сборщик сохраняет или восстанавливает нужный учёт.</li><li>Если A′ продвинут в old, эта ссылка уже не old → young.</li></ul><p class="takeaway">Очистили card и не отметили сохранившуюся ссылку — следующая young GC может потерять A′.</p><div class="source"><a href="https://github.com/openjdk/jdk/blob/jdk-25%2B36/src/hotspot/share/gc/serial/defNewGeneration.cpp">HotSpot 25: DefNewGeneration</a></div><div class="counter">17 / 66</div>
+</div>
+
+<div id="slide-18" class="step slide " data-x="18700" data-y="0">
+<p class="eyebrow">Поколения</p><h1>Как объект попадает в old</h1>
+<div class="flow"><div class="box">Eden</div><span class="arrow">→</span><div class="box">Survivor</div><span class="arrow">→</span><div class="box">Old</div></div><ul><li>Пережившие young GC копируются в survivor или old.</li><li>Возраст и доступная ёмкость влияют на promotion.</li><li>При нехватке survivor объект может попасть в old раньше возрастного порога.</li></ul><div class="source"><a href="https://docs.oracle.com/en/java/javase/25/gctuning/">HotSpot JDK 25: GC Guide</a></div><div class="counter">18 / 66</div>
+</div>
+
+<div id="slide-19" class="step slide " data-x="19800" data-y="0">
+<p class="eyebrow">Поколения</p><h1>Старый объект тоже умирает</h1>
+<svg class="graph" viewBox="0 0 780 250" role="img" aria-label="Граф: корень, Holder в old, A и B в young"><defs><marker id="arrow-19" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10Z" fill="#94a3b8"/></marker></defs><rect x="180" y="20" width="230" height="205" rx="12" fill="#251c3d" stroke="#c4b5fd"/><text x="200" y="52" fill="#c4b5fd" font-size="22">OLD</text><rect x="450" y="20" width="310" height="205" rx="12" fill="#103344" stroke="#38bdf8"/><text x="470" y="52" fill="#7dd3fc" font-size="22">YOUNG</text><text x="125" y="133" fill="#f87171" font-size="32">×</text><path d="M357 125 H493 M577 125 H648" fill="none" stroke="#94a3b8" stroke-width="3" marker-end="url(#arrow-19)"/><rect x="23" y="95" width="84" height="60" rx="10" fill="#164e63" stroke="#94a3b8"/><text x="65" y="133" text-anchor="middle" fill="white" font-size="23">root</text><rect x="234" y="95" width="122" height="60" rx="10" fill="#3b2764" stroke="#94a3b8"/><text x="295" y="133" text-anchor="middle" fill="white" font-size="23">Holder</text><rect x="493" y="95" width="84" height="60" rx="10" fill="#164e63" stroke="#94a3b8"/><text x="535" y="133" text-anchor="middle" fill="white" font-size="23">A</text><rect x="648" y="95" width="84" height="60" rx="10" fill="#164e63" stroke="#94a3b8"/><text x="690" y="133" text-anchor="middle" fill="white" font-size="23">B</text><text x="365" y="108" fill="#fbbf24" font-size="17">item</text></svg><pre><code class="language-java">root.holder = null; // других путей к Holder нет</code></pre><p class="takeaway">Ни Holder, ни A, ни B больше не достижимы от настоящих корней.</p><div class="counter">19 / 66</div>
+</div>
+
+<div id="slide-20" class="step slide " data-x="20900" data-y="0">
+<p class="eyebrow">Поколения</p><h1>Young GC не устанавливает живость old</h1>
+<svg class="graph" viewBox="0 0 780 250" role="img" aria-label="Граф: корень, Holder в old, A и B в young"><defs><marker id="arrow-20" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10Z" fill="#94a3b8"/></marker></defs><rect x="180" y="20" width="230" height="205" rx="12" fill="#251c3d" stroke="#c4b5fd"/><text x="200" y="52" fill="#c4b5fd" font-size="22">OLD</text><rect x="450" y="20" width="310" height="205" rx="12" fill="#103344" stroke="#38bdf8"/><text x="470" y="52" fill="#7dd3fc" font-size="22">YOUNG</text><text x="125" y="133" fill="#f87171" font-size="32">×</text><path d="M357 125 H493 M577 125 H648" fill="none" stroke="#94a3b8" stroke-width="3" marker-end="url(#arrow-20)"/><rect x="23" y="95" width="84" height="60" rx="10" fill="#164e63" stroke="#94a3b8"/><text x="65" y="133" text-anchor="middle" fill="white" font-size="23">root</text><rect x="234" y="95" width="122" height="60" rx="10" fill="#3b2764" stroke="#94a3b8"/><text x="295" y="133" text-anchor="middle" fill="white" font-size="23">Holder</text><rect x="493" y="95" width="84" height="60" rx="10" fill="#164e63" stroke="#94a3b8"/><text x="535" y="133" text-anchor="middle" fill="white" font-size="23">A</text><rect x="648" y="95" width="84" height="60" rx="10" fill="#164e63" stroke="#94a3b8"/><text x="690" y="133" text-anchor="middle" fill="white" font-size="23">B</text><text x="365" y="108" fill="#fbbf24" font-size="17">item</text></svg><ul><li>Old не входит в область этой сборки.</li><li>Входящую ссылку Holder.item всё ещё можно обнаружить.</li><li>Young-обход консервативно сохранит A и B.</li></ul><div class="notes">Разбираем обычный частичный tracing без дополнительного доказательства мёртвости Holder. Сборщик может иметь дополнительные оптимизации.</div><div class="counter">20 / 66</div>
+</div>
+
+<div id="slide-21" class="step slide " data-x="22000" data-y="0">
+<p class="eyebrow">Поколения</p><h1>Мёртвый old временно удерживает young</h1>
+<div class="flow"><div class="box">Holder стал мусором</div><span class="arrow">→</span><div class="box">Young GC сохраняет A и B</div><span class="arrow">→</span><div class="box">Сборка old / всей кучи</div></div><ul><li>При следующей young GC ссылка из Holder снова сохранит A и B.</li><li>После обнаружения мёртвого Holder его поля больше не нужны как точки входа.</li></ul><div class="counter">21 / 66</div>
+</div>
+
+<div id="slide-22" class="step slide " data-x="23100" data-y="0">
+<p class="eyebrow">Поколения</p><h1>Задача: кто переживёт сборку?</h1>
+<pre><code class="language-text">root → old H1 → young A
+       old H2 → young B → young C
+
+H2 не достижим от корней.
+Входящие ссылки H1 и H2 учтены.</code></pre><p class="question">1. Что сохранит young GC?<br>2. Что сохранит сборка всей кучи?</p><div class="notes">Young GC: A, B, C в описанной консервативной модели. Сборка всей кучи: H1 и A, H2/B/C мертвы. Root и служебные объекты на схеме условны.</div><div class="counter">22 / 66</div>
+</div>
+
+<div id="slide-23" class="step slide " data-x="24200" data-y="0">
+<p class="eyebrow">Поколения</p><h1>Serial: освобождаем старшее поколение</h1>
+<div class="flow"><div class="box">Mark</div><span class="arrow">→</span><div class="box">Новые адреса</div><span class="arrow">→</span><div class="box">Ссылки</div><span class="arrow">→</span><div class="box">Move</div></div><ul><li>От настоящих корней определяем живые объекты.</li><li>Вычисляем расположение живых после уплотнения.</li><li>Исправляем ссылки и перемещаем объекты.</li><li>В Serial эта работа выполняется в STW.</li></ul><div class="notes">Схема фаз — учебная модель mark-compact. Не приравнивать любую сборку old у всех GC к этому алгоритму.</div><div class="source"><a href="https://docs.oracle.com/en/java/javase/25/gctuning/">HotSpot JDK 25: GC Guide</a></div><div class="counter">23 / 66</div>
+</div>
+
+<div id="slide-24" class="step slide " data-x="25300" data-y="0">
+<p class="eyebrow">Поколения</p><h1>Хватит ли места для эвакуации?</h1>
+<div class="pair"><div class="panel"><h2>Достижимость</h2>Какие объекты обязаны сохраниться?</div><div class="panel"><h2>Размещение</h2>Где будут лежать выжившие и новая аллокация?</div></div><ul><li>В young нужно сохранить 8 MiB; в survivor свободно 2 MiB, в old — 4 MiB.</li><li>Даже после освобождения остальных объектов young этим копированием не завершить: места назначения не хватает.</li></ul><div class="counter">24 / 66</div>
+</div>
+
+<div id="slide-25" class="step slide " data-x="26400" data-y="0">
+<p class="eyebrow">Поколения</p><h1>Если выжившие не помещаются</h1>
+<div class="flow"><div class="box">Survivor ограничен</div><span class="arrow">→</span><div class="box">Возможен promotion</div><span class="arrow">→</span><div class="box">Old тоже ограничен</div></div><ul><li>Нехватка survivor может привести к продвижению объектов в old.</li><li>В Serial при неудаче promotion сохраняется возможность продолжить полной сборкой.</li><li>Если после полной сборки память для аллокации получить нельзя, возможен OOME.</li></ul><div class="source"><a href="https://docs.oracle.com/en/java/javase/25/gctuning/">HotSpot JDK 25: GC Guide</a></div><div class="counter">25 / 66</div>
+</div>
+
+<div id="slide-26" class="step slide " data-x="27500" data-y="0">
+<p class="eyebrow">Наблюдаемость</p><h1>Различим три причины частых пауз</h1>
+<ul><li>Быстро заполняется Eden: растёт частота young GC.</li><li>Много объектов выживает: растёт объём копирования и promotion.</li><li>Old заполняется: young GC чередуются с более широкими сборками.</li></ul><p class="question">Какие строки журнала позволят различить эти сценарии?</p><div class="counter">26 / 66</div>
+</div>
+
+<div id="slide-27" class="step slide " data-x="28600" data-y="0">
+<p class="eyebrow">Наблюдаемость</p><h1>Измеряем несколько величин вместе</h1>
+<table><thead><tr><th>Величина</th><th>Что помогает понять</th></tr></thead><tbody><tr><td>Паузы: длительность и частота</td><td>Остановки приложения.</td></tr><tr><td>Allocation rate, MiB/s</td><td>Скорость появления новых данных.</td></tr><tr><td>Выжившие, promotion, old occupancy</td><td>Удержание и перемещение между поколениями.</td></tr><tr><td>CPU и throughput приложения</td><td>Общую цену GC и полезный прогресс.</td></tr></tbody></table><p class="muted">Паузы GC не равны всей задержке запроса: есть очереди и конкуренция за ресурсы.</p><div class="counter">27 / 66</div>
+</div>
+
+<div id="slide-28" class="step slide " data-x="29700" data-y="0">
+<p class="eyebrow">Наблюдаемость</p><h1>Включаем журнал: Serial, JDK 25</h1>
+<pre><code class="language-bash">mkdir -p /tmp/gc10-classes
+javac -d /tmp/gc10-classes \
+  gc-algorithms-demo/GCWorkload.java
+java -Xms128m -Xmx128m -XX:+UseSerialGC \
+  -Xlog:gc*,gc+age=trace,safepoint:file=/tmp/gc10.log:uptime,level,tags \
+  -cp /tmp/gc10-classes GCWorkload 2 4096 64 1024</code></pre><p class="muted">Команды выполняются из каталога слайдов. Лог пишется в /tmp.</p><p class="takeaway">Явно задаём сборщик; gc* включает подробности фаз и heap.</p><div class="source"><a href="https://docs.oracle.com/en/java/javase/25/docs/specs/man/java.html">java: Unified Logging и JFR</a></div><div class="counter">28 / 66</div>
+</div>
+
+<div id="slide-29" class="step slide " data-x="30800" data-y="0">
+<p class="eyebrow">Наблюдаемость</p><h1>Читаем одно завершённое событие</h1>
+<pre><code class="language-text">GC(0) Pause Young (Allocation Failure)
+      35M-&gt;1M(123M) 0.439ms</code></pre><table><thead><tr><th>Фрагмент</th><th>Смысл</th></tr></thead><tbody><tr><td>GC(0)</td><td>Идентификатор для связи строк события.</td></tr><tr><td>Allocation Failure</td><td>Триггер: не удалось выделить память на текущем пути.</td></tr><tr><td>35M → 1M (123M)</td><td>Занято до → после; ёмкость, отражённая в журнале.</td></tr><tr><td>0.439ms</td><td>Длительность этой GC-паузы.</td></tr></tbody></table><p class="muted">Реальный Serial-запуск JDK 25.0.2; префиксы строки опущены.</p><div class="notes">Allocation Failure в этом событии не означает OOME. 123M из лога не следует подменять Xmx=128m: представление используемой ёмкости учитывает устройство пространств.</div><div class="source"><a href="https://docs.oracle.com/en/java/javase/25/docs/specs/man/java.html">java: Unified Logging и JFR</a></div><div class="counter">29 / 66</div>
+</div>
+
+<div id="slide-30" class="step slide " data-x="31900" data-y="0">
+<p class="eyebrow">Наблюдаемость</p><h1>Young и old смотрим отдельно</h1>
+<pre><code class="language-text">GC(0) DefNew: 34944K(39296K)-&gt;117K(39296K)
+GC(0) Tenured: 1156K(87424K)-&gt;1156K(87424K)</code></pre><ul><li>DefNew — молодое поколение Serial.</li><li>Tenured — старшее; здесь его заполнение не выросло.</li><li>Числа до и после относятся к одному GC(0).</li><li>Общий heap после young GC не равен глобальному live set.</li></ul><div class="notes">Реальные строки первого короткого запуска; детали Eden/From опущены. Без полной сборки old в нём может оставаться мусор.</div><div class="source"><a href="https://docs.oracle.com/en/java/javase/25/gctuning/">HotSpot JDK 25: GC Guide</a></div><div class="counter">30 / 66</div>
+</div>
+
+<div id="slide-31" class="step slide " data-x="33000" data-y="0">
+<p class="eyebrow">Наблюдаемость</p><h1>На что ушло время паузы?</h1>
+<div class="flow"><div class="box">Корни</div><span class="arrow">→</span><div class="box">Входящие ссылки</div><span class="arrow">→</span><div class="box">Обход / копирование</div><span class="arrow">→</span><div class="box">Завершение</div></div><ul><li>В G1: Scan Heap Roots — сканирование входящих ссылок; Object Copy — копирование объектов.</li><li>Рост Scan Heap Roots направляет поиск к объёму сканирования; рост Object Copy — к выжившим и стоимости переноса.</li><li>Если задержка больше самой GC-паузы, сопоставляем её с временем достижения safepoint.</li></ul><div class="notes">Названия и детализация фаз зависят от сборщика и версии. Не переносить названия G1 на Serial. Суммы worker times не равны wall-clock паузе.</div><div class="source"><a href="https://docs.oracle.com/en/java/javase/25/gctuning/garbage-first-g1-garbage-collector1.html">G1: цикл, remembered sets, SATB</a></div><div class="counter">31 / 66</div>
+</div>
+
+<div id="slide-32" class="step slide " data-x="34100" data-y="0">
+<p class="eyebrow">Наблюдаемость</p><h1>Эксперимент A: короткое удержание</h1>
+<pre><code class="language-text">GCWorkload 2 4096 64 1024
+// 2 секунды; payload 4096 байт; 64 слота;
+// сохраняем каждый 1024-й массив</code></pre><ul><li>Все массивы публикуются через volatile latest.</li><li>Кольцо удерживает до 256 KiB полезной нагрузки.</li><li>Прогноз: большинство аллокаций не доживёт до GC.</li></ul><pre><code class="language-text">GC(0) Pause Young ... 35M-&gt;1M(123M) 0.439ms</code></pre><p class="muted">Реальный запуск: retainedPayloadMiB=0.3 с округлением до десятых.</p><div class="notes">Кольцо удерживается до финального отчёта через reachabilityFence. Размеры payload не включают заголовки, выравнивание и массив ссылок.</div><div class="counter">32 / 66</div>
+</div>
+
+<div id="slide-33" class="step slide " data-x="35200" data-y="0">
+<p class="eyebrow">Наблюдаемость</p><h1>Эксперимент B: больше удержания</h1>
+<pre><code class="language-text">GCWorkload 2 4096 8192 16
+// 8192 слота; сохраняем каждый 16-й массив</code></pre><pre><code class="language-text">GC(1) DefNew: 37176K(39296K)-&gt;2180K(39296K)
+GC(1) Tenured: 1156K(87424K)-&gt;3385K(87424K)
+GC(1) Pause Young ... 37M-&gt;5M(123M) 1.120ms</code></pre><ul><li>В этом событии young GC увеличил заполнение old.</li><li>Заполненное кольцо удерживает 32 MiB payload.</li><li>Это сравнение двух профилей удержания, не изолированный тест одного параметра.</li></ul><div class="notes">JDK 25.0.2, Serial, Xms=Xmx=128m. Изменены slots и keepEvery. Чтобы разделить их влияние, менять их по одному. Разовые времена не являются бенчмарком сборщиков.</div><div class="counter">33 / 66</div>
+</div>
+
+<div id="slide-34" class="step slide " data-x="36300" data-y="0">
+<p class="eyebrow">Наблюдаемость</p><h1>Old растёт: достаточно ли для диагноза?</h1>
+<table><thead><tr><th>Наблюдение</th><th>Что ещё требуется</th></tr></thead><tbody><tr><td>Old вырос после young GC</td><td>Проверить promotion и последующие сборки.</td></tr><tr><td>Old не падает между young GC</td><td>Установить, собиралось ли old вообще.</td></tr><tr><td>После сопоставимых полных циклов база растёт</td><td>Искать удерживающие пути и объяснение роста.</td></tr></tbody></table><p class="takeaway">Утечка — удержание ненужных данных. «Ненужные» определяется логикой приложения.</p><div class="counter">34 / 66</div>
+</div>
+
+<div id="slide-35" class="step slide " data-x="37400" data-y="0">
+<p class="eyebrow">Наблюдаемость</p><h1>Три инструмента — разные вопросы</h1>
+<table><thead><tr><th>Инструмент</th><th>Вопрос</th></tr></thead><tbody><tr><td>GC log</td><td>Когда, почему и с каким результатом собирали?</td></tr><tr><td>JFR</td><td>Как GC связан с аллокациями, CPU и работой потоков?</td></tr><tr><td>Heap dump</td><td>Какие объекты удерживаются и по каким путям?</td></tr></tbody></table><pre><code class="language-bash">-XX:StartFlightRecording=filename=/tmp/gc10.jfr,settings=profile
+jcmd PID GC.heap_info
+jcmd PID GC.heap_dump /tmp/gc10.hprof</code></pre><p class="muted">Heap dump может вызвать заметную паузу и обычно запрашивает полную сборку. Аллокации в JFR могут быть выборочными.</p><p class="muted"><a href="gc-algorithms-demo/serial-lab/README.txt">Serial GC: опыты, настройка и OOM</a></p><div class="source"><a href="https://docs.oracle.com/en/java/javase/25/docs/specs/man/java.html">java: Unified Logging и JFR</a></div><div class="counter">35 / 66</div>
+</div>
+
+<div id="slide-36" class="step slide " data-x="38500" data-y="0">
+<p class="eyebrow">Параллельная сборка</p><h1>Теперь соберём несколькими потоками</h1>
+<div class="timeline"><div class="lane"><b>Приложение</b><span class="segment ">работает</span><span class="segment stop">STW</span><span class="segment ">работает</span></div><div class="lane"><b>GC 1</b><span class="segment idle">—</span><span class="segment work">обход / copy</span><span class="segment idle">—</span></div><div class="lane"><b>GC 2</b><span class="segment idle">—</span><span class="segment work">обход / copy</span><span class="segment idle">—</span></div></div><p class="lead">Parallel: работу GC выполняют несколько потоков.</p><p class="takeaway">Приложение всё ещё остановлено.</p><div class="source"><a href="https://docs.oracle.com/en/java/javase/25/gctuning/parallel-collector1.html">Parallel GC, JDK 25</a></div><div class="counter">36 / 66</div>
+</div>
+
+<div id="slide-37" class="step slide " data-x="39600" data-y="0">
+<p class="eyebrow">Параллельная сборка</p><h1>Как поделить граф?</h1>
+<pre><code class="language-text">roots → A, B, C
+A → D, E
+B → F
+C → G, H, I, J</code></pre><div class="flow"><div class="box">Начальные задачи</div><span class="arrow">→</span><div class="box">Локальные очереди</div><span class="arrow">→</span><div class="box">Новые задачи из полей</div></div><ul><li>Каждый обнаруженный объект добавляет работу.</li><li>Равное число корней не означает равное число объектов.</li><li>Задачи можно передавать между потоками.</li></ul><div class="counter">37 / 66</div>
+</div>
+
+<div id="slide-38" class="step slide " data-x="40700" data-y="0">
+<p class="eyebrow">Параллельная сборка</p><h1>Два потока нашли C одновременно</h1>
+<pre><code class="language-text">Worker 1: A.left  → C
+Worker 2: B.right → C
+
+1: forwarding(C) отсутствует
+2: forwarding(C) отсутствует
+1: создаёт копию C₁
+2: создаёт копию C₂</code></pre><p class="question">Какую ссылку записать в A.left и B.right?</p><p class="takeaway">Простая проверка «ещё не скопирован» не атомарна.</p><div class="counter">38 / 66</div>
+</div>
+
+<div id="slide-39" class="step slide " data-x="41800" data-y="0">
+<p class="eyebrow">Параллельная сборка</p><h1>Публикация forwarding должна согласовываться</h1>
+<div class="flow"><div class="box">Подготовить копию</div><span class="arrow">→</span><div class="box">Атомарно опубликовать</div><span class="arrow">→</span><div class="box">Использовать победителя</div></div><ul><li>Forwarding C указывает на копию, опубликованную победителем.</li><li>Проигравший использует опубликованный forwarding.</li><li>Лишняя локальная копия отменяется или учитывается как отходы.</li><li>Другой поток должен увидеть готовую копию, прежде чем начнёт сканировать её поля.</li></ul><div class="notes">Это схема распространённого протокола эвакуации. Не универсальный алгоритм всех GC. В Parallel изучать copy_to_survivor_space и CAS forwarding в исходниках.</div><div class="source"><a href="https://github.com/openjdk/jdk/blob/jdk-25%2B36/src/hotspot/share/gc/parallel/psPromotionManager.inline.hpp">HotSpot 25: parallelScavenge.inline.hpp</a></div><div class="counter">39 / 66</div>
+</div>
+
+<div id="slide-40" class="step slide " data-x="42900" data-y="0">
+<p class="eyebrow">Параллельная сборка</p><h1>Один поток закончил, другой занят</h1>
+<div class="pair"><div class="panel"><h2>Worker 1</h2>A → длинная цепочка из тысяч объектов.</div><div class="panel"><h2>Worker 2</h2>B → несколько коротких ветвей.</div></div><ul><li>Разделить корни поровну недостаточно.</li><li>Work stealing позволяет забирать доступные задачи.</li><li>Длинная последовательная цепочка ограничивает параллелизм.</li></ul><p class="takeaway">Если доступен только следующий узел цепочки, второму потоку пока нечего забирать.</p><div class="counter">40 / 66</div>
+</div>
+
+<div id="slide-41" class="step slide " data-x="44000" data-y="0">
+<p class="eyebrow">Параллельная сборка</p><h1>Почему N потоков не дают ускорение в N раз?</h1>
+<ul><li>Часть работы последовательна.</li><li>Очереди и forwarding требуют координации.</li><li>Копирование конкурирует за пропускную способность памяти.</li><li>CPU, доступные процессу, ограничены окружением.</li></ul><pre><code class="language-bash">-XX:+UseParallelGC -XX:ParallelGCThreads=4</code></pre><p class="takeaway">Сравните 1, 2 и 4 GC-потока на одной нагрузке: как меняются паузы, CPU и throughput?</p><div class="source"><a href="https://docs.oracle.com/en/java/javase/25/gctuning/parallel-collector1.html">Parallel GC, JDK 25</a></div><div class="counter">41 / 66</div>
+</div>
+
+<div id="slide-42" class="step slide " data-x="45100" data-y="0">
+<p class="eyebrow">Изменяющийся граф</p><h1>Parallel ≠ incremental ≠ concurrent</h1>
+<table><thead><tr><th>Свойство</th><th>Что меняется</th></tr></thead><tbody><tr><td>Parallel</td><td>Сколько потоков GC выполняют работу.</td></tr><tr><td>Incremental</td><td>Работа разбивается на отдельные порции.</td></tr><tr><td>Concurrent</td><td>GC исполняется одновременно с приложением.</td></tr></tbody></table><p class="takeaway">Свойства могут сочетаться. У одного GC разные фазы устроены по-разному.</p><div class="counter">42 / 66</div>
+</div>
+
+<div id="slide-43" class="step slide " data-x="46200" data-y="0">
+<p class="eyebrow">Изменяющийся граф</p><h1>Обход небольшими порциями</h1>
+<div class="timeline"><div class="lane"><b>Приложение</b><span class="segment stop">стоп</span><span class="segment ">работа</span><span class="segment stop">стоп</span><span class="segment ">работа</span><span class="segment stop">стоп</span></div><div class="lane"><b>GC</b><span class="segment work">шаг 1</span><span class="segment idle">—</span><span class="segment work">шаг 2</span><span class="segment idle">—</span><span class="segment work">шаг 3</span></div></div><ul><li>Состояние обхода сохраняется между шагами.</li><li>Одновременного исполнения может ещё не быть.</li><li>Но приложение уже может менять граф между шагами.</li></ul><p class="question">Что произойдёт, если приложение запишет ссылку в уже просмотренный объект?</p><div class="counter">43 / 66</div>
+</div>
+
+<div id="slide-44" class="step slide " data-x="47300" data-y="0">
+<p class="eyebrow">Изменяющийся граф</p><h1>Граф меняется между шагами</h1>
+<div class="pair"><div class="panel"><h2>В STW</h2>Просмотренное поле остаётся таким же до завершения обхода.</div><div class="panel"><h2>Между шагами</h2>Приложение добавляет и удаляет рёбра в уже просмотренных объектах.</div></div><p class="takeaway">Возобновить очередь обхода недостаточно. Нужно учесть изменения.</p><p class="muted">Модель: конечный граф, фиксированные корни, без аллокаций. Сканирование объекта и запись с барьером — атомарные шаги.</p><div class="counter">44 / 66</div>
+</div>
+
+<div id="slide-45" class="step slide " data-x="48400" data-y="0">
+<p class="eyebrow">Изменяющийся граф</p><h1>Три цвета описывают прогресс</h1>
+<table><thead><tr><th>Цвет</th><th>Состояние</th></tr></thead><tbody><tr><td>Белый</td><td>Ещё не обнаружен.</td></tr><tr><td>Серый</td><td>Обнаружен, исходящие ссылки ещё не просмотрены.</td></tr><tr><td>Чёрный</td><td>Обнаружен, исходящие ссылки просмотрены.</td></tr></tbody></table><div class="flow"><div class="box">Корни → серые</div><span class="arrow">→</span><div class="box">Просмотреть поля</div><span class="arrow">→</span><div class="box">Сделать чёрным</div></div><p class="muted"><a href="gc-algorithms-demo/marking/stw.html" target="_blank" rel="noopener">STW: пошаговая маркировка</a></p><div class="counter">45 / 66</div>
+</div>
+
+<div id="slide-46" class="step slide " data-x="49500" data-y="0">
+<p class="eyebrow">Изменяющийся граф</p><h1>Маркировка неизменного графа</h1><pre><code class="language-text">while (!gray.isEmpty()) {
+    object = gray.remove();
+    for (target : references(object))
+        if (isWhite(target)) shadeGray(target);
+    makeBlack(object);
+}</code></pre><ul><li>Инвариант: нет ребра из чёрного в белый.</li><li>Корни учтены; сканирование сохраняет инвариант.</li><li>Нет серых → первый белый на пути потребовал бы ребра из чёрного.</li></ul><div class="notes">Начало: чёрных нет, объекты из корней серые. Шаг: перед blackening все белые цели становятся серыми. Завершение: у первого белого на пути был бы чёрный предшественник. Каждый объект сканируется не более одного раза.</div><div class="counter">46 / 66</div>
+</div>
+
+<div id="slide-47" class="step slide " data-x="50600" data-y="0">
+<p class="eyebrow">Изменяющийся граф</p><h1>Перед изменением: C ещё не обнаружен</h1>
+<svg class="graph" viewBox="0 0 780 260" role="img" aria-label="Трёхцветный граф: R указывает на A и D; D указывает на C"><defs><marker id="tri-47" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#94a3b8"/></marker></defs><path d="M104.38184982478661 108.45107622385017 L240.70645734310102 82.48448431559981" stroke="#94a3b8" stroke-width="3" marker-end="url(#tri-47)"/><path d="M102.44313846281054 128.1317465206614 L242.92212747107368 184.99228969067266" stroke="#94a3b8" stroke-width="3" marker-end="url(#tri-47)"/><path d="M314.0953446296352 192.09383312935995 L586.0338918518455 129.03561928073148" stroke="#94a3b8" stroke-width="3" marker-end="url(#tri-47)"/><circle cx="70" cy="115" r="34" fill="#164e63" stroke="#94a3b8" stroke-width="2"/><text x="70" y="123" text-anchor="middle" fill="white" font-size="25">R</text><circle cx="280" cy="75" r="34" fill="#111827" stroke="#94a3b8" stroke-width="2"/><text x="280" y="83" text-anchor="middle" fill="white" font-size="25">A</text><circle cx="280" cy="200" r="34" fill="#64748b" stroke="#94a3b8" stroke-width="2"/><text x="280" y="208" text-anchor="middle" fill="white" font-size="25">D</text><circle cx="625" cy="120" r="34" fill="#f8fafc" stroke="#94a3b8" stroke-width="2"/><text x="625" y="128" text-anchor="middle" fill="#111827" font-size="25">C</text></svg><ul><li>A чёрный: его поля уже просмотрены.</li><li>D серый: его поле на C ещё предстоит прочитать.</li><li>C белый, но достижим через D.</li></ul><div class="notes">R — условное представление корней. Приложение может обращаться к A и D.</div><div class="counter">47 / 66</div>
+</div>
+
+<div id="slide-48" class="step slide " data-x="51700" data-y="0">
+<p class="eyebrow">Изменяющийся граф</p><h1>Приложение переносит ссылку</h1>
+<pre><code class="language-java">a.ref = d.ref; // добавляем A → C
+d.ref = null;  // удаляем D → C</code></pre><svg class="graph" viewBox="0 0 780 260" role="img" aria-label="Трёхцветный граф: R указывает на A и D; A указывает на C"><defs><marker id="tri-48" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#94a3b8"/></marker></defs><path d="M104.38184982478661 108.45107622385017 L240.70645734310102 82.48448431559981" stroke="#94a3b8" stroke-width="3" marker-end="url(#tri-48)"/><path d="M102.44313846281054 128.1317465206614 L242.92212747107368 184.99228969067266" stroke="#94a3b8" stroke-width="3" marker-end="url(#tri-48)"/><path d="M314.7060143915178 79.52687144237188 L585.3359835525512 114.82643263728927" stroke="#94a3b8" stroke-width="3" marker-end="url(#tri-48)"/><circle cx="70" cy="115" r="34" fill="#164e63" stroke="#94a3b8" stroke-width="2"/><text x="70" y="123" text-anchor="middle" fill="white" font-size="25">R</text><circle cx="280" cy="75" r="34" fill="#111827" stroke="#94a3b8" stroke-width="2"/><text x="280" y="83" text-anchor="middle" fill="white" font-size="25">A</text><circle cx="280" cy="200" r="34" fill="#64748b" stroke="#94a3b8" stroke-width="2"/><text x="280" y="208" text-anchor="middle" fill="white" font-size="25">D</text><circle cx="625" cy="120" r="34" fill="#f8fafc" stroke="#94a3b8" stroke-width="2"/><text x="625" y="128" text-anchor="middle" fill="#111827" font-size="25">C</text></svg><p class="question">GC продолжает обход с серого D. Обнаружит ли он C?</p><div class="notes">Считаем изменение завершённым между шагами GC. На этом этапе барьеров ещё нет; учебный алгоритм намеренно неверен.</div><div class="counter">48 / 66</div>
+</div>
+
+<div id="slide-49" class="step slide " data-x="52800" data-y="0">
+<p class="eyebrow">Изменяющийся граф</p><h1>Условия корректности маркировки</h1><ul><li>Контрпример опровергает обычный обход; исправление одного сценария не доказывает новый алгоритм.</li><li>Incremental update: сохранять запрет чёрных ссылок на белое.</li><li>SATB: для каждого белого объекта снимка сохранять путь из серого через белые объекты.</li><li>Проверить начало, все переходы и условие завершения.</li></ul><p class="takeaway">Завершение учитывает все очереди и буферы барьеров.</p><div class="notes">S0 — достижимые в начале цикла объекты. В инварианте SATB после начального серого все вершины пути белые. Серый фронт включает ожидающие обработки записи барьеров. Пример A/D/C иллюстрирует нарушение, но не заменяет индуктивное доказательство.</div><div class="counter">49 / 66</div>
+</div>
+
+<div id="slide-50" class="step slide " data-x="53900" data-y="0">
+<p class="eyebrow">Изменяющийся граф</p><h1>Incremental update: учитывать новое ребро</h1><pre><code class="language-text">// Один атомарный шаг учебной модели
+a.ref = c;
+if (isBlack(a) &amp;&amp; isWhite(c)) shadeGray(c);</code></pre><ul><li>Удаление не создаёт ребра из чёрного в белый.</li><li>Добавление такого ребра делает цель серой.</li><li>Сканирование серого сохраняет тот же инвариант.</li><li>Значит, инвариант сохранён при любом чередовании шагов.</li></ul><p class="muted"><a href="gc-algorithms-demo/marking/incremental.html" target="_blank" rel="noopener">Incremental update: пошаговая модель</a></p><div class="notes">Маркировка активна. Присваивание с барьером и сканирование объекта — атомарные шаги модели. В конкурентной реализации надо обосновать их разбиение на операции: гонку записи с blackening и завершением обработки очередей.</div><div class="source"><a href="https://www.cs.utexas.edu/~EWD/transcriptions/EWD05xx/EWD595.html">Dijkstra и др.: инварианты и уточнение атомарных шагов</a></div><div class="counter">50 / 66</div>
+</div>
+
+<div id="slide-51" class="step slide " data-x="55000" data-y="0">
+<p class="eyebrow">Изменяющийся граф</p><h1>SATB: сохранить удаляемую цель</h1><pre><code class="language-text">// Один атомарный шаг учебной модели
+old = d.ref;
+if (old != null) satbQueue.add(old);
+d.ref = null;</code></pre><ul><li>Начало: каждый белый объект снимка достижим из серого.</li><li>Сканирование передвигает серую границу по пути.</li><li>Удаление сохраняет цель и оставшийся суффикс пути.</li><li>Добавление ребра существующий путь не разрушает.</li></ul><p class="takeaway">Нет серой работы и записей в буферах → нет белых объектов снимка.</p><p class="muted"><a href="gc-algorithms-demo/marking/satb.html" target="_blank" rel="noopener">SATB: очередь и буфер</a></p><div class="notes">Все внутренние вершины защищающего пути белые. При удалении старой цели её очередь становится новой точкой входа в суффикс. Физическая метка может устанавливаться позже: буферы входят в незавершённую работу. Корни, аллокации, публикация буферов и завершение требуют отдельных протоколов полной реализации.</div><div class="source"><a href="https://docs.oracle.com/en/java/javase/25/gctuning/garbage-first-g1-garbage-collector1.html">G1: SATB и завершение маркировки в Remark</a></div><div class="counter">51 / 66</div>
+</div>
+
+<div id="slide-52" class="step slide " data-x="56100" data-y="0">
+<p class="eyebrow">Изменяющийся граф</p><h1>Два назначения барьеров</h1>
+<table><thead><tr><th>Задача</th><th>Что нужно помнить</th></tr></thead><tbody><tr><td>Собрать часть heap</td><td>Откуда могут приходить ссылки извне.</td></tr><tr><td>Маркировать меняющийся граф</td><td>Какие изменения могли скрыть живой объект.</td></tr></tbody></table><pre><code class="language-text">holder.item = next;
+// Может требовать и учёта межрегиональной ссылки,
+// и сохранения прежней цели для SATB.</code></pre><p class="takeaway">Для card table нужен адрес изменённого поля; для SATB — прежнее значение этого поля.</p><div class="source"><a href="https://docs.oracle.com/en/java/javase/25/gctuning/garbage-first-g1-garbage-collector1.html">G1: цикл, remembered sets, SATB</a></div><div class="counter">52 / 66</div>
+</div>
+
+<div id="slide-53" class="step slide " data-x="57200" data-y="0">
+<p class="eyebrow">G1 · соединяем механизмы</p><h1>G1: выбираем регионы для эвакуации</h1>
+<pre><code class="language-text">Heap: [E][O][S][O][O][E][free][O]
+CSet:  ↑     ↑        ↑
+       собираем выбранные регионы</code></pre><table><thead><tr><th>Структура</th><th>Назначение</th></tr></thead><tbody><tr><td>Card table</td><td>Учёт диапазонов, затронутых записями.</td></tr><tr><td>Remembered sets</td><td>Учёт возможных входящих ссылок в регионы.</td></tr><tr><td>Collection set</td><td>Регионы, выбранные для текущей эвакуации.</td></tr></tbody></table><p class="muted">Пример: поле в A:card7 указывает в регион B → RSet[B] учитывает A:card7.</p><div class="notes">Не утверждать, что каждая запись немедленно создаёт точную запись RSet. В JDK 25 часть remembered sets old-кандидатов перестраивается между Remark и Cleanup.</div><div class="source"><a href="https://docs.oracle.com/en/java/javase/25/gctuning/garbage-first-g1-garbage-collector1.html">G1: цикл, remembered sets, SATB</a></div><div class="counter">53 / 66</div>
+</div>
+
+<div id="slide-54" class="step slide " data-x="58300" data-y="0">
+<p class="eyebrow">G1 · соединяем механизмы</p><h1>Маркировка готовит последующее освобождение</h1>
+<div class="flow"><div class="box">Concurrent marking</div><span class="arrow">→</span><div class="box">Оценка живости</div><span class="arrow">→</span><div class="box">Выбор old-регионов</div><span class="arrow">→</span><div class="box">Mixed GC</div></div><ul><li>Маркировка определяет живость и помогает оценить выгоду сборки.</li><li>Mixed-пауза эвакуирует young и выбранную часть old.</li><li>При успешной эвакуации исходные регионы возвращаются в свободные.</li><li>Цель паузы влияет на выбор объёма работы, но не гарантирует дедлайн.</li></ul><div class="notes">В ходе цикла возможны и другие пути освобождения, например полностью пустых регионов. Схема показывает основной переход к mixed collection.</div><div class="source"><a href="https://docs.oracle.com/en/java/javase/25/gctuning/garbage-first-g1-garbage-collector1.html">G1: цикл, remembered sets, SATB</a></div><div class="counter">54 / 66</div>
+</div>
+
+<div id="slide-55" class="step slide " data-x="59400" data-y="0">
+<p class="eyebrow">G1 · соединяем механизмы</p><h1>Один цикл G1 во времени</h1>
+<div class="timeline"><div class="lane"><b>Приложение</b><span class="segment stop">STW</span><span class="segment ">работа</span><span class="segment stop">STW</span><span class="segment ">работа</span><span class="segment stop">STW</span></div><div class="lane"><b>G1</b><span class="segment work">Concurrent Start</span><span class="segment work">Marking</span><span class="segment work">Remark</span><span class="segment work">Rebuild RSet</span><span class="segment work">Cleanup</span></div></div><div class="flow"><div class="box">Young-only</div><span class="arrow">→</span><div class="box">Concurrent cycle</div><span class="arrow">→</span><div class="box">Prepare Mixed</div><span class="arrow">→</span><div class="box">Mixed → Mixed</div></div><ul><li>Concurrent Start совмещён с young-паузой.</li><li>Во время маркировки могут происходить дополнительные young GC.</li><li>Mixed-эвакуация выполняется параллельно, но в STW.</li></ul><div class="notes">Упрощённая шкала, интервалы не в масштабе. После Remark и до Cleanup G1 выполняет конкурентную работу, включая rebuilding remembered sets. Не каждая young-пауза запускает маркировку.</div><div class="source"><a href="https://docs.oracle.com/en/java/javase/25/gctuning/garbage-first-g1-garbage-collector1.html">G1: цикл, remembered sets, SATB</a></div><div class="counter">55 / 66</div>
+</div>
+
+<div id="slide-56" class="step slide " data-x="60500" data-y="0">
+<p class="eyebrow">G1 · соединяем механизмы</p><h1>Проверяем понимание</h1>
+<ul><li>Почему young GC должен просматривать часть old?</li><li>Почему для эвакуации нужны именно места входящих ссылок?</li><li>Почему Parallel GC продолжает останавливать приложение?</li><li>Как живой C может остаться белым между шагами обхода?</li><li>Почему конкурентная маркировка ещё не решает конкурентного перемещения?</li></ul><p class="takeaway">Следующий шаг: как читать и менять ссылку, пока объект перемещается.</p><p class="muted"><a href="https://docs.oracle.com/en/java/javase/25/gctuning/">GC Guide JDK 25</a> · <a href="https://github.com/openjdk/jdk/tree/jdk-25%2B36/src/hotspot/share/gc">Исходники HotSpot jdk-25+36</a></p><div class="notes">Ожидаемые ответы: входящие ссылки; обновление полей после перемещения; parallel описывает потоки GC; перенос ребра за границу обхода; concurrent relocation требует протокола доступа к актуальному расположению.</div><div class="counter">56 / 66</div>
+</div>
+<div id="slide-57" class="step slide" data-x="61600" data-y="0">
+<p class="eyebrow">Карта коллекторов · HotSpot JDK 25</p><h1>Коллекторы как сочетания механизмов</h1>
+<table><thead><tr><th>Семейство</th><th>Основное сочетание</th></tr></thead><tbody>
+<tr><td>Serial</td><td>Поколения + STW + один GC-поток.</td></tr>
+<tr><td>Parallel</td><td>Поколения + STW + параллельная работа.</td></tr>
+<tr><td>G1</td><td>Поколения + регионы + SATB + эвакуация в паузах.</td></tr>
+<tr><td>ZGC</td><td>Поколения + страницы + SATB + конкурентное перемещение.</td></tr>
+<tr><td>Shenandoah</td><td>Регионы + SATB + конкурентное перемещение; два режима поколений.</td></tr>
+<tr><td>Epsilon</td><td>Выделение памяти без её возврата сборщиком.</td></tr>
+</tbody></table><p class="muted">Срез: HotSpot OpenJDK 25. Состав конкретной сборки JDK зависит от поставщика и платформы.</p>
+<div class="source"><a href="https://github.com/openjdk/jdk/blob/jdk-25%2B36/src/hotspot/share/gc/">Исходники HotSpot JDK 25</a></div><div class="counter">57 / 66</div>
+</div>
+
+<div id="slide-58" class="step slide" data-x="62700" data-y="0">
+<p class="eyebrow">Карта коллекторов · HotSpot JDK 25</p><h1>Serial: два поколения, работа в паузе</h1>
+<pre><code class="language-bash">-XX:+UseSerialGC</code></pre>
+<ul><li>Young: копирование живых объектов; survivor или продвижение в old.</li>
+<li>Full GC: маркировка, исправление ссылок и уплотнение перемещением.</li>
+<li>Один GC-поток; приложение остановлено во время сборки.</li>
+<li>Карточки учитывают изменения old; young GC ищет там входящие ссылки.</li>
+<li>Old — непрерывное пространство, без выбора регионов для сборки.</li></ul>
+<p class="takeaway">STW делает граф неизменным на время обхода: SATB и incremental update здесь не нужны.</p>
+<div class="source"><a href="https://github.com/openjdk/jdk/blob/jdk-25%2B36/src/hotspot/share/gc/serial/serialFullGC.cpp">Serial: реализация Full GC</a></div><div class="counter">58 / 66</div>
+</div>
+
+<div id="slide-59" class="step slide" data-x="63800" data-y="0">
+<p class="eyebrow">Карта коллекторов · HotSpot JDK 25</p><h1>Parallel: больше потоков внутри STW</h1>
+<pre><code class="language-bash">-XX:+UseParallelGC -XX:ParallelGCThreads=4</code></pre>
+<ul><li>Young: параллельное копирование в survivor и old.</li>
+<li>Full GC: параллельная маркировка и уплотнение.</li>
+<li>Поколения и карточки сохраняются.</li>
+<li>Потоки согласуют обход, forwarding и перемещение.</li>
+<li>Приложение остановлено и в young GC, и в Full GC.</li></ul>
+<p class="takeaway">Ускоряем выполнение сборки несколькими потоками; конкурентного изменения графа ещё нет.</p>
+<div class="source"><a href="https://docs.oracle.com/en/java/javase/25/gctuning/parallel-collector1.html">Parallel GC, JDK 25</a></div><div class="counter">59 / 66</div>
+</div>
+
+<div id="slide-60" class="step slide" data-x="64900" data-y="0">
+<p class="eyebrow">Карта коллекторов · HotSpot JDK 25</p><h1>G1: конкурентно найти, в паузе перенести</h1>
+<pre><code class="language-bash">-XX:+UseG1GC</code></pre>
+<ul><li>Регионы с назначением young или old.</li>
+<li>Конкурентная маркировка old с SATB.</li>
+<li>Young и mixed: параллельная эвакуация в STW.</li>
+<li>Карточки + remembered sets находят входящие ссылки в collection set.</li>
+<li>Old освобождается порциями через выбор регионов.</li></ul>
+<p class="takeaway">Обычное освобождение — эвакуация регионов. Резервный Full GC — STW с уплотнением.</p>
+<div class="source"><a href="https://docs.oracle.com/en/java/javase/25/gctuning/garbage-first-g1-garbage-collector1.html">G1, JDK 25</a></div><div class="counter">60 / 66</div>
+</div>
+
+<div id="slide-61" class="step slide" data-x="66000" data-y="0">
+<p class="eyebrow">Карта коллекторов · HotSpot JDK 25</p><h1>ZGC: перемещать вместе с приложением</h1>
+<pre><code class="language-bash">-XX:+UseZGC</code></pre>
+<ul><li>В JDK 25 — young и old; память организована в ZPages.</li>
+<li>Маркировка с SATB и перемещение выполняются конкурентно.</li>
+<li>GC использует несколько рабочих потоков; остаются короткие STW-фазы.</li>
+<li>Load barriers + цветные указатели обеспечивают доступ при перемещении.</li>
+<li>Store barriers учитывают SATB и ссылки old → young.</li></ul>
+<p class="takeaway">Remembered sets отмечают адреса полей в bitmap, а не диапазоны грязных карточек.</p>
+<div class="source"><a href="https://openjdk.org/jeps/439">Generational ZGC: барьеры и remembered sets</a></div><div class="counter">61 / 66</div>
+</div>
+
+<div id="slide-62" class="step slide" data-x="67100" data-y="0">
+<p class="eyebrow">Карта коллекторов · HotSpot JDK 25</p><h1>Shenandoah: регионы без поколений</h1>
+<pre><code class="language-bash">-XX:+UseShenandoahGC -XX:ShenandoahGCMode=satb</code></pre>
+<ul><li>Регионы; в этом режиме нет разделения на young и old.</li>
+<li>Конкурентная маркировка с SATB.</li>
+<li>Конкурентная эвакуация выбранных регионов.</li>
+<li>Load-reference barriers и forwarding поддерживают доступ к копиям.</li>
+<li>Обновление ссылок также выполняется конкурентно; остаются STW-фазы.</li></ul>
+<p class="takeaway">Регионы позволяют выбирать области для эвакуации и без поколений.</p>
+<div class="source"><a href="https://github.com/openjdk/jdk/blob/jdk-25%2B36/src/hotspot/share/gc/shenandoah/shenandoahHeap.cpp">Shenandoah: режимы и фазы</a></div><div class="counter">62 / 66</div>
+</div>
+
+<div id="slide-63" class="step slide" data-x="68200" data-y="0">
+<p class="eyebrow">Карта коллекторов · HotSpot JDK 25</p><h1>Generational Shenandoah: добавляем возраст</h1>
+<pre><code class="language-bash">-XX:+UseShenandoahGC -XX:ShenandoahGCMode=generational</code></pre>
+<ul><li>Young и old размещаются в регионах.</li>
+<li>Сохраняются SATB, конкурентная эвакуация и load-reference barriers.</li>
+<li>Young можно собирать чаще, чем old.</li>
+<li>Card-marking barrier учитывает записи для поиска old → young.</li>
+<li>Две карточные таблицы разделяют запись изменений и чтение сборщиком.</li></ul>
+<p class="takeaway">В JDK 25 это product-режим, но по умолчанию Shenandoah остаётся без поколений.</p>
+<div class="source"><a href="https://openjdk.org/jeps/521">Generational Shenandoah в JDK 25</a></div><div class="counter">63 / 66</div>
+</div>
+
+<div id="slide-64" class="step slide" data-x="69300" data-y="0">
+<p class="eyebrow">Карта коллекторов · HotSpot JDK 25</p><h1>Epsilon: выделять, не собирать</h1>
+<pre><code class="language-bash">-XX:+UnlockExperimentalVMOptions -XX:+UseEpsilonGC</code></pre>
+<ul><li>Выделяет память, но не возвращает её через сборку мусора.</li>
+<li>Нет маркировки, эвакуации и уплотнения.</li>
+<li>Нет поколений и барьеров для сопровождения сборки.</li>
+<li>Недостижимые объекты продолжают занимать heap.</li>
+<li>После исчерпания доступного heap — OutOfMemoryError.</li></ul>
+<p class="takeaway">Позволяет измерять нагрузку без работы GC, если все аллокации помещаются в heap.</p>
+<div class="source"><a href="https://openjdk.org/jeps/318">Epsilon GC</a></div><div class="counter">64 / 66</div>
+</div>
+
+<div id="slide-65" class="step slide" data-x="70400" data-y="0">
+<p class="eyebrow">Карта коллекторов · HotSpot JDK 25</p><h1>Одинаковые кирпичи, разные сочетания</h1>
+<table><thead><tr><th>GC / режим</th><th>Поколения</th><th>Маркировка*</th><th>Перемещение*</th><th>Old → young</th></tr></thead><tbody>
+<tr><td>Serial</td><td>Да</td><td>STW</td><td>STW, 1 поток</td><td>Карточки</td></tr>
+<tr><td>Parallel</td><td>Да</td><td>STW</td><td>STW, parallel</td><td>Карточки</td></tr>
+<tr><td>G1</td><td>Да</td><td>Concurrent, SATB</td><td>STW, parallel</td><td>Cards + RSet</td></tr>
+<tr><td>ZGC</td><td>Да</td><td>Concurrent, SATB</td><td>Concurrent</td><td>Bitmap полей</td></tr>
+<tr><td>Shenandoah satb</td><td>Нет</td><td>Concurrent, SATB</td><td>Concurrent</td><td>—</td></tr>
+<tr><td>Shenandoah gen.</td><td>Да</td><td>Concurrent, SATB</td><td>Concurrent</td><td>Карточки</td></tr>
+<tr><td>Epsilon</td><td>Нет</td><td>—</td><td>—</td><td>—</td></tr>
+</tbody></table><p class="muted">* Основные пути JDK 25. Young GC может совмещать поиск с копированием; concurrent не исключает STW-фазы.</p>
+<div class="source"><a href="https://github.com/openjdk/jdk/blob/jdk-25%2B36/src/hotspot/share/gc/">HotSpot JDK 25: реализация семейств GC</a></div><div class="counter">65 / 66</div>
+</div>
+
+<div id="slide-66" class="step slide" data-x="71500" data-y="0">
+<p class="eyebrow">Карта коллекторов · HotSpot JDK 25</p><h1>Где в этой карте incremental update?</h1>
+<ul><li>В рассмотренных конкурентных режимах JDK 25 используется SATB.</li>
+<li>Serial и Parallel не требуют защиты маркировки от записей приложения.</li>
+<li>В JDK 21 у Shenandoah был экспериментальный режим <code>iu</code>.</li>
+<li>В JDK 25 доступны режимы <code>satb</code>, <code>generational</code> и <code>passive</code>.</li>
+<li>CMS относится к истории: удалён из OpenJDK в JDK 14.</li></ul>
+<p class="takeaway">Incremental update — альтернативный кирпич, но не выбор современных режимов этого среза HotSpot.</p>
+<div class="source"><a href="https://github.com/openjdk/jdk/blob/jdk-21%2B35/src/hotspot/share/gc/shenandoah/mode/shenandoahIUMode.cpp">Shenandoah IU в JDK 21</a></div><div class="counter">66 / 66</div>
+</div>
+</div>
+<div class="impress-progressbar"><div></div></div><div class="impress-progress"></div>
+<a class="ov" href="#/intro">В начало</a>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<script>if (window.hljs) hljs.highlightAll();</script>
+<script src="js/impress.js"></script><script>impress().init();</script>
+</body></html>
